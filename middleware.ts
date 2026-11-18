@@ -1,3 +1,62 @@
-import { createServerClient } from '@supabase/ssr';import { NextResponse,type NextRequest } from 'next/server';
-export async function middleware(req:NextRequest){let res=NextResponse.next({request:req});const sb=createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{cookies:{getAll:()=>req.cookies.getAll(),setAll(cs){cs.forEach(c=>req.cookies.set(c.name,c.value));res=NextResponse.next({request:req});cs.forEach(c=>res.cookies.set(c.name,c.value,c.options))}}});const {data:{user}}=await sb.auth.getUser();if(!user&&!req.nextUrl.pathname.startsWith('/login')&&!req.nextUrl.pathname.startsWith('/auth')){const u=req.nextUrl.clone();u.pathname='/login';return NextResponse.redirect(u)}return res}
-export const config={matcher:['/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest).*)']}
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
+
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: Record<string, unknown>;
+};
+
+export async function middleware(req: NextRequest) {
+  let res = NextResponse.next({
+    request: req,
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+
+        setAll(cookiesToSet: CookieToSet[]) {
+          cookiesToSet.forEach(({ name, value }) => {
+            req.cookies.set(name, value);
+          });
+
+          res = NextResponse.next({
+            request: req,
+          });
+
+          cookiesToSet.forEach(({ name, value, options }) => {
+            res.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isPublicRoute =
+    req.nextUrl.pathname.startsWith('/login') ||
+    req.nextUrl.pathname.startsWith('/auth');
+
+  if (!user && !isPublicRoute) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  return res;
+}
+
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest).*)',
+  ],
+};
