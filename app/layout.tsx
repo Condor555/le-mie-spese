@@ -1,0 +1,1 @@
+import './globals.css';import Nav from '../components/Nav';export const metadata={title:'Le Mie Spese',description:'Finanze personali'};export default function Layout({children}:{children:React.ReactNode}){return <html lang="it"><body><main className="shell">{children}</main><Nav/></body></html>}

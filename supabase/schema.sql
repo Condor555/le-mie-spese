@@ -1,0 +1,10 @@
+create table if not exists public.accounts(id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users on delete cascade,name text not null,currency text not null default 'EUR',created_at timestamptz not null default now(),unique(user_id,name));
+create table if not exists public.categories(id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users on delete cascade,name text not null,parent_name text,color text,created_at timestamptz not null default now(),unique(user_id,name));
+create table if not exists public.transactions(id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users on delete cascade,source text,source_id text,date date not null,category_name text not null,amount numeric(14,2) not null,currency text not null default 'EUR',note text not null default '',account_name text not null default 'Spese',created_at timestamptz not null default now(),unique(user_id,source,source_id));
+create table if not exists public.classifier_feedback(id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users on delete cascade,note_normalized text not null,category_name text not null,created_at timestamptz not null default now());
+alter table public.accounts enable row level security;alter table public.categories enable row level security;alter table public.transactions enable row level security;alter table public.classifier_feedback enable row level security;
+create policy "own accounts" on public.accounts for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
+create policy "own categories" on public.categories for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
+create policy "own transactions" on public.transactions for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
+create policy "own feedback" on public.classifier_feedback for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
+create index if not exists tx_user_date on public.transactions(user_id,date desc);create index if not exists tx_user_note on public.transactions(user_id,note);
