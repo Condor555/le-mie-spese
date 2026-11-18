@@ -1,2 +1,2 @@
 import Icon from './Icon';import {categoryStyle} from '../lib/category-style';
-export default function CategoryIcon({name,size=42}:{name:string;size?:number}){const s=categoryStyle(name);return <span className="category-icon" style={{background:s.color,width:size,height:size}}><Icon name={s.icon} size={Math.round(size*.52)}/></span>}
+export default function CategoryIcon({name,icon,color,size=42}:{name:string;icon?:string|null;color?:string|null;size?:number}){const s=categoryStyle(name,{icon:icon as any,color:color||undefined});return <span className="category-icon" style={{background:s.color,width:size,height:size}}><Icon name={s.icon} size={Math.round(size*.52)}/></span>}
