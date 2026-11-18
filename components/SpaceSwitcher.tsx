@@ -1,5 +1,4 @@
 'use client';
-import Link from 'next/link';
 import {useEffect,useState} from 'react';
 import {usePathname,useRouter} from 'next/navigation';
 type Space={id:string;name:string;type:string};
@@ -10,5 +9,6 @@ export default function SpaceSwitcher(){
  useEffect(()=>{load()},[pathname]);
  async function choose(id:string){setActive(id);localStorage.setItem('active_space',id);await fetch('/api/spaces/select',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({spaceId:id})});router.refresh()}
  if(!ready)return <div className="space-switcher space-loading">Caricamento spazio…</div>;
- return <div className="space-switcher">{spaces.length?<select value={active} onChange={e=>choose(e.target.value)}>{spaces.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>:<span>Nessuno spazio</span>}<Link href="/spazi">Gestisci</Link></div>
+ if(!spaces.length)return null;
+ return <div className="space-switcher space-switcher-only"><select value={active} onChange={e=>choose(e.target.value)}>{spaces.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
 }
