@@ -1,0 +1,1 @@
+import {NextResponse} from 'next/server';import {createClient} from '../../../lib/supabase/server';export async function GET(){const sb=await createClient();const {data,error}=await sb.from('transactions').select('category_name').order('category_name');const names=[...new Set((data||[]).map(x=>x.category_name))];return NextResponse.json({data:names,error})}
