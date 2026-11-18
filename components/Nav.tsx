@@ -1,2 +1,2 @@
 import Link from 'next/link';import LogoutButton from './LogoutButton';
-export default function Nav(){return <nav className="nav"><Link href="/">Home</Link><Link href="/movimenti">Movimenti</Link><Link className="fab" href="/nuovo">＋</Link><Link href="/statistiche">Statistiche</Link><Link href="/importa">Importa</Link><LogoutButton/></nav>}
+export default function Nav(){return <nav className="nav" aria-label="Navigazione principale"><Link href="/">⌂ Home</Link><Link href="/movimenti">☷ Movimenti</Link><Link className="fab" href="/nuovo" aria-label="Nuovo movimento">＋</Link><Link href="/statistiche">▥ Statistiche</Link><Link href="/importa">⇩ Importa</Link><LogoutButton/></nav>}
