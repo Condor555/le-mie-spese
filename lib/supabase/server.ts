@@ -1,2 +1,35 @@
-import { createServerClient } from '@supabase/ssr';import { cookies } from 'next/headers';
-export async function createClient(){const c=await cookies();return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{cookies:{getAll(){return c.getAll()},setAll(v){try{v.forEach(x=>c.set(x.name,x.value,x.options))}catch{}}}})}
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: Record<string, unknown>;
+};
+
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+
+        setAll(cookiesToSet: CookieToSet[]) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // setAll può essere invocato in un Server Component,
+            // dove la scrittura dei cookie non è disponibile.
+          }
+        },
+      },
+    }
+  );
+}
