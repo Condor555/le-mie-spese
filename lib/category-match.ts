@@ -1,0 +1,2 @@
+export const norm=(s:string)=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+export function similarity(a:string,b:string){const x=norm(a),y=norm(b);if(x===y)return 1;if(x.includes(y)||y.includes(x))return .9;const A=new Set(x.match(/.{1,2}/g)||[]),B=new Set(y.match(/.{1,2}/g)||[]),i=[...A].filter(v=>B.has(v)).length,u=new Set([...A,...B]).size;return u?i/u:0}
