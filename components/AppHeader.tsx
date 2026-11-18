@@ -1,1 +1,17 @@
-import SpaceSwitcher from './SpaceSwitcher';export default function AppHeader(){return <SpaceSwitcher/>}
+'use client';
+import {usePathname} from 'next/navigation';
+import SpaceSwitcher from './SpaceSwitcher';
+
+export default function AppHeader(){
+  const pathname=usePathname();
+  const hidden =
+    pathname === '/login' ||
+    pathname === '/registrati' ||
+    pathname === '/nuovo' ||
+    pathname === '/account' ||
+    pathname.startsWith('/account/') ||
+    pathname === '/spazi';
+
+  if(hidden) return null;
+  return <SpaceSwitcher/>;
+}
