@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {createClient} from '../../../../lib/supabase/server';
+export async function PATCH(req:Request,{params}:{params:Promise<{name:string}>}){const {name}=await params;const sb=await createClient();const b=await req.json();const {data,error}=await sb.from('categories').update({icon:b.icon,color:b.color,name:b.newName||decodeURIComponent(name)}).eq('name',decodeURIComponent(name)).select().single();return NextResponse.json({data,error},{status:error?400:200})}
