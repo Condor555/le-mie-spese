@@ -2,5 +2,13 @@
 import Link from 'next/link';
 import {useEffect,useState} from 'react';
 import {usePathname,useRouter} from 'next/navigation';
-type S={id:string;name:string;type:string};
-export default function SpaceSwitcher(){const [spaces,setSpaces]=useState<S[]>([]),[active,setActive]=useState(''),[ready,setReady]=useState(false);const router=useRouter(),path=usePathname();async function load(){try{const j=await fetch('/api/spaces',{cache:'no-store'}).then(r=>r.json()),a:S[]=j.data||[];setSpaces(a);const saved=localStorage.getItem('active_space');const wanted=a.some(s=>s.id===saved)?saved:a.find(s=>s.type==='personal')?.id||a[0]?.id||'';if(wanted&&wanted!==active){setActive(wanted);localStorage.setItem('active_space',wanted);await fetch('/api/spaces/select',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({spaceId:wanted})})}}finally{setReady(true)}}useEffect(()=>{load()},[path]);async function choose(id:string){setActive(id);localStorage.setItem('active_space',id);await fetch('/api/spaces/select',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({spaceId:id})});router.refresh()}if(!ready)return <div className="space-switcher skeleton-space">Caricamento spazio…</div>;if(!spaces.length)return <div className="space-switcher"><span>Nessuno spazio</span><Link href="/spazi">Gestisci</Link></div>;return <div className="space-switcher"><select value={active} onChange={e=>choose(e.target.value)}>{spaces.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select><Link href="/spazi">Gestisci</Link></div>}
+type Space={id:string;name:string;type:string};
+export default function SpaceSwitcher(){
+ const [spaces,setSpaces]=useState<Space[]>([]); const [active,setActive]=useState(''); const [ready,setReady]=useState(false);
+ const router=useRouter(); const pathname=usePathname();
+ async function load(){setReady(false);try{const j=await fetch('/api/spaces',{cache:'no-store'}).then(r=>r.json());const list:Space[]=j.data||[];setSpaces(list);const saved=localStorage.getItem('active_space');const wanted=list.some(s=>s.id===saved)?saved||'':list.find(s=>s.type==='personal')?.id||list[0]?.id||'';if(wanted){setActive(wanted);localStorage.setItem('active_space',wanted);await fetch('/api/spaces/select',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({spaceId:wanted})});}}finally{setReady(true)}}
+ useEffect(()=>{load()},[pathname]);
+ async function choose(id:string){setActive(id);localStorage.setItem('active_space',id);await fetch('/api/spaces/select',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({spaceId:id})});router.refresh()}
+ if(!ready)return <div className="space-switcher space-loading">Caricamento spazio…</div>;
+ return <div className="space-switcher">{spaces.length?<select value={active} onChange={e=>choose(e.target.value)}>{spaces.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>:<span>Nessuno spazio</span>}<Link href="/spazi">Gestisci</Link></div>
+}
