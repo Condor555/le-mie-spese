@@ -1,0 +1,3 @@
+import {NextResponse} from 'next/server';import {createClient} from '../../../lib/supabase/server';
+const norm=(s:string)=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+export async function POST(req:Request){const sb=await createClient();const {data:{user}}=await sb.auth.getUser();if(!user)return NextResponse.json({error:'Unauthorized'},{status:401});const {note,category}=await req.json();const {error}=await sb.from('classifier_feedback').insert({user_id:user.id,note_normalized:norm(String(note||'')),category_name:String(category)});return NextResponse.json({ok:!error,error},{status:error?400:200})}
