@@ -81,4 +81,28 @@ export async function POST(req: Request) {
     );
   }
 
-  const { data, error }
+  const { data, error } = await sb
+  .from('categories')
+  .upsert(
+    {
+      user_id: user.id,
+      name: cleanName,
+    },
+    {
+      onConflict: 'user_id,name',
+    }
+  )
+  .select()
+  .single();
+
+if (error) {
+  return NextResponse.json(
+    { error: error.message },
+    { status: 400 }
+  );
+}
+
+return NextResponse.json({
+  data,
+});
+}
