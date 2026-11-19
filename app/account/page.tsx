@@ -11,5 +11,6 @@ const items=[
   {href:'/account/ricorrenze',icon:'repeat',title:'Transazioni ricorrenti',sub:'Crea e gestisci le ricorrenze'},
   {href:'/spazi',icon:'family',title:'Spazi e membri',sub:'Gestisci Personale, Famiglia e inviti'},
   {href:'/account/dati',icon:'download',title:'Importazione / esportazione dati',sub:'Importa o esporta file CSV'},
+  {href:'/account/informazioni',icon:'more',title:'Informazioni',sub:'Versione, licenze e attribuzioni'},
 ] as const;
 export default function Impostazioni(){const router=useRouter();async function logout(){await createClient().auth.signOut();router.replace('/login');router.refresh()}return <><header className="page-head"><div><h1>Impostazioni</h1><p>Profilo e gestione dell'app</p></div></header><section className="profile-menu surface">{items.map(x=><Link key={x.href} href={x.href} className="profile-menu-row"><span className="profile-menu-icon"><Icon name={x.icon}/></span><div><b>{x.title}</b><small>{x.sub}</small></div><strong>›</strong></Link>)}</section><button className="danger profile-logout" onClick={logout}><Icon name="logout" size={18}/> Esci dall'account</button></>}

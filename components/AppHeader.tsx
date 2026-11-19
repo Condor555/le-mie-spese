@@ -9,6 +9,7 @@ export default function AppHeader(){
     pathname === '/registrati' ||
     pathname === '/onboarding' ||
     pathname === '/nuovo' ||
+    pathname === '/importa' ||
     pathname === '/account' ||
     pathname.startsWith('/account/') ||
     pathname === '/spazi';

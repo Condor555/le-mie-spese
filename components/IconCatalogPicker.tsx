@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
-import CategoryPhosphorIcon from './CategoryPhosphorIcon';
+import CategoryColorIcon from './CategoryColorIcon';
 import {brandCatalog,iconGroups,phosphorIconCatalog} from '../lib/category-icon-catalog';
 
 type Tab='all'|'recent'|'favorites'|'brand';
@@ -40,7 +40,7 @@ export default function IconCatalogPicker({value,onChange}:{value:string;onChang
     {tab==='all'&&<select value={group} onChange={e=>setGroup(e.target.value)} aria-label="Gruppo icone"><option>Tutte</option>{iconGroups.map(x=><option key={x}>{x}</option>)}</select>}
     <div className="catalog-grid">
       {filtered.slice(0,limit).map(item=><button type="button" key={item.id} className={value===item.id?'selected':''} onClick={()=>choose(item.id)} title={item.label} aria-label={`Icona ${item.label}`}>
-        <CategoryPhosphorIcon icon={item.id} size={24}/><span>{item.label}</span>
+        <CategoryColorIcon icon={item.id} size={28}/><span>{item.label}</span>
         <i onClick={e=>favorite(item.id,e)} aria-label={favorites.includes(item.id)?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}>{favorites.includes(item.id)?'★':'☆'}</i>
       </button>)}
     </div>

@@ -33,8 +33,11 @@ function amountNumber(input:string){
 
 export async function POST(req:Request){
   try{
-    const {sb,user,spaceId}=await activeSpace();
-    const file=(await req.formData()).get('file');
+    const form=await req.formData();
+    const requestedSpaceId=String(form.get('space_id')||'').trim();
+    if(!requestedSpaceId)return NextResponse.json({error:'Spazio di destinazione mancante.'},{status:400});
+    const {sb,user,spaceId}=await activeSpace(requestedSpaceId);
+    const file=form.get('file');
     if(!(file instanceof File))return NextResponse.json({error:'File mancante'},{status:400});
     let text=await file.text();
     if(text.charCodeAt(0)===0xfffd){

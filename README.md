@@ -237,3 +237,47 @@ Per V3.6 eseguire anche un test con **Account A** e **Account B**:
 Costruita per una gestione finanziaria semplice, privata e condivisibile — senza abbandonare lo stack gratuito.
 
 </div>
+
+
+## V3.6 REV2.2 — prova Color, SpacePicker e Smart Autocomplete
+
+Questa variante mantiene invariati schema dati, Supabase, RLS, autenticazione, transazioni e modello multiutente della baseline V3.6 REV2.2, introducendo solo componenti applicativi e API che interrogano le tabelle esistenti.
+
+### Icone categorie
+
+- le icone funzionali dell’interfaccia restano Phosphor;
+- categorie e marchi usano asset colorati locali in `public/icons/categories` e `public/icons/brands`;
+- gli identificatori categoria già salvati restano validi e vengono risolti dal catalogo esistente;
+- identificatori sconosciuti o asset non mappati usano il fallback locale `tag.svg`;
+- l’app non effettua chiamate Icons8 a runtime;
+- l’attribuzione richiesta è visibile in **Impostazioni → Informazioni**.
+
+### SpacePicker accessibile
+
+Un unico componente `components/SpacePicker.tsx` gestisce:
+
+- variante compatta per lo spazio visualizzato in Home, Movimenti e Statistiche;
+- variante compatta per la destinazione della nuova ricorrenza;
+- variante destination per Nuova transazione e Importazione CSV.
+
+Il controllo usa trigger e listbox custom, icona Personale/Condiviso, check sul valore selezionato, click esterno, Escape, Home/End, frecce, Invio, focus visibile e stili light/dark. Il cambio dello spazio visualizzato continua a usare `/api/spaces/select` e l’evento client già presente; i selettori di destinazione non alterano lo spazio globale.
+
+### Importazione CSV
+
+La pagina Importazione CSV non mostra il selettore globale. Lo spazio viene scelto esplicitamente nella pagina e inviato come `space_id`; la route verifica l’appartenenza tramite `activeSpace(requestedSpaceId)` prima di importare movimenti e categorie.
+
+### Nuova ricorrenza
+
+La destinazione è esplicita e indipendente dallo spazio globalmente visualizzato. Al cambio spazio vengono ricaricati categorie e nome Conto; `space_id` viene inviato alla route di creazione, che conserva le verifiche di membership e categoria. Le occorrenze future mantengono lo `space_id` della serie.
+
+### Smart Autocomplete
+
+Nella schermata Nuova transazione, dopo due caratteri, `/api/transactions/suggestions` cerca nello storico del solo spazio di destinazione accessibile. I risultati:
+
+- sono deduplicati senza distinzione tra maiuscole/minuscole;
+- privilegiano prefisso, posizione del match, frequenza e recenza;
+- sono limitati a cinque;
+- includono la categoria storicamente più frequente per la descrizione;
+- non richiedono nuove tabelle.
+
+La selezione compila la descrizione e applica la categoria solo se ancora presente nello spazio corrente. La classificazione automatica esistente riceve anch’essa `spaceId` ed è ora filtrata per `transactions.space_id`, evitando contaminazioni tra spazi. Il cambio destinazione annulla le richieste obsolete, azzera categoria/suggerimenti e ricarica i dati coerenti con il nuovo spazio.

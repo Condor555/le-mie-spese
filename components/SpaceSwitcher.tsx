@@ -2,10 +2,10 @@
 
 import {useEffect,useRef,useState} from 'react';
 import {usePathname} from 'next/navigation';
-import Icon from './Icon';
+import SpacePicker,{type SpacePickerOption} from './SpacePicker';
 import {announceActiveSpace} from '../lib/active-space-client';
 
-type Space={id:string;name:string;type:string};
+type Space=SpacePickerOption;
 
 export default function SpaceSwitcher(){
   const [spaces,setSpaces]=useState<Space[]>([]);
@@ -59,18 +59,10 @@ export default function SpaceSwitcher(){
     }
   }
 
-  if(!ready)return <div className="space-selector space-selector-loading" aria-live="polite"><span className="space-selector-skeleton"/><span>Caricamento spazio…</span></div>;
+  if(!ready)return <div className="app-space-bar"><span className="space-picker-loading" aria-live="polite">Caricamento spazio…</span></div>;
   if(!spaces.length)return null;
 
-  const selected=spaces.find(space=>space.id===active)||spaces[0];
-  const personal=selected?.type==='personal';
-
-  return <label className={`space-selector${changing?' is-changing':''}`} title={error||undefined}>
-    <select aria-label="Spazio visualizzato" value={active} disabled={changing} onChange={event=>choose(event.target.value)}>
-      {spaces.map(space=><option key={space.id} value={space.id}>{space.name}</option>)}
-    </select>
-    <span className={`space-selector-icon ${personal?'personal':'shared'}`} aria-hidden="true"><Icon name={personal?'user':'family'} size={22}/></span>
-    <span className="space-selector-copy"><small>Spazio visualizzato</small><strong>{selected?.name}</strong></span>
-    <span className="space-selector-chevron" aria-hidden="true"><Icon name="arrowDown" size={18}/></span>
-  </label>;
+  return <div className="app-space-bar" title={error||undefined}>
+    <SpacePicker spaces={spaces} value={active} onChange={choose} variant="compact" disabled={changing}/>
+  </div>;
 }

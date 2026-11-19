@@ -1,25 +1,17 @@
 'use client';
 
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import BackToAccount from '../../../components/BackToAccount';
 import CategoryIcon from '../../../components/CategoryIcon';
 import Icon from '../../../components/Icon';
+import SpacePicker,{type SpacePickerOption} from '../../../components/SpacePicker';
 
-type Space={id:string;name:string;type:'personal'|'shared'};
+type Space=SpacePickerOption&{type:'personal'|'shared'};
 type Category={name:string};
 type Recurrence={
-  id:string;
-  space_id:string;
-  space_name:string;
-  space_type:'personal'|'shared';
-  note:string;
-  category_name:string;
-  amount:number;
-  frequency:'weekly'|'monthly'|'yearly';
-  interval_count:number;
-  next_run:string;
-  account_name:string;
-  active:boolean;
+  id:string;space_id:string;space_name:string;space_type:'personal'|'shared';note:string;
+  category_name:string;amount:number;frequency:'weekly'|'monthly'|'yearly';interval_count:number;
+  next_run:string;account_name:string;active:boolean;
 };
 type EditForm={note:string;category_name:string;amount:string;frequency:Recurrence['frequency'];next_run:string};
 
@@ -30,49 +22,101 @@ const dateLabel=(value:string)=>new Intl.DateTimeFormat('it-IT',{day:'numeric',m
 export default function Ricorrenze(){
   const [rows,setRows]=useState<Recurrence[]>([]);
   const [spaces,setSpaces]=useState<Space[]>([]);
-  const [activeSpaceId,setActiveSpaceId]=useState('');
+  const [createSpaceId,setCreateSpaceId]=useState('');
   const [cats,setCats]=useState<Category[]>([]);
   const [form,setForm]=useState({note:'',category_name:'',amount:'',frequency:'monthly' as Recurrence['frequency'],next_run:new Date().toISOString().slice(0,10),account_name:'Spese'});
   const [msg,setMsg]=useState('');
   const [loading,setLoading]=useState(true);
+  const [loadingDestination,setLoadingDestination]=useState(true);
   const [editing,setEditing]=useState<Recurrence|null>(null);
   const [editCats,setEditCats]=useState<Category[]>([]);
   const [editForm,setEditForm]=useState<EditForm>({note:'',category_name:'',amount:'',frequency:'monthly',next_run:''});
   const [saving,setSaving]=useState(false);
+  const destinationRequestRef=useRef(0);
 
-  async function load(){
-    setLoading(true);
+  async function recurringData(){
+    const response=await fetch('/api/recurring',{cache:'no-store'});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.error||'Impossibile caricare le ricorrenze.');
+    return result;
+  }
+
+  async function loadCreateDestination(targetSpaceId:string){
+    const request=++destinationRequestRef.current;
+    setLoadingDestination(true);
+    setCats([]);
+    setForm(current=>({...current,category_name:''}));
+    setMsg('');
     try{
-      const [recurringResult,categoryResult,accountResult]=await Promise.all([
-        fetch('/api/recurring',{cache:'no-store'}).then(async response=>({ok:response.ok,result:await response.json()})),
-        fetch('/api/categories',{cache:'no-store'}).then(response=>response.json()),
-        fetch('/api/settings/account',{cache:'no-store'}).then(response=>response.json()),
+      const [categoryResponse,accountResponse]=await Promise.all([
+        fetch(`/api/categories?spaceId=${encodeURIComponent(targetSpaceId)}`,{cache:'no-store'}),
+        fetch(`/api/settings/account?spaceId=${encodeURIComponent(targetSpaceId)}`,{cache:'no-store'}),
       ]);
-      if(!recurringResult.ok){setMsg(recurringResult.result.error||'Impossibile caricare le ricorrenze.');return;}
-      setRows(recurringResult.result.data||[]);
-      setSpaces(recurringResult.result.spaces||[]);
-      setActiveSpaceId(recurringResult.result.activeSpaceId||'');
+      const [categoryResult,accountResult]=await Promise.all([categoryResponse.json(),accountResponse.json()]);
+      if(request!==destinationRequestRef.current)return;
+      if(!categoryResponse.ok||!accountResponse.ok){
+        setMsg(categoryResult.error||accountResult.error||'Impossibile caricare lo spazio.');
+        return;
+      }
       setCats(categoryResult.data||[]);
       setForm(current=>({...current,account_name:accountResult.data?.name||'Spese'}));
     }catch{
-      setMsg('Errore di connessione.');
+      if(request===destinationRequestRef.current)setMsg('Errore di connessione.');
     }finally{
-      setLoading(false);
+      if(request===destinationRequestRef.current)setLoadingDestination(false);
     }
   }
 
-  useEffect(()=>{load()},[]);
+  useEffect(()=>{
+    let live=true;
+    (async()=>{
+      try{
+        const result=await recurringData();
+        if(!live)return;
+        const list:Space[]=result.spaces||[];
+        const selected=result.activeSpaceId||list.find(space=>space.type==='personal')?.id||list[0]?.id||'';
+        setRows(result.data||[]);
+        setSpaces(list);
+        setCreateSpaceId(selected);
+        if(selected)await loadCreateDestination(selected);
+        else setLoadingDestination(false);
+      }catch(error:any){if(live)setMsg(error?.message||'Errore di connessione.');}
+      finally{if(live)setLoading(false);}
+    })();
+    return()=>{live=false;destinationRequestRef.current++;};
+  },[]);
+
+  async function refreshOverview(){
+    setLoading(true);
+    try{
+      const result=await recurringData();
+      setRows(result.data||[]);
+      setSpaces(result.spaces||[]);
+    }catch(error:any){setMsg(error?.message||'Errore di connessione.');}
+    finally{setLoading(false);}
+  }
+
+  function chooseCreateSpace(spaceId:string){
+    if(spaceId===createSpaceId)return;
+    setCreateSpaceId(spaceId);
+    void loadCreateDestination(spaceId);
+  }
 
   const grouped=useMemo(()=>spaces.map(space=>({space,rows:rows.filter(row=>row.space_id===space.id)})),[rows,spaces]);
-  const activeSpace=spaces.find(space=>space.id===activeSpaceId);
 
   async function add(){
     const amount=Number(form.amount.replace(',','.'));
-    if(!amount||!form.category_name){setMsg('Inserisci importo e categoria.');return;}
-    const response=await fetch('/api/recurring',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...form,amount:-Math.abs(amount),interval_count:1})});
-    const result=await response.json();
-    setMsg(response.ok?'Ricorrenza creata.':result.error||'Impossibile creare la ricorrenza.');
-    if(response.ok){setForm(current=>({...current,note:'',category_name:'',amount:''}));await load();}
+    if(!createSpaceId){setMsg('Seleziona lo spazio di destinazione.');return;}
+    if(loadingDestination){setMsg('Attendi il caricamento dello spazio.');return;}
+    if(!amount||!form.category_name||!cats.some(category=>category.name===form.category_name)){setMsg('Inserisci importo e categoria validi per lo spazio scelto.');return;}
+    setSaving(true);
+    try{
+      const response=await fetch('/api/recurring',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...form,space_id:createSpaceId,amount:-Math.abs(amount),interval_count:1})});
+      const result=await response.json();
+      setMsg(response.ok?'Ricorrenza creata.':result.error||'Impossibile creare la ricorrenza.');
+      if(response.ok){setForm(current=>({...current,note:'',category_name:'',amount:''}));await refreshOverview();}
+    }catch{setMsg('Errore di connessione.');}
+    finally{setSaving(false);}
   }
 
   async function beginEdit(row:Recurrence){
@@ -95,9 +139,7 @@ export default function Ricorrenze(){
       const response=await fetch(`/api/recurring?id=${encodeURIComponent(editing.id)}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({...editForm,amount:-Math.abs(amount),interval_count:editing.interval_count||1})});
       const result=await response.json();
       if(!response.ok){setMsg(result.error||'Impossibile modificare la ricorrenza.');return;}
-      setEditing(null);
-      setMsg('Ricorrenza aggiornata.');
-      await load();
+      setEditing(null);setMsg('Ricorrenza aggiornata.');await refreshOverview();
     }catch{setMsg('Errore di connessione.');}
     finally{setSaving(false);}
   }
@@ -107,7 +149,7 @@ export default function Ricorrenze(){
     const response=await fetch(`/api/recurring?id=${encodeURIComponent(row.id)}`,{method:'DELETE'});
     const result=await response.json();
     setMsg(response.ok?'Ricorrenza eliminata.':result.error||'Impossibile eliminare la ricorrenza.');
-    if(response.ok)await load();
+    if(response.ok)await refreshOverview();
   }
 
   return <>
@@ -115,12 +157,12 @@ export default function Ricorrenze(){
     <header className="page-head"><div><h1>Transazioni ricorrenti</h1><p>Tutte le serie, organizzate per spazio</p></div></header>
 
     <section className="settings-card surface recurring-create-card">
-      <div className="recurring-section-head"><div><h2>Nuova ricorrenza</h2><small>Verrà salvata nello spazio visualizzato</small></div>{activeSpace&&<span className="recurring-space-badge"><Icon name={activeSpace.type==='personal'?'user':'family'} size={16}/>{activeSpace.name}</span>}</div>
+      <div className="recurring-section-head"><div><h2>Nuova ricorrenza</h2><small>Scegli lo spazio in cui salvare la ricorrenza</small></div><SpacePicker spaces={spaces} value={createSpaceId} onChange={chooseCreateSpace} variant="compact" label="Spazio di destinazione" className="recurring-space-picker" disabled={saving||loadingDestination}/></div>
       <div className="field"><label>Descrizione</label><input value={form.note} onChange={event=>setForm({...form,note:event.target.value})} placeholder="Es. Netflix"/></div>
-      <div className="field"><label>Categoria</label><select value={form.category_name} onChange={event=>setForm({...form,category_name:event.target.value})}><option value="">Seleziona…</option>{cats.map(category=><option key={category.name}>{category.name}</option>)}</select></div>
+      <div className="field"><label>Categoria</label><select value={form.category_name} disabled={loadingDestination} onChange={event=>setForm({...form,category_name:event.target.value})}><option value="">{loadingDestination?'Caricamento…':'Seleziona…'}</option>{cats.map(category=><option key={category.name}>{category.name}</option>)}</select></div>
       <div className="two-col"><div className="field"><label>Importo</label><input inputMode="decimal" value={form.amount} onChange={event=>setForm({...form,amount:event.target.value})}/></div><div className="field"><label>Frequenza</label><select value={form.frequency} onChange={event=>setForm({...form,frequency:event.target.value as Recurrence['frequency']})}><option value="weekly">Settimanale</option><option value="monthly">Mensile</option><option value="yearly">Annuale</option></select></div></div>
       <div className="two-col"><div className="field"><label>Prossima data</label><input type="date" value={form.next_run} onChange={event=>setForm({...form,next_run:event.target.value})}/></div><div className="field"><label>Conto</label><input value={form.account_name} readOnly aria-readonly="true" title="Modificabile da Impostazioni > Conto"/></div></div>
-      <button className="save-btn" onClick={add}>Crea ricorrenza</button>
+      <button className="save-btn" disabled={saving||loadingDestination||!createSpaceId} onClick={add}>{saving?'Creazione…':'Crea ricorrenza'}</button>
     </section>
 
     {msg&&<div className="notice" role="status">{msg}</div>}
