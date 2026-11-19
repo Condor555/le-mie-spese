@@ -4,7 +4,7 @@
 
 **Expense tracker personale e familiare, mobile-first, con spazi privati e condivisi.**
 
-[![Versione](https://img.shields.io/badge/versione-3.6-5b5ce2?style=flat-square)](#stato-del-progetto)
+[![Versione](https://img.shields.io/badge/versione-3.9-5b5ce2?style=flat-square)](#stato-del-progetto)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -18,7 +18,7 @@
 
 ## Panoramica
 
-La versione **V3.6 Multiutente** permette a ogni account di avere uno spazio **Personale** isolato e di partecipare a uno o più spazi **Condivisi**. Ogni movimento conserva il proprio autore; nella pagina Movimenti è possibile filtrare per persona e vedere il totale netto di ciascuna giornata. La Home combina saldo, entrate, uscite, andamento, categorie principali, confronto con il mese precedente e ritmo medio giornaliero di spesa.
+La versione **V3.9** unisce il modello multiutente stabile a budget mensili, Analytics 2.0 e gestione evoluta di ricorrenze/abbonamenti. Ogni spazio **Personale** o **Condiviso** mantiene dati, budget, categorie e permessi indipendenti; Movimenti usa ricerca e filtri reattivi, mentre Home e Statistiche condividono un selettore mese compatto e accessibile.
 
 L'app è costruita con **Next.js**, **Supabase** e **Vercel**. Non richiede servizi a pagamento per il flusso base: autenticazione, database PostgreSQL, Row Level Security e deploy possono utilizzare i rispettivi free tier.
 
@@ -43,7 +43,7 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - spazi condivisi con ruoli **Owner** e **Member**;
 - ingresso tramite codice invito, senza servizio email aggiuntivo;
 - scelta delle categorie personali da copiare nello spazio condiviso;
-- selettore “Spazio visualizzato” condiviso tra Home, Movimenti e Statistiche, con aggiornamento immediato nella schermata corrente;
+- `SpacePicker` compatto condiviso tra Home, Movimenti, Statistiche e Budget, con aggiornamento immediato nella schermata corrente;
 - profilo, cambio password e tema chiaro/scuro/automatico;
 - nome del Conto separato per ogni spazio: nello spazio condiviso è rinominabile solo dal creatore/owner e resta in sola lettura per i membri.
 
@@ -53,29 +53,49 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - descrizione, categoria, data e conto;
 - selettore esplicito dello spazio di destinazione in Nuova transazione, indipendente dalla schermata visualizzata in precedenza;
 - autore persistente (`created_by`) per movimenti manuali e ricorrenti;
-- ricerca, filtro mese e filtro per persona;
+- ricerca case-insensitive reattiva con debounce di 300 ms e protezione da risposte asincrone stale;
+- filtri immediati per periodo, categoria, autore e tipo, senza pulsante “Applica filtri”;
+- preset periodo **Oggi**, **Ieri**, **Questo mese**, **Mese scorso**, **Ultimi 30 giorni** e intervallo personalizzato, valido anche oltre mesi/anni;
+- azzeramento completo dei criteri o cancellazione del solo periodo; paginazione riportata alla prima pagina a ogni variazione;
 - raggruppamento per data con anno sempre visibile;
-- totale giornaliero calcolato sui risultati visualizzati e filtrati;
+- count e totale giornaliero sincronizzati ai risultati filtrati;
 - dettaglio, modifica ed eliminazione con conferma;
 - gestione della singola occorrenza o della serie futura per i movimenti ricorrenti;
 - importazione CSV con intestazioni italiane/inglesi e compatibilità con il formato Money Lover esistente;
 - export CSV dei dati già presente nel progetto.
 
-### Home e statistiche
+### Budget V3.7
 
-- saldo mensile, entrate e uscite;
-- media giornaliera delle uscite: giorni trascorsi inclusi i giorni senza spese per il mese corrente, tutti i giorni per i mesi conclusi;
-- andamento degli ultimi sei mesi;
-- categorie principali e incidenza percentuale;
-- insight della categoria principale sotto il grafico;
-- confronto percentuale con lo stesso aggregato del mese precedente, con gestione sicura dell'assenza di dati;
-- statistiche mensili e distribuzione per categoria.
+- budget mensile complessivo per spazio e budget per categoria;
+- Personale e spazi condivisi indipendenti;
+- speso, disponibile, percentuale utilizzata e confronto col mese precedente;
+- soglie visive: avviso all’80% e superamento al 100%;
+- lettura per tutti i membri e modifica riservata all’owner tramite RLS.
+
+### Home e Analytics 2.0 V3.8
+
+- selettore mese compatto condiviso tra Home e Statistiche, interamente cliccabile/toccabile e utilizzabile da tastiera;
+- aggiornamento senza refresh con protezione dallo stato stale;
+- saldo mensile, entrate, uscite e confronto col mese precedente;
+- media giornaliera e proiezione di fine mese;
+- trend selezionabile a 6 o 12 mesi, entrate vs uscite e top categorie;
+- breakdown delle spese dello spazio condiviso per autore;
+- avanzamento rispetto al budget e categorie principali.
+
+### Ricorrenze e abbonamenti V3.9
+
+- regole separate per ricorrenza o abbonamento e associate allo spazio scelto;
+- prossima scadenza, movimenti futuri e importi programmati nei successivi 30 giorni;
+- calendario finanziario mensile;
+- conferma pagamento atomica, che crea una sola transazione per scadenza;
+- registrazione automatica opzionale e conferma manuale;
+- permessi multiutente e RLS basati sull’appartenenza allo spazio.
 
 ### Interfaccia
 
 - design mobile-first e responsive;
 - modalità chiara, scura o automatica;
-- catalogo di icone Phosphor con preferite, recenti, ricerca e Brand marker;
+- icone funzionali Phosphor e catalogo categorie/brand colorato locale, con fallback sicuro e attribuzione in Informazioni;
 - manifest web app e navigazione ottimizzata per smartphone;
 - componenti coerenti per spazi, categorie, modali e navigazione inferiore.
 
@@ -153,6 +173,16 @@ Aprire `http://localhost:3000`.
 
 La migration è additiva: introduce/normalizza profili, spazi, membri, autore e policy per spazio, e collega i dati legacy allo spazio personale del relativo proprietario.
 
+### Aggiornamento dalla V3.6 REV2.3
+
+1. Eseguire un backup del database.
+2. In **Supabase SQL Editor**, eseguire `supabase/migrations/20261119_v3_7_v3_9.sql` una sola volta.
+3. Verificare che siano presenti `budgets`, `recurring_payments` e la funzione `confirm_recurring_payment`.
+4. Distribuire il codice V3.9.
+5. Collaudare con Account A/B: lettura budget, modifica owner, analytics per autore e conferma della stessa scadenza una sola volta.
+
+La migration V3.7-V3.9 è idempotente, mantiene i dati esistenti e assegna alle ricorrenze preesistenti la modalità automatica per non cambiare il comportamento già stabile. Le nuove regole create dalla UI usano invece la conferma manuale come impostazione iniziale.
+
 ## Deploy su Vercel
 
 1. Importare la repository in Vercel.
@@ -194,18 +224,18 @@ supabase/
 
 ## Stato del progetto
 
-**Versione corrente: V3.6 Multiutente.**
+**Versione corrente: V3.9 Budget, Analytics 2.0 e Ricorrenze/Abbonamenti.**
 
 Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzionalità disponibili” appartengono alla versione implementata; quelle riportate qui sotto sono pianificate e **non devono essere considerate già disponibili**.
 
 ## Roadmap verso V4
 
-| Versione | Stato | Obiettivo pianificato |
+| Versione | Stato | Obiettivo |
 |---|---|---|
 | V3.6 | ✅ Implementata | Multiutente, onboarding, autori, filtri, totali giornalieri, Home metrics |
-| V3.7 | 🧭 Pianificata | Budget mensili e per categoria, Personale/Famiglia |
-| V3.8 | 🧭 Pianificata | Analytics 2.0, trend e breakdown per autore/spazio |
-| V3.9 | 🧭 Pianificata | Ricorrenze 2.0, abbonamenti, scadenze e movimenti futuri |
+| V3.7 | ✅ Implementata | Budget mensili e per categoria, Personale/Famiglia |
+| V3.8 | ✅ Implementata | Analytics 2.0, trend e breakdown per autore/spazio |
+| V3.9 | ✅ Implementata | Ricorrenze 2.0, abbonamenti, scadenze e movimenti futuri |
 | V3.10 | 🧭 Pianificata | Smart Add e suggerimenti di inserimento rapido |
 | V3.11 | 🧭 Pianificata | Obiettivi di risparmio e avanzamento |
 | V3.12 | 🧭 Pianificata | Import/export evoluto, backup e ripristino |
@@ -216,9 +246,12 @@ Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzi
 ## Verifica prima di una release
 
 ```bash
+npm test
 npm run check:phosphor
 npm run build
 ```
+
+`npm test` verifica i casi di ricorrenza a fine mese/anno bisestile, la presenza dei preset periodo, l'assenza del pulsante “Applica filtri”, la protezione stale con `AbortController`, gli endpoint range e gli oggetti SQL/RLS V3.7-V3.9.
 
 Per V3.6 eseguire anche un test con **Account A** e **Account B**:
 

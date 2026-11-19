@@ -17,18 +17,22 @@ export async function GET(req:Request){
   try{
     const url=new URL(req.url);
     const {sb,spaceId}=await activeSpace(url.searchParams.get('spaceId'));
-    const q=url.searchParams.get('q')||'';
-    const month=url.searchParams.get('month')||'';
+    const q=(url.searchParams.get('q')||'').trim().slice(0,120);
     const author=url.searchParams.get('author')||'';
+    const category=url.searchParams.get('category')||'';
+    const kind=url.searchParams.get('kind')||'';
+    const start=url.searchParams.get('start')||'';
+    const end=url.searchParams.get('end')||'';
     const page=Math.max(1,Number(url.searchParams.get('page')||1));
     const size=30;
     let query=sb.from('transactions').select('*',{count:'exact'}).eq('space_id',spaceId).order('date',{ascending:false}).order('created_at',{ascending:false}).range((page-1)*size,page*size-1);
     if(q)query=query.ilike('note',`%${q}%`);
     if(author)query=query.eq('created_by',author);
-    if(month){
-      const end=new Date(Number(month.slice(0,4)),Number(month.slice(5,7)),1).toISOString().slice(0,10);
-      query=query.gte('date',`${month}-01`).lt('date',end);
-    }
+    if(category)query=query.eq('category_name',category);
+    if(kind==='expense')query=query.lt('amount',0);
+    if(kind==='income')query=query.gt('amount',0);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(start))query=query.gte('date',start);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(end))query=query.lte('date',end);
     const {data,error,count}=await query;
     if(error)return NextResponse.json({error:error.message,data:[],count:0,page,size},{status:400});
     const authorIds=[...new Set((data||[]).map((row:any)=>row.created_by).filter(Boolean))];

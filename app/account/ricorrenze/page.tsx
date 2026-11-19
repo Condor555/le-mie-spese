@@ -4,186 +4,35 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import BackToAccount from '../../../components/BackToAccount';
 import CategoryIcon from '../../../components/CategoryIcon';
 import Icon from '../../../components/Icon';
+import MonthPicker from '../../../components/MonthPicker';
 import SpacePicker,{type SpacePickerOption} from '../../../components/SpacePicker';
 
-type Space=SpacePickerOption&{type:'personal'|'shared'};
-type Category={name:string};
-type Recurrence={
-  id:string;space_id:string;space_name:string;space_type:'personal'|'shared';note:string;
-  category_name:string;amount:number;frequency:'weekly'|'monthly'|'yearly';interval_count:number;
-  next_run:string;account_name:string;active:boolean;
-};
-type EditForm={note:string;category_name:string;amount:string;frequency:Recurrence['frequency'];next_run:string};
-
-const frequencyLabel:Record<Recurrence['frequency'],string>={weekly:'Settimanale',monthly:'Mensile',yearly:'Annuale'};
-const eur=(value:number)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(value);
-const dateLabel=(value:string)=>new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${value}T12:00:00`));
+type Space=SpacePickerOption&{type:'personal'|'shared'};type Category={name:string};type Frequency='weekly'|'monthly'|'yearly';type RuleKind='recurring'|'subscription';
+type Recurrence={id:string;space_id:string;space_name:string;space_type:'personal'|'shared';note:string;category_name:string;amount:number;frequency:Frequency;interval_count:number;next_run:string;account_name:string;active:boolean;kind:RuleKind;auto_post:boolean};
+type Upcoming={id:string;recurring_id:string;due_date:string;amount:number;note:string;category_name:string;kind:RuleKind;auto_post:boolean;space_id:string;space_name:string;status:'scheduled'|'paid';transaction_id:string|null};
+type EditForm={note:string;category_name:string;amount:string;frequency:Frequency;next_run:string;kind:RuleKind;auto_post:boolean;active:boolean};
+const frequencyLabel:Record<Frequency,string>={weekly:'Settimanale',monthly:'Mensile',yearly:'Annuale'};const eur=(value:number)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(value);const dateLabel=(value:string)=>new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${value}T12:00:00`));
 
 export default function Ricorrenze(){
-  const [rows,setRows]=useState<Recurrence[]>([]);
-  const [spaces,setSpaces]=useState<Space[]>([]);
-  const [createSpaceId,setCreateSpaceId]=useState('');
-  const [cats,setCats]=useState<Category[]>([]);
-  const [form,setForm]=useState({note:'',category_name:'',amount:'',frequency:'monthly' as Recurrence['frequency'],next_run:new Date().toISOString().slice(0,10),account_name:'Spese'});
-  const [msg,setMsg]=useState('');
-  const [loading,setLoading]=useState(true);
-  const [loadingDestination,setLoadingDestination]=useState(true);
-  const [editing,setEditing]=useState<Recurrence|null>(null);
-  const [editCats,setEditCats]=useState<Category[]>([]);
-  const [editForm,setEditForm]=useState<EditForm>({note:'',category_name:'',amount:'',frequency:'monthly',next_run:''});
-  const [saving,setSaving]=useState(false);
-  const destinationRequestRef=useRef(0);
-
-  async function recurringData(){
-    const response=await fetch('/api/recurring',{cache:'no-store'});
-    const result=await response.json();
-    if(!response.ok)throw new Error(result.error||'Impossibile caricare le ricorrenze.');
-    return result;
-  }
-
-  async function loadCreateDestination(targetSpaceId:string){
-    const request=++destinationRequestRef.current;
-    setLoadingDestination(true);
-    setCats([]);
-    setForm(current=>({...current,category_name:''}));
-    setMsg('');
-    try{
-      const [categoryResponse,accountResponse]=await Promise.all([
-        fetch(`/api/categories?spaceId=${encodeURIComponent(targetSpaceId)}`,{cache:'no-store'}),
-        fetch(`/api/settings/account?spaceId=${encodeURIComponent(targetSpaceId)}`,{cache:'no-store'}),
-      ]);
-      const [categoryResult,accountResult]=await Promise.all([categoryResponse.json(),accountResponse.json()]);
-      if(request!==destinationRequestRef.current)return;
-      if(!categoryResponse.ok||!accountResponse.ok){
-        setMsg(categoryResult.error||accountResult.error||'Impossibile caricare lo spazio.');
-        return;
-      }
-      setCats(categoryResult.data||[]);
-      setForm(current=>({...current,account_name:accountResult.data?.name||'Spese'}));
-    }catch{
-      if(request===destinationRequestRef.current)setMsg('Errore di connessione.');
-    }finally{
-      if(request===destinationRequestRef.current)setLoadingDestination(false);
-    }
-  }
-
-  useEffect(()=>{
-    let live=true;
-    (async()=>{
-      try{
-        const result=await recurringData();
-        if(!live)return;
-        const list:Space[]=result.spaces||[];
-        const selected=result.activeSpaceId||list.find(space=>space.type==='personal')?.id||list[0]?.id||'';
-        setRows(result.data||[]);
-        setSpaces(list);
-        setCreateSpaceId(selected);
-        if(selected)await loadCreateDestination(selected);
-        else setLoadingDestination(false);
-      }catch(error:any){if(live)setMsg(error?.message||'Errore di connessione.');}
-      finally{if(live)setLoading(false);}
-    })();
-    return()=>{live=false;destinationRequestRef.current++;};
-  },[]);
-
-  async function refreshOverview(){
-    setLoading(true);
-    try{
-      const result=await recurringData();
-      setRows(result.data||[]);
-      setSpaces(result.spaces||[]);
-    }catch(error:any){setMsg(error?.message||'Errore di connessione.');}
-    finally{setLoading(false);}
-  }
-
-  function chooseCreateSpace(spaceId:string){
-    if(spaceId===createSpaceId)return;
-    setCreateSpaceId(spaceId);
-    void loadCreateDestination(spaceId);
-  }
-
-  const grouped=useMemo(()=>spaces.map(space=>({space,rows:rows.filter(row=>row.space_id===space.id)})),[rows,spaces]);
-
-  async function add(){
-    const amount=Number(form.amount.replace(',','.'));
-    if(!createSpaceId){setMsg('Seleziona lo spazio di destinazione.');return;}
-    if(loadingDestination){setMsg('Attendi il caricamento dello spazio.');return;}
-    if(!amount||!form.category_name||!cats.some(category=>category.name===form.category_name)){setMsg('Inserisci importo e categoria validi per lo spazio scelto.');return;}
-    setSaving(true);
-    try{
-      const response=await fetch('/api/recurring',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...form,space_id:createSpaceId,amount:-Math.abs(amount),interval_count:1})});
-      const result=await response.json();
-      setMsg(response.ok?'Ricorrenza creata.':result.error||'Impossibile creare la ricorrenza.');
-      if(response.ok){setForm(current=>({...current,note:'',category_name:'',amount:''}));await refreshOverview();}
-    }catch{setMsg('Errore di connessione.');}
-    finally{setSaving(false);}
-  }
-
-  async function beginEdit(row:Recurrence){
-    setEditing(row);
-    setEditForm({note:row.note||'',category_name:row.category_name,amount:String(Math.abs(Number(row.amount))).replace('.',','),frequency:row.frequency,next_run:row.next_run});
-    setEditCats([]);
-    try{
-      const result=await fetch(`/api/categories?spaceId=${encodeURIComponent(row.space_id)}`,{cache:'no-store'}).then(response=>response.json());
-      setEditCats(result.data||[]);
-    }catch{setMsg('Impossibile caricare le categorie dello spazio.');}
-  }
-
-  async function saveEdit(event:React.FormEvent){
-    event.preventDefault();
-    if(!editing)return;
-    const amount=Number(editForm.amount.replace(',','.'));
-    if(!amount||!editForm.category_name){setMsg('Inserisci importo e categoria.');return;}
-    setSaving(true);
-    try{
-      const response=await fetch(`/api/recurring?id=${encodeURIComponent(editing.id)}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({...editForm,amount:-Math.abs(amount),interval_count:editing.interval_count||1})});
-      const result=await response.json();
-      if(!response.ok){setMsg(result.error||'Impossibile modificare la ricorrenza.');return;}
-      setEditing(null);setMsg('Ricorrenza aggiornata.');await refreshOverview();
-    }catch{setMsg('Errore di connessione.');}
-    finally{setSaving(false);}
-  }
-
-  async function remove(row:Recurrence){
-    if(!confirm(`Eliminare la ricorrenza “${row.note||row.category_name}” da ${row.space_name}?`))return;
-    const response=await fetch(`/api/recurring?id=${encodeURIComponent(row.id)}`,{method:'DELETE'});
-    const result=await response.json();
-    setMsg(response.ok?'Ricorrenza eliminata.':result.error||'Impossibile eliminare la ricorrenza.');
-    if(response.ok)await refreshOverview();
-  }
-
+  const [rows,setRows]=useState<Recurrence[]>([]);const [upcoming,setUpcoming]=useState<Upcoming[]>([]);const [spaces,setSpaces]=useState<Space[]>([]);const [summary,setSummary]=useState<{nextDue:string|null;scheduled30:number}>({nextDue:null,scheduled30:0});const [createSpaceId,setCreateSpaceId]=useState('');const [cats,setCats]=useState<Category[]>([]);const [calendarMonth,setCalendarMonth]=useState(new Date().toISOString().slice(0,7));const [form,setForm]=useState({note:'',category_name:'',amount:'',frequency:'monthly' as Frequency,next_run:new Date().toISOString().slice(0,10),account_name:'Spese',kind:'subscription' as RuleKind,auto_post:false});const [msg,setMsg]=useState('');const [loading,setLoading]=useState(true);const [loadingDestination,setLoadingDestination]=useState(true);const [editing,setEditing]=useState<Recurrence|null>(null);const [editCats,setEditCats]=useState<Category[]>([]);const [editForm,setEditForm]=useState<EditForm>({note:'',category_name:'',amount:'',frequency:'monthly',next_run:'',kind:'recurring',auto_post:false,active:true});const [saving,setSaving]=useState(false);const [confirming,setConfirming]=useState('');const destinationRequestRef=useRef(0);
+  async function recurringData(){const response=await fetch('/api/recurring',{cache:'no-store'});const result=await response.json();if(!response.ok)throw new Error(result.error||'Impossibile caricare ricorrenze e abbonamenti.');return result}
+  async function loadDestination(target:string){const request=++destinationRequestRef.current;setLoadingDestination(true);setCats([]);setForm(current=>({...current,category_name:''}));try{const [categoryResponse,accountResponse]=await Promise.all([fetch(`/api/categories?spaceId=${encodeURIComponent(target)}`,{cache:'no-store'}),fetch(`/api/settings/account?spaceId=${encodeURIComponent(target)}`,{cache:'no-store'})]);const [categoryResult,accountResult]=await Promise.all([categoryResponse.json(),accountResponse.json()]);if(request!==destinationRequestRef.current)return;if(!categoryResponse.ok||!accountResponse.ok)throw new Error(categoryResult.error||accountResult.error||'Impossibile caricare lo spazio.');setCats(categoryResult.data||[]);setForm(current=>({...current,account_name:accountResult.data?.name||'Spese'}))}catch(error:any){if(request===destinationRequestRef.current)setMsg(error.message)}finally{if(request===destinationRequestRef.current)setLoadingDestination(false)}}
+  async function refresh(first=false){setLoading(true);try{const result=await recurringData();const list:Space[]=result.spaces||[];setRows(result.data||[]);setUpcoming(result.upcoming||[]);setSpaces(list);setSummary(result.summary||{nextDue:null,scheduled30:0});if(first){const selected=result.activeSpaceId||list.find(space=>space.type==='personal')?.id||list[0]?.id||'';setCreateSpaceId(selected);if(selected)await loadDestination(selected);else setLoadingDestination(false)}}catch(error:any){setMsg(error.message)}finally{setLoading(false)}}
+  useEffect(()=>{void refresh(true);return()=>{destinationRequestRef.current++}},[]);
+  const grouped=useMemo(()=>spaces.map(space=>({space,rows:rows.filter(row=>row.space_id===space.id)})),[rows,spaces]);const calendarItems=useMemo(()=>upcoming.filter(item=>item.due_date.startsWith(calendarMonth)),[upcoming,calendarMonth]);const calendarTotal=calendarItems.filter(item=>item.status==='scheduled').reduce((sum,item)=>sum+Math.abs(item.amount),0);
+  function chooseSpace(id:string){if(id===createSpaceId)return;setCreateSpaceId(id);void loadDestination(id)}
+  async function add(){const amount=Number(form.amount.replace(',','.'));if(!createSpaceId||!amount||!form.category_name||!cats.some(item=>item.name===form.category_name)){setMsg('Inserisci importo e categoria validi per lo spazio scelto.');return}setSaving(true);try{const response=await fetch('/api/recurring',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...form,space_id:createSpaceId,amount:-Math.abs(amount),interval_count:1})});const result=await response.json();if(!response.ok)throw new Error(result.error||'Impossibile creare la regola.');setMsg(form.kind==='subscription'?'Abbonamento creato.':'Ricorrenza creata.');setForm(current=>({...current,note:'',category_name:'',amount:''}));await refresh()}catch(error:any){setMsg(error.message)}finally{setSaving(false)}}
+  async function confirmPayment(item:Upcoming){setConfirming(item.id);setMsg('');try{const response=await fetch('/api/recurring/confirm',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:item.recurring_id,due_date:item.due_date})});const result=await response.json();if(!response.ok)throw new Error(result.error||'Impossibile confermare il pagamento.');setMsg('Pagamento confermato e movimento registrato.');await refresh()}catch(error:any){setMsg(error.message)}finally{setConfirming('')}}
+  async function beginEdit(row:Recurrence){setEditing(row);setEditForm({note:row.note||'',category_name:row.category_name,amount:String(Math.abs(Number(row.amount))).replace('.',','),frequency:row.frequency,next_run:row.next_run,kind:row.kind||'recurring',auto_post:Boolean(row.auto_post),active:row.active});try{const result=await fetch(`/api/categories?spaceId=${encodeURIComponent(row.space_id)}`,{cache:'no-store'}).then(response=>response.json());setEditCats(result.data||[])}catch{setEditCats([])}}
+  async function saveEdit(event:React.FormEvent){event.preventDefault();if(!editing)return;const amount=Number(editForm.amount.replace(',','.'));if(!amount||!editForm.category_name){setMsg('Inserisci importo e categoria.');return}setSaving(true);try{const response=await fetch(`/api/recurring?id=${encodeURIComponent(editing.id)}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({...editForm,amount:-Math.abs(amount),interval_count:editing.interval_count||1})});const result=await response.json();if(!response.ok)throw new Error(result.error||'Impossibile modificare la regola.');setEditing(null);setMsg('Regola aggiornata.');await refresh()}catch(error:any){setMsg(error.message)}finally{setSaving(false)}}
+  async function remove(row:Recurrence){if(!confirm(`Eliminare “${row.note||row.category_name}” da ${row.space_name}?`))return;const response=await fetch(`/api/recurring?id=${encodeURIComponent(row.id)}`,{method:'DELETE'});const result=await response.json();setMsg(response.ok?'Regola eliminata.':result.error||'Impossibile eliminare.');if(response.ok)await refresh()}
   return <>
-    <BackToAccount/>
-    <header className="page-head"><div><h1>Transazioni ricorrenti</h1><p>Tutte le serie, organizzate per spazio</p></div></header>
-
-    <section className="settings-card surface recurring-create-card">
-      <div className="recurring-section-head"><div><h2>Nuova ricorrenza</h2><small>Scegli lo spazio in cui salvare la ricorrenza</small></div><SpacePicker spaces={spaces} value={createSpaceId} onChange={chooseCreateSpace} variant="compact" label="Spazio di destinazione" className="recurring-space-picker" disabled={saving||loadingDestination}/></div>
-      <div className="field"><label>Descrizione</label><input value={form.note} onChange={event=>setForm({...form,note:event.target.value})} placeholder="Es. Netflix"/></div>
-      <div className="field"><label>Categoria</label><select value={form.category_name} disabled={loadingDestination} onChange={event=>setForm({...form,category_name:event.target.value})}><option value="">{loadingDestination?'Caricamento…':'Seleziona…'}</option>{cats.map(category=><option key={category.name}>{category.name}</option>)}</select></div>
-      <div className="two-col"><div className="field"><label>Importo</label><input inputMode="decimal" value={form.amount} onChange={event=>setForm({...form,amount:event.target.value})}/></div><div className="field"><label>Frequenza</label><select value={form.frequency} onChange={event=>setForm({...form,frequency:event.target.value as Recurrence['frequency']})}><option value="weekly">Settimanale</option><option value="monthly">Mensile</option><option value="yearly">Annuale</option></select></div></div>
-      <div className="two-col"><div className="field"><label>Prossima data</label><input type="date" value={form.next_run} onChange={event=>setForm({...form,next_run:event.target.value})}/></div><div className="field"><label>Conto</label><input value={form.account_name} readOnly aria-readonly="true" title="Modificabile da Impostazioni > Conto"/></div></div>
-      <button className="save-btn" disabled={saving||loadingDestination||!createSpaceId} onClick={add}>{saving?'Creazione…':'Crea ricorrenza'}</button>
-    </section>
-
+    <BackToAccount/><header className="page-head"><div><h1>Ricorrenze e abbonamenti</h1><p>Scadenze, importi programmati e pagamenti</p></div></header>
+    <div className="recurring-kpis"><section className="metric surface"><small>Prossima scadenza</small><b>{summary.nextDue?dateLabel(summary.nextDue):'Nessuna'}</b></section><section className="metric surface"><small>Programmati nei prossimi 30 giorni</small><b>{eur(summary.scheduled30)}</b></section></div>
+    <section className="settings-card surface recurring-create-card"><div className="recurring-section-head"><div><h2>Nuova regola</h2><small>Associa sempre la regola allo spazio scelto</small></div><SpacePicker spaces={spaces} value={createSpaceId} onChange={chooseSpace} variant="compact" label="Spazio di destinazione" className="recurring-space-picker" disabled={saving||loadingDestination}/></div><div className="segmented"><button type="button" className={form.kind==='subscription'?'active':''} onClick={()=>setForm({...form,kind:'subscription'})}>Abbonamento</button><button type="button" className={form.kind==='recurring'?'active':''} onClick={()=>setForm({...form,kind:'recurring'})}>Ricorrenza</button></div><div className="field"><label>Descrizione</label><input value={form.note} onChange={event=>setForm({...form,note:event.target.value})} placeholder="Es. Netflix"/></div><div className="field"><label>Categoria</label><select value={form.category_name} disabled={loadingDestination} onChange={event=>setForm({...form,category_name:event.target.value})}><option value="">{loadingDestination?'Caricamento…':'Seleziona…'}</option>{cats.map(item=><option key={item.name}>{item.name}</option>)}</select></div><div className="two-col"><div className="field"><label>Importo</label><input inputMode="decimal" value={form.amount} onChange={event=>setForm({...form,amount:event.target.value})}/></div><div className="field"><label>Frequenza</label><select value={form.frequency} onChange={event=>setForm({...form,frequency:event.target.value as Frequency})}><option value="weekly">Settimanale</option><option value="monthly">Mensile</option><option value="yearly">Annuale</option></select></div></div><div className="two-col"><div className="field"><label>Prossima scadenza</label><input type="date" value={form.next_run} onChange={event=>setForm({...form,next_run:event.target.value})}/></div><div className="field"><label>Conto</label><input value={form.account_name} readOnly/></div></div><label className="recurring-auto"><input type="checkbox" checked={form.auto_post} onChange={event=>setForm({...form,auto_post:event.target.checked})}/><span><b>Registra automaticamente</b><small>Se disattivo, il pagamento richiederà conferma dal calendario.</small></span></label><button className="save-btn" disabled={saving||loadingDestination||!createSpaceId} onClick={add}>{saving?'Creazione…':'Crea regola'}</button></section>
     {msg&&<div className="notice" role="status">{msg}</div>}
-    <section className="recurring-overview" aria-busy={loading}>
-      <div className="recurring-overview-title"><div><h2>Ricorrenze per spazio</h2><p>{rows.length} {rows.length===1?'serie accessibile':'serie accessibili'}</p></div></div>
-      {!loading&&grouped.map(({space,rows:spaceRows})=><section className="recurring-space-group surface" key={space.id}>
-        <header><span><Icon name={space.type==='personal'?'user':'family'} size={20}/></span><div><small>{space.type==='personal'?'Spazio personale':'Spazio condiviso'}</small><h3>{space.name}</h3></div><b>{spaceRows.length}</b></header>
-        {spaceRows.length===0?<p className="recurring-empty">Nessuna ricorrenza in questo spazio.</p>:<div className="recurring-list">{spaceRows.map(row=><article className="recurrence-card" key={row.id}>
-          <CategoryIcon name={row.category_name}/><div><b>{row.note||row.category_name}</b><small>{row.category_name} · {frequencyLabel[row.frequency]} · prossima {dateLabel(row.next_run)}</small><em>{row.account_name||'Spese'} · {space.name}</em></div><strong>{eur(Number(row.amount))}</strong><div className="recurrence-actions"><button type="button" className="recurrence-edit" onClick={()=>beginEdit(row)} aria-label={`Modifica ${row.note||row.category_name}`}>Modifica</button><button type="button" className="recurrence-delete" onClick={()=>remove(row)} aria-label={`Elimina ${row.note||row.category_name}`}>×</button></div>
-        </article>)}</div>}
-      </section>)}
-      {!loading&&!spaces.length&&<div className="empty-state surface"><b>Nessuno spazio disponibile</b></div>}
-    </section>
-
-    {editing&&<div className="modal" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!saving)setEditing(null)}}><form className="modal-card surface recurring-edit-modal" role="dialog" aria-modal="true" aria-labelledby="recurring-edit-title" onSubmit={saveEdit}>
-      <header><div><small>{editing.space_name}</small><h2 id="recurring-edit-title">Modifica ricorrenza</h2></div><button type="button" className="transaction-close" disabled={saving} onClick={()=>setEditing(null)}>×</button></header>
-      <div className="field"><label>Descrizione</label><input value={editForm.note} onChange={event=>setEditForm({...editForm,note:event.target.value})}/></div>
-      <div className="field"><label>Categoria</label><select value={editForm.category_name} onChange={event=>setEditForm({...editForm,category_name:event.target.value})}>{editCats.map(category=><option key={category.name}>{category.name}</option>)}</select></div>
-      <div className="two-col"><div className="field"><label>Importo</label><input inputMode="decimal" value={editForm.amount} onChange={event=>setEditForm({...editForm,amount:event.target.value})}/></div><div className="field"><label>Frequenza</label><select value={editForm.frequency} onChange={event=>setEditForm({...editForm,frequency:event.target.value as Recurrence['frequency']})}><option value="weekly">Settimanale</option><option value="monthly">Mensile</option><option value="yearly">Annuale</option></select></div></div>
-      <div className="field"><label>Prossima data</label><input type="date" value={editForm.next_run} onChange={event=>setEditForm({...editForm,next_run:event.target.value})}/></div>
-      <button className="save-btn" disabled={saving}>{saving?'Salvataggio…':'Salva modifiche'}</button><button type="button" className="secondary" disabled={saving} onClick={()=>setEditing(null)}>Annulla</button>
-    </form></div>}
+    <section className="section surface financial-calendar"><div className="section-title"><div><h2>Calendario finanziario</h2><small>{calendarItems.length} movimenti futuri · {eur(calendarTotal)} programmati</small></div><MonthPicker value={calendarMonth} onChange={setCalendarMonth} label="Mese del calendario finanziario"/></div>{calendarItems.length===0?<p className="recurring-empty">Nessuna scadenza nel mese.</p>:<div className="future-list">{calendarItems.map(item=><article key={item.id}><div className="future-date"><b>{new Date(`${item.due_date}T12:00:00`).getDate()}</b><small>{new Intl.DateTimeFormat('it-IT',{month:'short'}).format(new Date(`${item.due_date}T12:00:00`))}</small></div><CategoryIcon name={item.category_name}/><div><b>{item.note||item.category_name}</b><small>{item.space_name} · {item.kind==='subscription'?'Abbonamento':'Ricorrenza'} · {item.auto_post?'automatico':'conferma manuale'}</small></div><strong>{eur(item.amount)}</strong>{item.status==='paid'?<span className="paid-badge">Pagato</span>:<button className="confirm-payment" disabled={confirming===item.id} onClick={()=>confirmPayment(item)}>{confirming===item.id?'Conferma…':'Conferma pagamento'}</button>}</article>)}</div>}</section>
+    <section className="recurring-overview" aria-busy={loading}><div className="recurring-overview-title"><div><h2>Regole per spazio</h2><p>{rows.length} {rows.length===1?'regola accessibile':'regole accessibili'}</p></div></div>{!loading&&grouped.map(({space,rows:spaceRows})=><section className="recurring-space-group surface" key={space.id}><header><span><Icon name={space.type==='personal'?'user':'family'} size={20}/></span><div><small>{space.type==='personal'?'Spazio personale':'Spazio condiviso'}</small><h3>{space.name}</h3></div><b>{spaceRows.length}</b></header>{spaceRows.length===0?<p className="recurring-empty">Nessuna regola in questo spazio.</p>:<div className="recurring-list">{spaceRows.map(row=><article className="recurrence-card" key={row.id}><CategoryIcon name={row.category_name}/><div><b>{row.note||row.category_name}</b><small>{row.kind==='subscription'?'Abbonamento':'Ricorrenza'} · {frequencyLabel[row.frequency]} · prossima {dateLabel(row.next_run)}</small><em>{row.auto_post?'Registrazione automatica':'Conferma manuale'} · {row.account_name||'Spese'}</em></div><strong>{eur(Number(row.amount))}</strong><div className="recurrence-actions"><button type="button" className="recurrence-edit" onClick={()=>beginEdit(row)}>Modifica</button><button type="button" className="recurrence-delete" onClick={()=>remove(row)}>×</button></div></article>)}</div>}</section>)}</section>
+    {editing&&<div className="modal" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!saving)setEditing(null)}}><form className="modal-card surface recurring-edit-modal" role="dialog" aria-modal="true" onSubmit={saveEdit}><header><div><small>{editing.space_name}</small><h2>Modifica regola</h2></div><button type="button" className="transaction-close" onClick={()=>setEditing(null)}>×</button></header><div className="segmented"><button type="button" className={editForm.kind==='subscription'?'active':''} onClick={()=>setEditForm({...editForm,kind:'subscription'})}>Abbonamento</button><button type="button" className={editForm.kind==='recurring'?'active':''} onClick={()=>setEditForm({...editForm,kind:'recurring'})}>Ricorrenza</button></div><div className="field"><label>Descrizione</label><input value={editForm.note} onChange={event=>setEditForm({...editForm,note:event.target.value})}/></div><div className="field"><label>Categoria</label><select value={editForm.category_name} onChange={event=>setEditForm({...editForm,category_name:event.target.value})}>{editCats.map(item=><option key={item.name}>{item.name}</option>)}</select></div><div className="two-col"><div className="field"><label>Importo</label><input inputMode="decimal" value={editForm.amount} onChange={event=>setEditForm({...editForm,amount:event.target.value})}/></div><div className="field"><label>Frequenza</label><select value={editForm.frequency} onChange={event=>setEditForm({...editForm,frequency:event.target.value as Frequency})}><option value="weekly">Settimanale</option><option value="monthly">Mensile</option><option value="yearly">Annuale</option></select></div></div><div className="field"><label>Prossima scadenza</label><input type="date" value={editForm.next_run} onChange={event=>setEditForm({...editForm,next_run:event.target.value})}/></div><label className="recurring-auto"><input type="checkbox" checked={editForm.auto_post} onChange={event=>setEditForm({...editForm,auto_post:event.target.checked})}/><span><b>Registrazione automatica</b></span></label><button className="save-btn" disabled={saving}>{saving?'Salvataggio…':'Salva modifiche'}</button><button type="button" className="secondary" onClick={()=>setEditing(null)}>Annulla</button></form></div>}
   </>;
 }

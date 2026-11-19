@@ -4,8 +4,10 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 import Icon from '../components/Icon';
 import CategoryIcon from '../components/CategoryIcon';
+import MonthPicker from '../components/MonthPicker';
 import {categoryStyle} from '../lib/category-style';
 import {onActiveSpaceChanged} from '../lib/active-space-client';
+import {useSharedMonth} from '../lib/selected-period-client';
 
 const eur=(value:number)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(value);
 type TopCategory={name:string;value:number;percentage:number;previousValue:number;changePercent:number|null;comparison:'available'|'no-previous-data'};
@@ -23,7 +25,7 @@ type Stats={
 type Trend={month:string;income:number;expense:number};
 
 export default function Home(){
-  const [month,setMonth]=useState(new Date().toISOString().slice(0,7));
+  const {month,setMonth}=useSharedMonth();
   const [stats,setStats]=useState<Stats|null>(null);
   const [trends,setTrends]=useState<Trend[]>([]);
   const statsRequestRef=useRef(0);
@@ -42,11 +44,12 @@ export default function Home(){
   const loadTrends=useCallback(async(targetSpaceId?:string)=>{
     const request=++trendsRequestRef.current;
     try{
-      const suffix=targetSpaceId?`?spaceId=${encodeURIComponent(targetSpaceId)}`:'';
-      const result=await fetch(`/api/trends${suffix}`,{cache:'no-store'}).then(response=>response.json());
+      const params=new URLSearchParams({month,months:'6'});
+      if(targetSpaceId)params.set('spaceId',targetSpaceId);
+      const result=await fetch(`/api/trends?${params}`,{cache:'no-store'}).then(response=>response.json());
       if(request===trendsRequestRef.current)setTrends((result.data||[]).slice(-6));
     }catch{if(request===trendsRequestRef.current)setTrends([])}
-  },[]);
+  },[month]);
 
   useEffect(()=>{
     loadStats();
@@ -72,8 +75,7 @@ export default function Home(){
     :`${top.changePercent>0?'+':''}${top.changePercent}% rispetto al mese scorso`;
 
   return <>
-    <header className="page-head"><div><h1>Le Mie Spese</h1><p>Il tuo mese, a colpo d'occhio</p></div></header>
-    <div className="hero-month surface"><Icon name="calendar" size={19}/><input type="month" value={month} onChange={event=>setMonth(event.target.value)}/><span>›</span></div>
+    <header className="page-head home-head"><div><h1>Le Mie Spese</h1><p>Il tuo mese, a colpo d'occhio</p></div><MonthPicker value={month} onChange={setMonth}/></header>
 
     <section className="balance-card">
       <header><Icon name="wallet" size={18}/><span>Saldo del mese</span><Icon name="chart" size={20}/></header>

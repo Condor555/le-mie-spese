@@ -3,6 +3,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import Icon from '../../components/Icon';
 import CategoryIcon from '../../components/CategoryIcon';
+import DateRangePicker,{type DateRange} from '../../components/DateRangePicker';
 import {onActiveSpaceChanged} from '../../lib/active-space-client';
 
 type Transaction={
@@ -15,6 +16,7 @@ type Transaction={
   account_name:string;
   source?:string;
   source_id?:string;
+  recurring_id?:string|null;
   created_by?:string|null;
   author_name?:string;
 };
@@ -32,11 +34,18 @@ export default function Movimenti(){
   const [categories,setCategories]=useState<Category[]>([]);
   const [members,setMembers]=useState<Member[]>([]);
   const [q,setQ]=useState('');
-  const [month,setMonth]=useState('');
+  const [debouncedQ,setDebouncedQ]=useState('');
+  const [periodStart,setPeriodStart]=useState('');
+  const [periodEnd,setPeriodEnd]=useState('');
+  const [categoryFilter,setCategoryFilter]=useState('');
+  const [kindFilter,setKindFilter]=useState('');
   const [author,setAuthor]=useState('');
+  const [spaceId,setSpaceId]=useState('');
   const [page,setPage]=useState(1);
   const [count,setCount]=useState(0);
   const [error,setError]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [reloadToken,setReloadToken]=useState(0);
 
   const [editing,setEditing]=useState<Transaction|null>(null);
   const [modalView,setModalView]=useState<ModalView>('detail');
@@ -51,65 +60,63 @@ export default function Movimenti(){
   const [modalMsg,setModalMsg]=useState('');
   const listRequestRef=useRef(0);
   const metadataRequestRef=useRef(0);
-
-  async function load(targetPage=page,targetAuthor=author,targetSpaceId?:string){
-    const request=++listRequestRef.current;
-    setError('');
-    const params=new URLSearchParams({q,month,author:targetAuthor,page:String(targetPage)});
-    if(targetSpaceId)params.set('spaceId',targetSpaceId);
-    try{
-      const response=await fetch(`/api/transactions?${params}`,{cache:'no-store'});
-      const result=await response.json();
-      if(request!==listRequestRef.current)return;
-      if(!response.ok){
-        setRows([]);
-        setCount(0);
-        setError(result.error||'Impossibile caricare i movimenti.');
-        return;
-      }
-      setRows(Array.isArray(result.data)?result.data:[]);
-      setCount(Number(result.count||0));
-      setPage(targetPage);
-    }catch{
-      if(request!==listRequestRef.current)return;
-      setError('Errore di connessione.');
-      setRows([]);
-      setCount(0);
-    }
-  }
+  const listAbortRef=useRef<AbortController|null>(null);
 
   async function loadMetadata(targetSpaceId?:string){
     const request=++metadataRequestRef.current;
     const suffix=targetSpaceId?`?spaceId=${encodeURIComponent(targetSpaceId)}`:'';
     try{
-      const [categoryResult,memberResult]=await Promise.all([
-        fetch(`/api/categories${suffix}`,{cache:'no-store'}).then(response=>response.json()),
-        fetch(`/api/members${suffix}`,{cache:'no-store'}).then(response=>response.json()),
+      const [categoryResponse,memberResponse]=await Promise.all([
+        fetch(`/api/categories${suffix}`,{cache:'no-store'}),
+        fetch(`/api/members${suffix}`,{cache:'no-store'}),
       ]);
+      const [categoryResult,memberResult]=await Promise.all([categoryResponse.json(),memberResponse.json()]);
       if(request!==metadataRequestRef.current)return;
       setCategories(categoryResult.data||[]);
       setMembers(memberResult.data||[]);
-    }catch{
-      if(request===metadataRequestRef.current){setCategories([]);setMembers([]);}
-    }
+    }catch{if(request===metadataRequestRef.current){setCategories([]);setMembers([])}}
   }
 
   useEffect(()=>{
-    load(1);
-    loadMetadata();
-  },[]);
+    const timer=window.setTimeout(()=>{setDebouncedQ(q.trim());setPage(1)},300);
+    return()=>window.clearTimeout(timer);
+  },[q]);
 
-  useEffect(()=>onActiveSpaceChanged(spaceId=>{
-    listRequestRef.current++;
-    metadataRequestRef.current++;
-    setRows([]);
-    setCount(0);
-    setPage(1);
-    setAuthor('');
-    setEditing(null);
-    load(1,'',spaceId);
-    loadMetadata(spaceId);
-  }),[q,month]);
+  useEffect(()=>{
+    const request=++listRequestRef.current;
+    listAbortRef.current?.abort();
+    const controller=new AbortController();listAbortRef.current=controller;
+    const params=new URLSearchParams({page:String(page)});
+    if(debouncedQ)params.set('q',debouncedQ);
+    if(periodStart)params.set('start',periodStart);
+    if(periodEnd)params.set('end',periodEnd);
+    if(author)params.set('author',author);
+    if(categoryFilter)params.set('category',categoryFilter);
+    if(kindFilter)params.set('kind',kindFilter);
+    if(spaceId)params.set('spaceId',spaceId);
+    setLoading(true);setError('');
+    fetch(`/api/transactions?${params}`,{cache:'no-store',signal:controller.signal})
+      .then(async response=>({response,result:await response.json()}))
+      .then(({response,result})=>{
+        if(request!==listRequestRef.current)return;
+        if(!response.ok)throw new Error(result.error||'Impossibile caricare i movimenti.');
+        setRows(Array.isArray(result.data)?result.data:[]);setCount(Number(result.count||0));
+      })
+      .catch(error=>{if(error?.name!=='AbortError'&&request===listRequestRef.current){setRows([]);setCount(0);setError(error?.message||'Errore di connessione.')}})
+      .finally(()=>{if(request===listRequestRef.current)setLoading(false)});
+    return()=>controller.abort();
+  },[debouncedQ,periodStart,periodEnd,author,categoryFilter,kindFilter,page,spaceId,reloadToken]);
+
+  useEffect(()=>{loadMetadata()},[]);
+  useEffect(()=>onActiveSpaceChanged(id=>{
+    listRequestRef.current++;listAbortRef.current?.abort();metadataRequestRef.current++;
+    setSpaceId(id);setRows([]);setCount(0);setPage(1);setAuthor('');setCategoryFilter('');setEditing(null);void loadMetadata(id);
+  }),[]);
+
+  function changeRange(range:DateRange){setPeriodStart(range.start);setPeriodEnd(range.end);setPage(1)}
+  const hasFilters=Boolean(q||periodStart||periodEnd||author||categoryFilter||kindFilter);
+  function clearFilters(){setQ('');setDebouncedQ('');setPeriodStart('');setPeriodEnd('');setAuthor('');setCategoryFilter('');setKindFilter('');setPage(1)}
+  function refresh(){setReloadToken(value=>value+1)}
 
   useEffect(()=>{
     if(!editing)return;
@@ -153,7 +160,7 @@ export default function Movimenti(){
     setModalMsg('');
   }
 
-  const recurring=editing?.source==='recurring'&&Boolean(editing.source_id);
+  const recurring=editing?.source==='recurring'&&Boolean(editing.recurring_id||editing.source_id);
   const activeCategory=editing?categoryData(editing.category_name):undefined;
 
   async function save(){
@@ -181,7 +188,7 @@ export default function Movimenti(){
         return;
       }
       closeModal();
-      await load(page);
+      refresh();
     }catch{
       setModalMsg('Errore di connessione.');
     }finally{
@@ -201,7 +208,7 @@ export default function Movimenti(){
         return;
       }
       closeModal();
-      await load(page);
+      refresh();
     }catch{
       setModalMsg('Errore di connessione.');
     }finally{
@@ -210,17 +217,22 @@ export default function Movimenti(){
   }
 
   return <>
-    <header className="page-head"><div><h1>Movimenti</h1><p>{count} transazioni</p></div></header>
-    <div className="search-box surface"><Icon name="search" size={19}/><input value={q} onChange={event=>setQ(event.target.value)} onKeyDown={event=>event.key==='Enter'&&load(1)} placeholder="Cerca una spesa…"/></div>
-    <div className="filter-row"><input type="month" value={month} onChange={event=>setMonth(event.target.value)}/><button onClick={()=>load(1)}>Applica filtri</button></div>
-    {members.length>1&&<div className="author-filter" aria-label="Filtra movimenti per persona"><span>Inserito da</span><div><button type="button" className={!author?'active':''} aria-pressed={!author} onClick={()=>{setAuthor('');load(1,'')}}>Tutti</button>{members.map(member=><button type="button" key={member.userId} className={author===member.userId?'active':''} aria-pressed={author===member.userId} onClick={()=>{setAuthor(member.userId);load(1,member.userId)}}>{member.name}</button>)}</div></div>}
+    <header className="page-head"><div><h1>Movimenti</h1><p>{loading?'Aggiornamento…':`${count} ${count===1?'transazione':'transazioni'}`}</p></div></header>
+    <div className="search-box surface"><Icon name="search" size={19}/><input value={q} onChange={event=>setQ(event.target.value)} placeholder="Cerca una descrizione…" aria-label="Cerca movimenti per descrizione"/>{q&&<button type="button" className="search-clear" aria-label="Cancella ricerca" onClick={()=>{setQ('');setDebouncedQ('');setPage(1)}}>×</button>}</div>
+    <div className="live-filter-bar">
+      <DateRangePicker start={periodStart} end={periodEnd} onChange={changeRange}/>
+      <label className="compact-filter"><span>Categoria</span><select value={categoryFilter} onChange={event=>{setCategoryFilter(event.target.value);setPage(1)}}><option value="">Tutte</option>{categories.map(item=><option value={item.name} key={item.name}>{item.name}</option>)}</select></label>
+      <label className="compact-filter"><span>Tipo</span><select value={kindFilter} onChange={event=>{setKindFilter(event.target.value);setPage(1)}}><option value="">Entrate e uscite</option><option value="expense">Uscite</option><option value="income">Entrate</option></select></label>
+      {hasFilters&&<button type="button" className="clear-filters" onClick={clearFilters}>Azzera filtri</button>}
+    </div>
+    {members.length>1&&<div className="author-filter" aria-label="Filtra movimenti per persona"><span>Inserito da</span><div><button type="button" className={!author?'active':''} aria-pressed={!author} onClick={()=>{setAuthor('');setPage(1)}}>Tutti</button>{members.map(member=><button type="button" key={member.userId} className={author===member.userId?'active':''} aria-pressed={author===member.userId} onClick={()=>{setAuthor(member.userId);setPage(1)}}>{member.name}</button>)}</div></div>}
     {error&&<div className="auth-error" role="alert">{error}</div>}
-    {!error&&!rows.length&&<div className="empty-state surface"><b>Nessun movimento trovato</b><p>Modifica i filtri o aggiungi una nuova transazione.</p></div>}
+    {!loading&&!error&&!rows.length&&<div className="empty-state surface"><b>Nessun movimento trovato</b><p>Modifica i filtri o aggiungi una nuova transazione.</p></div>}
     {Object.entries(groups).map(([day,list])=>{const dayTotal=list.reduce((sum,row)=>sum+Number(row.amount),0);return <section className="day day-ledger" key={day}><div className="day-heading"><div className="day-date"><small>Movimenti del giorno</small><h3>{new Intl.DateTimeFormat('it-IT',{weekday:'long',day:'numeric',month:'short',year:'numeric'}).format(new Date(`${day}T12:00:00`))}</h3></div><div className="day-total"><small>Totale giorno</small><strong className={dayTotal>0?'green':dayTotal<0?'red':'muted'}>{dayTotal>0?'+ ':''}{eur(dayTotal)}</strong></div></div><div className="tx-card day-transactions surface">{list.map(row=>{
       const rowCategory=categoryData(row.category_name);
       return <button type="button" className="transaction transaction-button" key={row.id} onClick={()=>open(row)}><CategoryIcon name={row.category_name} icon={rowCategory?.icon} color={rowCategory?.color}/><span><b>{row.note||row.category_name}</b><small>{row.category_name}{row.author_name?` · ${row.author_name}`:''}</small></span><strong className={Number(row.amount)>=0?'green':'red'}>{Number(row.amount)>=0?'+ ':''}{eur(Number(row.amount))}</strong></button>;
     })}</div></section>})}
-    <div className="pager"><button disabled={page===1} onClick={()=>load(page-1)}>Indietro</button><span>{page}</span><button disabled={page*30>=count} onClick={()=>load(page+1)}>Avanti</button></div>
+    <div className="pager"><button disabled={page===1||loading} onClick={()=>setPage(value=>Math.max(1,value-1))}>Indietro</button><span>{page}</span><button disabled={page*30>=count||loading} onClick={()=>setPage(value=>value+1)}>Avanti</button></div>
 
     {editing&&<div className="modal transaction-modal" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)closeModal()}}><div className="modal-card transaction-modal-card surface" role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title">
       {modalView==='detail'&&<>

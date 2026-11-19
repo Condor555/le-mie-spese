@@ -1,101 +1,29 @@
 import {NextResponse} from 'next/server';
 import {z} from 'zod';
 import {activeSpace} from '../../../lib/active-space';
+import {futureOccurrences} from '../../../lib/recurrence';
 
 type SpaceRow={id:string;name:string;type:'personal'|'shared'};
-
-const RecurringPayload=z.object({
-  space_id:z.string().uuid().optional(),
-  note:z.string().default(''),
-  category_name:z.string().min(1),
-  amount:z.number(),
-  account_name:z.string().optional(),
-  frequency:z.enum(['weekly','monthly','yearly']),
-  interval_count:z.number().int().positive().default(1),
-  next_run:z.string(),
-});
-const RecurringUpdate=RecurringPayload.pick({
-  note:true,
-  category_name:true,
-  amount:true,
-  frequency:true,
-  interval_count:true,
-  next_run:true,
-});
+const RecurringPayload=z.object({space_id:z.string().uuid().optional(),note:z.string().default(''),category_name:z.string().min(1),amount:z.number(),account_name:z.string().optional(),frequency:z.enum(['weekly','monthly','yearly']),interval_count:z.number().int().positive().default(1),next_run:z.string(),kind:z.enum(['recurring','subscription']).default('recurring'),auto_post:z.boolean().default(false)});
+const RecurringUpdate=RecurringPayload.pick({note:true,category_name:true,amount:true,frequency:true,interval_count:true,next_run:true,kind:true,auto_post:true}).extend({active:z.boolean().optional()});
+const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 
 export async function GET(){
   try{
-    const {sb,spaceId:activeSpaceId,spaces:memberships}=await activeSpace();
-    const ids:string[]=memberships.map((item:{id:string})=>item.id);
-    const [{data,error},{data:spaceRows,error:spaceError}]=await Promise.all([
-      sb.from('recurring_transactions').select('*').in('space_id',ids).order('next_run'),
-      sb.from('spaces').select('id,name,type').in('id',ids),
-    ]);
-    if(error||spaceError)return NextResponse.json({data:[],spaces:[],error:error?.message||spaceError?.message},{status:400});
-    const spaceMap=new Map<string,SpaceRow>((spaceRows||[]).map((space:SpaceRow)=>[space.id,space]));
-    const spaces=ids.map((id:string)=>spaceMap.get(id)).filter((space:SpaceRow|undefined):space is SpaceRow=>Boolean(space)).sort((a:SpaceRow,b:SpaceRow)=>a.type===b.type?a.name.localeCompare(b.name,'it'):a.type==='personal'?-1:1);
-    const enriched=(data||[]).map((row:any)=>({...row,space_name:spaceMap.get(row.space_id)?.name||'Spazio',space_type:spaceMap.get(row.space_id)?.type||'shared'}));
-    return NextResponse.json({data:enriched,spaces,activeSpaceId});
-  }catch{return NextResponse.json({error:'Unauthorized'},{status:401})}
+    const {sb,spaceId:activeSpaceId,spaces:memberships}=await activeSpace();const ids:string[]=memberships.map((item:{id:string})=>item.id);const start=today();const horizonDate=new Date(`${start}T12:00:00Z`);horizonDate.setUTCMonth(horizonDate.getUTCMonth()+6);const through=horizonDate.toISOString().slice(0,10);
+    const [{data,error},{data:spaceRows,error:spaceError},{data:payments,error:paymentError}]=await Promise.all([
+      sb.from('recurring_transactions').select('*').in('space_id',ids).order('next_run'),sb.from('spaces').select('id,name,type').in('id',ids),sb.from('recurring_payments').select('recurring_id,due_date,transaction_id,confirmed_at').in('space_id',ids).gte('due_date',start).lte('due_date',through),
+    ]);if(error||spaceError||paymentError)return NextResponse.json({data:[],spaces:[],error:error?.message||spaceError?.message||paymentError?.message},{status:400});
+    const spaceMap=new Map<string,SpaceRow>((spaceRows||[]).map((space:SpaceRow)=>[space.id,space]));const spaces=ids.map(id=>spaceMap.get(id)).filter((space):space is SpaceRow=>Boolean(space)).sort((a,b)=>a.type===b.type?a.name.localeCompare(b.name,'it'):a.type==='personal'?-1:1);const paymentMap=new Map<string,{transaction_id:string}>((payments||[]).map((payment:any)=>[`${payment.recurring_id}:${payment.due_date}`,payment] as [string,{transaction_id:string}]));
+    const enriched=(data||[]).map((row:any)=>({...row,space_name:spaceMap.get(row.space_id)?.name||'Spazio',space_type:spaceMap.get(row.space_id)?.type||'shared'}));const upcoming=enriched.filter((row:any)=>row.active).flatMap((row:any)=>futureOccurrences(row.next_run,row.frequency,row.interval_count,through).map(due_date=>{const payment=paymentMap.get(`${row.id}:${due_date}`);return {id:`${row.id}:${due_date}`,recurring_id:row.id,due_date,amount:Number(row.amount),note:row.note,category_name:row.category_name,kind:row.kind||'recurring',auto_post:Boolean(row.auto_post),space_id:row.space_id,space_name:row.space_name,status:payment?'paid':'scheduled',transaction_id:payment?.transaction_id||null}})).sort((a:any,b:any)=>a.due_date.localeCompare(b.due_date));
+    const next30=new Date(`${start}T12:00:00Z`);next30.setUTCDate(next30.getUTCDate()+30);const end30=next30.toISOString().slice(0,10);const scheduled30=upcoming.filter((item:any)=>item.status==='scheduled'&&item.due_date<=end30).reduce((sum:number,item:any)=>sum+Math.abs(item.amount),0);
+    return NextResponse.json({data:enriched,spaces,activeSpaceId,upcoming,summary:{nextDue:upcoming.find((item:any)=>item.status==='scheduled')?.due_date||null,scheduled30}});
+  }catch(error:any){return NextResponse.json({error:error?.message||'Unauthorized'},{status:401})}
 }
-
 export async function POST(req:Request){
-  try{
-    const {sb,user,spaceId:activeSpaceId}=await activeSpace();
-    const body=RecurringPayload.parse(await req.json());
-    const spaceId=body.space_id||activeSpaceId;
-    const {data:membership}=await sb.from('space_members').select('space_id').eq('space_id',spaceId).eq('user_id',user.id).maybeSingle();
-    if(!membership)return NextResponse.json({error:'Non puoi creare ricorrenze in questo spazio.'},{status:403});
-    const {data:category}=await sb.from('categories').select('name').eq('space_id',spaceId).eq('name',body.category_name).maybeSingle();
-    if(!category)return NextResponse.json({error:'La categoria selezionata non appartiene allo spazio di destinazione.'},{status:409});
-    const {data:space,error:spaceError}=await sb.from('spaces').select('account_name').eq('id',spaceId).single();
-    if(spaceError)return NextResponse.json({error:spaceError.message},{status:400});
-    const {data,error}=await sb.from('recurring_transactions').insert({
-      user_id:user.id,
-      created_by:user.id,
-      space_id:spaceId,
-      note:body.note,
-      category_name:body.category_name,
-      amount:body.amount,
-      currency:'EUR',
-      account_name:space?.account_name||'Spese',
-      frequency:body.frequency,
-      interval_count:body.interval_count,
-      next_run:body.next_run,
-      active:true,
-    }).select().single();
-    return NextResponse.json({data,error:error?.message},{status:error?400:200});
-  }catch(error){
-    if(error instanceof z.ZodError)return NextResponse.json({error:'Dati ricorrenza non validi.'},{status:400});
-    return NextResponse.json({error:'Unauthorized'},{status:401});
-  }
+  try{const {sb,user,spaceId:activeSpaceId}=await activeSpace();const body=RecurringPayload.parse(await req.json());const spaceId=body.space_id||activeSpaceId;const {data:membership}=await sb.from('space_members').select('space_id').eq('space_id',spaceId).eq('user_id',user.id).maybeSingle();if(!membership)return NextResponse.json({error:'Non puoi creare ricorrenze in questo spazio.'},{status:403});const {data:category}=await sb.from('categories').select('name').eq('space_id',spaceId).eq('name',body.category_name).maybeSingle();if(!category)return NextResponse.json({error:'La categoria selezionata non appartiene allo spazio di destinazione.'},{status:409});const {data:space,error:spaceError}=await sb.from('spaces').select('account_name').eq('id',spaceId).single();if(spaceError)return NextResponse.json({error:spaceError.message},{status:400});const {data,error}=await sb.from('recurring_transactions').insert({user_id:user.id,created_by:user.id,space_id:spaceId,note:body.note,category_name:body.category_name,amount:body.amount,currency:'EUR',account_name:space?.account_name||'Spese',frequency:body.frequency,interval_count:body.interval_count,next_run:body.next_run,kind:body.kind,auto_post:body.auto_post,active:true}).select().single();return NextResponse.json({data,error:error?.message},{status:error?400:200})}catch(error){if(error instanceof z.ZodError)return NextResponse.json({error:'Dati ricorrenza non validi.'},{status:400});return NextResponse.json({error:'Unauthorized'},{status:401})}
 }
-
 export async function PATCH(req:Request){
-  try{
-    const {sb,spaces}=await activeSpace();
-    const id=new URL(req.url).searchParams.get('id');
-    if(!id)return NextResponse.json({error:'Ricorrenza non valida.'},{status:400});
-    const body=RecurringUpdate.parse(await req.json());
-    const ids:string[]=spaces.map((space:{id:string})=>space.id);
-    const {data:current,error:readError}=await sb.from('recurring_transactions').select('id,space_id').eq('id',id).in('space_id',ids).maybeSingle();
-    if(readError||!current)return NextResponse.json({error:readError?.message||'Ricorrenza non trovata.'},{status:404});
-    const {data:category}=await sb.from('categories').select('name').eq('space_id',current.space_id).eq('name',body.category_name).maybeSingle();
-    if(!category)return NextResponse.json({error:'La categoria selezionata non appartiene allo spazio della ricorrenza.'},{status:409});
-    const {data,error}=await sb.from('recurring_transactions').update(body).eq('id',id).eq('space_id',current.space_id).select().single();
-    return NextResponse.json({data,error:error?.message},{status:error?400:200});
-  }catch(error){
-    if(error instanceof z.ZodError)return NextResponse.json({error:'Dati ricorrenza non validi.'},{status:400});
-    return NextResponse.json({error:'Unauthorized'},{status:401});
-  }
+  try{const {sb,spaces}=await activeSpace();const id=new URL(req.url).searchParams.get('id');if(!id)return NextResponse.json({error:'Ricorrenza non valida.'},{status:400});const body=RecurringUpdate.parse(await req.json());const ids:string[]=spaces.map((space:{id:string})=>space.id);const {data:current,error:readError}=await sb.from('recurring_transactions').select('id,space_id').eq('id',id).in('space_id',ids).maybeSingle();if(readError||!current)return NextResponse.json({error:readError?.message||'Ricorrenza non trovata.'},{status:404});const {data:category}=await sb.from('categories').select('name').eq('space_id',current.space_id).eq('name',body.category_name).maybeSingle();if(!category)return NextResponse.json({error:'La categoria selezionata non appartiene allo spazio della ricorrenza.'},{status:409});const {data,error}=await sb.from('recurring_transactions').update(body).eq('id',id).eq('space_id',current.space_id).select().single();return NextResponse.json({data,error:error?.message},{status:error?400:200})}catch(error){if(error instanceof z.ZodError)return NextResponse.json({error:'Dati ricorrenza non validi.'},{status:400});return NextResponse.json({error:'Unauthorized'},{status:401})}
 }
-
-export async function DELETE(req:Request){
-  try{
-    const {sb,spaces}=await activeSpace();
-    const id=new URL(req.url).searchParams.get('id');
-    if(!id)return NextResponse.json({error:'Ricorrenza non valida.'},{status:400});
-    const {error}=await sb.from('recurring_transactions').delete().in('space_id',spaces.map((space:{id:string})=>space.id)).eq('id',id);
-    return NextResponse.json({ok:!error,error:error?.message},{status:error?400:200});
-  }catch{return NextResponse.json({error:'Unauthorized'},{status:401})}
-}
+export async function DELETE(req:Request){try{const {sb,spaces}=await activeSpace();const id=new URL(req.url).searchParams.get('id');if(!id)return NextResponse.json({error:'Ricorrenza non valida.'},{status:400});const {error}=await sb.from('recurring_transactions').delete().in('space_id',spaces.map((space:{id:string})=>space.id)).eq('id',id);return NextResponse.json({ok:!error,error:error?.message},{status:error?400:200})}catch{return NextResponse.json({error:'Unauthorized'},{status:401})}}

@@ -2,7 +2,7 @@ import {NextResponse} from 'next/server';
 import {z} from 'zod';
 import {activeSpace} from '../../../../lib/active-space';
 const Patch=z.object({date:z.string(),category_name:z.string().min(1),amount:z.number(),note:z.string().default(''),account_name:z.string().min(1),kind:z.enum(['expense','income']),scope:z.enum(['occurrence','series']).default('occurrence')});
-function recurringId(row:any){return row.source==='recurring'&&typeof row.source_id==='string'?row.source_id.split(':')[0]:null}
+function recurringId(row:any){return row.recurring_id||(row.source==='recurring'&&typeof row.source_id==='string'?row.source_id.split(':')[0]:null)}
 export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
   try{
     const {id}=await params,{sb,spaceId}=await activeSpace(),body=Patch.parse(await req.json());
@@ -25,7 +25,7 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
 export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>}){
   try{
     const {id}=await params,{sb,spaceId}=await activeSpace(),scope=new URL(req.url).searchParams.get('scope')==='series'?'series':'occurrence';
-    const {data:current,error:readError}=await sb.from('transactions').select('source,source_id').eq('space_id',spaceId).eq('id',id).single();
+    const {data:current,error:readError}=await sb.from('transactions').select('source,source_id,recurring_id').eq('space_id',spaceId).eq('id',id).single();
     if(readError||!current)return NextResponse.json({error:readError?.message||'Movimento non trovato.'},{status:404});
     const seriesId=recurringId(current);
     if(scope==='series'&&seriesId){const {error:seriesError}=await sb.from('recurring_transactions').update({active:false}).eq('space_id',spaceId).eq('id',seriesId);if(seriesError)return NextResponse.json({error:seriesError.message},{status:400})}

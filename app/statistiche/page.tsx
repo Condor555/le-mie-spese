@@ -1,76 +1,34 @@
 'use client';
 
+import Link from 'next/link';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {PieChart,Pie,Cell,ResponsiveContainer,BarChart,Bar,XAxis,YAxis,Tooltip} from 'recharts';
 import {categoryStyle} from '../../lib/category-style';
 import {onActiveSpaceChanged} from '../../lib/active-space-client';
-import Icon from '../../components/Icon';
+import {useSharedMonth} from '../../lib/selected-period-client';
+import MonthPicker from '../../components/MonthPicker';
 
 const eur=(value:number)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(value);
-type Stats={expense:number;income:number;balance:number;categories:{name:string;value:number}[]};
+type Category={name:string;value:number;budget:number;budgetPercentage:number};type Author={userId:string;name:string;value:number;percentage:number};type Budget={amount:number;spent:number;available:number;percentage:number;status:'ok'|'warning'|'over'};
+type Stats={expense:number;income:number;balance:number;count:number;previousIncome:number;previousExpense:number;incomeChangePercent:number|null;expenseChangePercent:number|null;categories:Category[];authors:Author[];dailyAverageExpense:number;projectedExpense:number;daysConsidered:number;daysInMonth:number;budget:Budget};
 type Trend={month:string;income:number;expense:number};
-const monthFormatter=new Intl.DateTimeFormat('it-IT',{month:'long',year:'numeric',timeZone:'UTC'});
-const readableMonth=(value:string)=>{
-  const [year,month]=value.split('-').map(Number);
-  return Number.isFinite(year)&&Number.isFinite(month)
-    ?monthFormatter.format(new Date(Date.UTC(year,month-1,1)))
-    :value;
-};
+const comparison=(value:number|null)=>value==null?'Nessun dato nel mese precedente':`${value>0?'+':''}${value}% sul mese precedente`;
 
 export default function Statistiche(){
-  const [month,setMonth]=useState(new Date().toISOString().slice(0,7));
-  const [stats,setStats]=useState<Stats|null>(null);
-  const [trends,setTrends]=useState<Trend[]>([]);
-  const monthPickerRef=useRef<HTMLInputElement>(null);
-  const statsRequestRef=useRef(0);
-  const trendsRequestRef=useRef(0);
-
-  const openMonthPicker=()=>{
-    const picker=monthPickerRef.current;
-    if(!picker)return;
-    try{
-      if(typeof picker.showPicker==='function')picker.showPicker();
-      else picker.click();
-    }catch{
-      picker.click();
-    }
-  };
-
-  const loadStats=useCallback(async(targetSpaceId?:string)=>{
-    const request=++statsRequestRef.current;
-    try{
-      const params=new URLSearchParams({month});
-      if(targetSpaceId)params.set('spaceId',targetSpaceId);
-      const result=await fetch(`/api/stats?${params}`,{cache:'no-store'}).then(response=>response.json());
-      if(request===statsRequestRef.current&&!result.error)setStats(result);
-    }catch{if(request===statsRequestRef.current)setStats(null)}
-  },[month]);
-
-  const loadTrends=useCallback(async(targetSpaceId?:string)=>{
-    const request=++trendsRequestRef.current;
-    try{
-      const suffix=targetSpaceId?`?spaceId=${encodeURIComponent(targetSpaceId)}`:'';
-      const result=await fetch(`/api/trends${suffix}`,{cache:'no-store'}).then(response=>response.json());
-      if(request===trendsRequestRef.current)setTrends((result.data||[]).slice(-6));
-    }catch{if(request===trendsRequestRef.current)setTrends([])}
-  },[]);
-
-  useEffect(()=>{loadStats()},[loadStats]);
-  useEffect(()=>{loadTrends()},[loadTrends]);
-  useEffect(()=>onActiveSpaceChanged(spaceId=>{
-    statsRequestRef.current++;
-    trendsRequestRef.current++;
-    setStats(null);
-    setTrends([]);
-    loadStats(spaceId);
-    loadTrends(spaceId);
-  }),[loadStats,loadTrends]);
-
-  const categories=stats?.categories?.slice(0,6)||[];
+  const {month,setMonth}=useSharedMonth();const [stats,setStats]=useState<Stats|null>(null);const [trends,setTrends]=useState<Trend[]>([]);const [trendMonths,setTrendMonths]=useState<6|12>(6);const [spaceId,setSpaceId]=useState('');const [error,setError]=useState('');const statsRequestRef=useRef(0);const trendsRequestRef=useRef(0);const statsAbort=useRef<AbortController|null>(null);const trendsAbort=useRef<AbortController|null>(null);
+  const loadStats=useCallback(async(targetSpaceId=spaceId)=>{const request=++statsRequestRef.current;statsAbort.current?.abort();const controller=new AbortController();statsAbort.current=controller;const params=new URLSearchParams({month});if(targetSpaceId)params.set('spaceId',targetSpaceId);setError('');try{const response=await fetch(`/api/stats?${params}`,{cache:'no-store',signal:controller.signal});const result=await response.json();if(request!==statsRequestRef.current)return;if(!response.ok)throw new Error(result.error||'Impossibile caricare le statistiche.');setStats(result)}catch(error:any){if(error?.name!=='AbortError'&&request===statsRequestRef.current){setStats(null);setError(error.message)}}},[month,spaceId]);
+  const loadTrends=useCallback(async(targetSpaceId=spaceId)=>{const request=++trendsRequestRef.current;trendsAbort.current?.abort();const controller=new AbortController();trendsAbort.current=controller;const params=new URLSearchParams({month,months:String(trendMonths)});if(targetSpaceId)params.set('spaceId',targetSpaceId);try{const response=await fetch(`/api/trends?${params}`,{cache:'no-store',signal:controller.signal});const result=await response.json();if(request===trendsRequestRef.current)setTrends(response.ok?result.data||[]:[])}catch(error:any){if(error?.name!=='AbortError'&&request===trendsRequestRef.current)setTrends([])}},[month,trendMonths,spaceId]);
+  useEffect(()=>{void loadStats();void loadTrends()},[month,trendMonths,spaceId]);
+  useEffect(()=>onActiveSpaceChanged(id=>{statsRequestRef.current++;trendsRequestRef.current++;statsAbort.current?.abort();trendsAbort.current?.abort();setSpaceId(id);setStats(null);setTrends([])}),[]);
+  const categories=stats?.categories.slice(0,6)||[];const total=stats?.expense||1;
   return <>
-    <header className="page-head stats-head"><div><h1>Statistiche</h1><p>Scopri dove va il tuo denaro</p></div><button className="stats-month-control" type="button" onClick={openMonthPicker} aria-label={`Seleziona il mese. Mese selezionato: ${readableMonth(month)}`}><Icon name="calendar" size={24}/><span>{readableMonth(month)}</span></button><input ref={monthPickerRef} className="stats-month-picker" type="month" value={month} onChange={event=>setMonth(event.target.value)} tabIndex={-1} aria-hidden="true"/></header>
-    <section className="section surface"><div className="section-title"><div><small>Uscite del mese</small><h2>{eur(stats?.expense||0)}</h2></div></div><div className="donut-wrap"><ResponsiveContainer><PieChart><Pie data={categories} dataKey="value" innerRadius="61%" outerRadius="88%" paddingAngle={2}>{categories.map(category=><Cell key={category.name} fill={categoryStyle(category.name).color}/>)}</Pie><Tooltip formatter={value=>eur(Number(value))}/></PieChart></ResponsiveContainer><div className="donut-center"><small>Spese</small><b>{eur(stats?.expense||0)}</b></div></div><div className="legend-list">{categories.map(category=><div key={category.name}><i style={{background:categoryStyle(category.name).color}}/><span>{category.name}</span><b>{Math.round(category.value/(stats?.expense||1)*100)}%</b></div>)}</div></section>
-    <section className="section surface"><div className="section-title"><h2>Entrate e uscite</h2><small>ultimi 6 mesi</small></div><div className="stat-chart"><ResponsiveContainer><BarChart data={trends}><XAxis dataKey="month" tickFormatter={value=>value.slice(5)} axisLine={false} tickLine={false}/><YAxis hide/><Tooltip formatter={value=>eur(Number(value))}/><Bar dataKey="income" fill="#35c38f" radius={[5,5,0,0]}/><Bar dataKey="expense" fill="#ef6469" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer></div></section>
-    <div className="metric-grid"><section className="metric surface"><small>Risparmio</small><b>{eur(stats?.balance||0)}</b></section><section className="metric surface"><small>Tasso di risparmio</small><b>{stats?.income?Math.round(stats.balance/stats.income*100):0}%</b></section></div>
+    <header className="page-head stats-head"><div><h1>Statistiche</h1><p>Scopri dove va il tuo denaro</p></div><MonthPicker value={month} onChange={setMonth}/></header>
+    {error&&<div className="auth-error" role="alert">{error}</div>}
+    <div className="analytics-kpis"><section className="metric surface"><small>Uscite</small><b className="red">{eur(stats?.expense||0)}</b><span>{comparison(stats?.expenseChangePercent??null)}</span></section><section className="metric surface"><small>Entrate</small><b className="green">{eur(stats?.income||0)}</b><span>{comparison(stats?.incomeChangePercent??null)}</span></section><section className="metric surface"><small>Media giornaliera</small><b>{eur(stats?.dailyAverageExpense||0)}</b><span>{stats?.daysConsidered||0} giorni considerati</span></section><section className="metric surface"><small>Proiezione fine mese</small><b>{eur(stats?.projectedExpense||0)}</b><span>su {stats?.daysInMonth||0} giorni</span></section></div>
+    <section className="section surface"><div className="section-title"><div><h2>Andamento entrate e uscite</h2><small>periodo concluso nel mese selezionato</small></div><div className="trend-toggle"><button className={trendMonths===6?'active':''} onClick={()=>setTrendMonths(6)}>6 mesi</button><button className={trendMonths===12?'active':''} onClick={()=>setTrendMonths(12)}>12 mesi</button></div></div><div className="stat-chart"><ResponsiveContainer><BarChart data={trends}><XAxis dataKey="month" tickFormatter={value=>value.slice(5)} axisLine={false} tickLine={false}/><YAxis hide/><Tooltip formatter={value=>eur(Number(value))}/><Bar dataKey="income" fill="#35c38f" radius={[5,5,0,0]}/><Bar dataKey="expense" fill="#ef6469" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer></div></section>
+    <section className="section surface"><div className="section-title"><div><small>Top categorie</small><h2>{eur(stats?.expense||0)} di uscite</h2></div></div><div className="donut-wrap"><ResponsiveContainer><PieChart><Pie data={categories} dataKey="value" innerRadius="61%" outerRadius="88%" paddingAngle={2}>{categories.map(category=><Cell key={category.name} fill={categoryStyle(category.name).color}/>)}</Pie><Tooltip formatter={value=>eur(Number(value))}/></PieChart></ResponsiveContainer><div className="donut-center"><small>Spese</small><b>{eur(stats?.expense||0)}</b></div></div><div className="legend-list">{categories.map(category=><div key={category.name}><i style={{background:categoryStyle(category.name).color}}/><span>{category.name}</span><b>{Math.round(category.value/total*100)}%</b></div>)}</div></section>
+    <section className={`section surface analytics-budget ${stats?.budget.status||'ok'}`}><div className="section-title"><div><h2>Andamento rispetto al budget</h2><small>{stats?.budget.amount?`${eur(stats.budget.spent)} di ${eur(stats.budget.amount)}`:'Nessun budget mensile impostato'}</small></div><Link href="/budget">Gestisci</Link></div><div className="budget-progress"><span style={{width:`${Math.min(100,stats?.budget.percentage||0)}%`}}/></div><div className="budget-numbers"><span>{stats?.budget.percentage||0}% utilizzato</span><b className={(stats?.budget.available||0)<0?'red':''}>{eur(stats?.budget.available||0)} disponibili</b></div></section>
+    {(stats?.authors.length||0)>1&&<section className="section surface"><div className="section-title"><div><h2>Spese per autore</h2><small>Breakdown dello spazio condiviso</small></div></div><div className="author-breakdown">{stats?.authors.map(author=><div key={author.userId}><span><b>{author.name}</b><small>{author.percentage}%</small></span><div className="progress"><i style={{width:`${author.percentage}%`}}/></div><strong>{eur(author.value)}</strong></div>)}</div></section>}
+    <div className="metric-grid"><section className="metric surface"><small>Saldo</small><b>{eur(stats?.balance||0)}</b></section><section className="metric surface"><small>Tasso di risparmio</small><b>{stats?.income?Math.round(stats.balance/stats.income*100):0}%</b></section></div>
   </>;
 }
