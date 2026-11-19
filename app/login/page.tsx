@@ -38,7 +38,7 @@ export default function Login() {
       return;
     }
 
-    router.replace('/');
+    router.replace('/onboarding');
     router.refresh();
   }
 

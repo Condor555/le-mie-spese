@@ -1,155 +1,75 @@
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { activeSpace } from '../../../lib/active-space';
+import {NextResponse} from 'next/server';
+import {z} from 'zod';
+import {activeSpace} from '../../../lib/active-space';
 
-const transactionSchema = z.object({
-  date: z.string(),
-  category_name: z.string().min(1),
-  amount: z.number(),
-  currency: z.string().default('EUR'),
-  note: z.string().default(''),
-  account_name: z.string().default('Spese'),
-  kind: z
-    .enum(['expense', 'income', 'transfer'])
-    .default('expense'),
+const Schema=z.object({
+  date:z.string(),
+  category_name:z.string().min(1),
+  amount:z.number(),
+  currency:z.string().default('EUR'),
+  note:z.string().default(''),
+  account_name:z.string().default('Spese'),
+  kind:z.enum(['expense','income','transfer']).default('expense'),
+  space_id:z.string().uuid().optional(),
 });
 
-export async function GET(req: Request) {
-  try {
-    const { sb, spaceId } = await activeSpace();
-    const url = new URL(req.url);
-    const query = url.searchParams.get('q') || '';
-    const month = url.searchParams.get('month') || '';
-    const author = url.searchParams.get('author') || '';
-    const page = Math.max(
-      1,
-      Number(url.searchParams.get('page') || 1) || 1
-    );
-    const size = 30;
-
-    let request = sb
-      .from('transactions')
-      .select('*', { count: 'exact' })
-      .eq('space_id', spaceId)
-      .order('date', { ascending: false })
-      .range((page - 1) * size, page * size - 1);
-
-    if (query) request = request.ilike('note', `%${query}%`);
-    if (author) request = request.eq('created_by', author);
-
-    if (/^\d{4}-\d{2}$/.test(month)) {
-      const [year, monthNumber] = month.split('-').map(Number);
-      const end = new Date(year, monthNumber, 1)
-        .toISOString()
-        .slice(0, 10);
-      request = request
-        .gte('date', `${month}-01`)
-        .lt('date', end);
+export async function GET(req:Request){
+  try{
+    const url=new URL(req.url);
+    const {sb,spaceId}=await activeSpace(url.searchParams.get('spaceId'));
+    const q=url.searchParams.get('q')||'';
+    const month=url.searchParams.get('month')||'';
+    const author=url.searchParams.get('author')||'';
+    const page=Math.max(1,Number(url.searchParams.get('page')||1));
+    const size=30;
+    let query=sb.from('transactions').select('*',{count:'exact'}).eq('space_id',spaceId).order('date',{ascending:false}).order('created_at',{ascending:false}).range((page-1)*size,page*size-1);
+    if(q)query=query.ilike('note',`%${q}%`);
+    if(author)query=query.eq('created_by',author);
+    if(month){
+      const end=new Date(Number(month.slice(0,4)),Number(month.slice(5,7)),1).toISOString().slice(0,10);
+      query=query.gte('date',`${month}-01`).lt('date',end);
     }
-
-    const { data, error, count } = await request;
-
-    if (error) {
-      return NextResponse.json(
-        { error: error.message, data: [], count: 0, page, size },
-        { status: 400 }
-      );
+    const {data,error,count}=await query;
+    if(error)return NextResponse.json({error:error.message,data:[],count:0,page,size},{status:400});
+    const authorIds=[...new Set((data||[]).map((row:any)=>row.created_by).filter(Boolean))];
+    const names=new Map<string,string>();
+    if(authorIds.length){
+      const {data:profiles}=await sb.from('profiles').select('user_id,display_name').in('user_id',authorIds);
+      for(const profile of profiles||[])names.set(profile.user_id,profile.display_name);
     }
-
-    const rows = data || [];
-    const authorIds = [
-      ...new Set(
-        rows
-          .map((transaction) => transaction.created_by)
-          .filter((id): id is string => Boolean(id))
-      ),
-    ];
-    const authorNames = new Map<string, string>();
-
-    // Resolve profiles separately. This avoids making the whole transaction
-    // query fail when PostgREST cannot infer an embedded profiles relation.
-    if (authorIds.length) {
-      const { data: profiles } = await sb
-        .from('profiles')
-        .select('user_id,display_name')
-        .in('user_id', authorIds);
-
-      for (const profile of profiles || []) {
-        authorNames.set(
-          profile.user_id,
-          profile.display_name || 'Utente'
-        );
-      }
-    }
-
-    return NextResponse.json({
-      data: rows.map((transaction) => ({
-        ...transaction,
-        author_name: transaction.created_by
-          ? authorNames.get(transaction.created_by) || 'Utente'
-          : 'Importato',
-      })),
-      count: count || 0,
-      page,
-      size,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Unauthorized',
-      },
-      { status: 401 }
-    );
+    return NextResponse.json({data:(data||[]).map((row:any)=>({...row,author_name:row.created_by?(names.get(row.created_by)||'Utente'):'Importato'})),count:count||0,page,size});
+  }catch(error:any){
+    return NextResponse.json({error:error?.message||'Unauthorized'},{status:401});
   }
 }
 
-export async function POST(req: Request) {
-  try {
-    const { sb, user, spaceId } = await activeSpace();
-    const payload = transactionSchema.parse(await req.json());
-    const signedAmount =
-      payload.kind === 'expense'
-        ? -Math.abs(payload.amount)
-        : payload.kind === 'income'
-          ? Math.abs(payload.amount)
-          : payload.amount;
-
-    const { data, error } = await sb
-      .from('transactions')
-      .insert({
-        user_id: user.id,
-        created_by: user.id,
-        space_id: spaceId,
-        source: 'manual',
-        date: payload.date,
-        category_name: payload.category_name,
-        amount: signedAmount,
-        currency: payload.currency,
-        note: payload.note,
-        account_name: payload.account_name,
-      })
-      .select()
-      .single();
-
-    return NextResponse.json(
-      { data, error: error?.message },
-      { status: error ? 400 : 200 }
-    );
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Dati della transazione non validi.' },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Unauthorized',
-      },
-      { status: 401 }
-    );
+export async function POST(req:Request){
+  try{
+    const {sb,user,spaceId:activeSpaceId}=await activeSpace();
+    const payload=Schema.parse(await req.json());
+    const spaceId=payload.space_id||activeSpaceId;
+    const {data:membership}=await sb.from('space_members').select('space_id').eq('space_id',spaceId).eq('user_id',user.id).maybeSingle();
+    if(!membership)return NextResponse.json({error:'Non puoi salvare in questo spazio.'},{status:403});
+    const {data:category}=await sb.from('categories').select('name').eq('space_id',spaceId).eq('name',payload.category_name).maybeSingle();
+    if(!category)return NextResponse.json({error:'La categoria selezionata non appartiene allo spazio di destinazione.'},{status:409});
+    const {data:space,error:spaceError}=await sb.from('spaces').select('account_name').eq('id',spaceId).single();
+    if(spaceError)return NextResponse.json({error:spaceError.message},{status:400});
+    const signed=payload.kind==='expense'?-Math.abs(payload.amount):payload.kind==='income'?Math.abs(payload.amount):payload.amount;
+    const {data,error}=await sb.from('transactions').insert({
+      user_id:user.id,
+      created_by:user.id,
+      space_id:spaceId,
+      source:'manual',
+      date:payload.date,
+      category_name:payload.category_name,
+      amount:signed,
+      currency:payload.currency,
+      note:payload.note,
+      account_name:space?.account_name||'Spese',
+    }).select().single();
+    return NextResponse.json({data,error:error?.message},{status:error?400:200});
+  }catch(error:any){
+    if(error instanceof z.ZodError)return NextResponse.json({error:error.issues[0]?.message||'Dati non validi.'},{status:400});
+    return NextResponse.json({error:error?.message||'Unauthorized'},{status:401});
   }
 }

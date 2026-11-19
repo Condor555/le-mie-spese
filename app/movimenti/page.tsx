@@ -1,8 +1,9 @@
 'use client';
 
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import Icon from '../../components/Icon';
 import CategoryIcon from '../../components/CategoryIcon';
+import {onActiveSpaceChanged} from '../../lib/active-space-client';
 
 type Transaction={
   id:string;
@@ -48,13 +49,18 @@ export default function Movimenti(){
   const [scope,setScope]=useState<Scope>('occurrence');
   const [busy,setBusy]=useState(false);
   const [modalMsg,setModalMsg]=useState('');
+  const listRequestRef=useRef(0);
+  const metadataRequestRef=useRef(0);
 
-  async function load(targetPage=page){
+  async function load(targetPage=page,targetAuthor=author,targetSpaceId?:string){
+    const request=++listRequestRef.current;
     setError('');
-    const params=new URLSearchParams({q,month,author,page:String(targetPage)});
+    const params=new URLSearchParams({q,month,author:targetAuthor,page:String(targetPage)});
+    if(targetSpaceId)params.set('spaceId',targetSpaceId);
     try{
       const response=await fetch(`/api/transactions?${params}`,{cache:'no-store'});
       const result=await response.json();
+      if(request!==listRequestRef.current)return;
       if(!response.ok){
         setRows([]);
         setCount(0);
@@ -65,22 +71,45 @@ export default function Movimenti(){
       setCount(Number(result.count||0));
       setPage(targetPage);
     }catch{
+      if(request!==listRequestRef.current)return;
       setError('Errore di connessione.');
       setRows([]);
       setCount(0);
     }
   }
 
-  useEffect(()=>{
-    load(1);
-    Promise.all([
-      fetch('/api/categories',{cache:'no-store'}).then(response=>response.json()),
-      fetch('/api/members',{cache:'no-store'}).then(response=>response.json()),
-    ]).then(([categoryResult,memberResult])=>{
+  async function loadMetadata(targetSpaceId?:string){
+    const request=++metadataRequestRef.current;
+    const suffix=targetSpaceId?`?spaceId=${encodeURIComponent(targetSpaceId)}`:'';
+    try{
+      const [categoryResult,memberResult]=await Promise.all([
+        fetch(`/api/categories${suffix}`,{cache:'no-store'}).then(response=>response.json()),
+        fetch(`/api/members${suffix}`,{cache:'no-store'}).then(response=>response.json()),
+      ]);
+      if(request!==metadataRequestRef.current)return;
       setCategories(categoryResult.data||[]);
       setMembers(memberResult.data||[]);
-    });
+    }catch{
+      if(request===metadataRequestRef.current){setCategories([]);setMembers([]);}
+    }
+  }
+
+  useEffect(()=>{
+    load(1);
+    loadMetadata();
   },[]);
+
+  useEffect(()=>onActiveSpaceChanged(spaceId=>{
+    listRequestRef.current++;
+    metadataRequestRef.current++;
+    setRows([]);
+    setCount(0);
+    setPage(1);
+    setAuthor('');
+    setEditing(null);
+    load(1,'',spaceId);
+    loadMetadata(spaceId);
+  }),[q,month]);
 
   useEffect(()=>{
     if(!editing)return;
@@ -183,13 +212,14 @@ export default function Movimenti(){
   return <>
     <header className="page-head"><div><h1>Movimenti</h1><p>{count} transazioni</p></div></header>
     <div className="search-box surface"><Icon name="search" size={19}/><input value={q} onChange={event=>setQ(event.target.value)} onKeyDown={event=>event.key==='Enter'&&load(1)} placeholder="Cerca una spesa…"/></div>
-    <div className="filter-row"><input type="month" value={month} onChange={event=>setMonth(event.target.value)}/><select value={author} onChange={event=>setAuthor(event.target.value)} aria-label="Inserito da"><option value="">Inserito da: tutti</option>{members.map(member=><option key={member.userId} value={member.userId}>{member.name}</option>)}</select><button onClick={()=>load(1)}>Applica filtri</button></div>
+    <div className="filter-row"><input type="month" value={month} onChange={event=>setMonth(event.target.value)}/><button onClick={()=>load(1)}>Applica filtri</button></div>
+    {members.length>1&&<div className="author-filter" aria-label="Filtra movimenti per persona"><span>Inserito da</span><div><button type="button" className={!author?'active':''} aria-pressed={!author} onClick={()=>{setAuthor('');load(1,'')}}>Tutti</button>{members.map(member=><button type="button" key={member.userId} className={author===member.userId?'active':''} aria-pressed={author===member.userId} onClick={()=>{setAuthor(member.userId);load(1,member.userId)}}>{member.name}</button>)}</div></div>}
     {error&&<div className="auth-error" role="alert">{error}</div>}
     {!error&&!rows.length&&<div className="empty-state surface"><b>Nessun movimento trovato</b><p>Modifica i filtri o aggiungi una nuova transazione.</p></div>}
-    {Object.entries(groups).map(([day,list])=><section className="day" key={day}><h3>{new Intl.DateTimeFormat('it-IT',{weekday:'long',day:'numeric',month:'short',year:'numeric'}).format(new Date(`${day}T12:00:00`))}</h3><div className="tx-card surface">{list.map(row=>{
+    {Object.entries(groups).map(([day,list])=>{const dayTotal=list.reduce((sum,row)=>sum+Number(row.amount),0);return <section className="day" key={day}><div className="day-heading"><h3>{new Intl.DateTimeFormat('it-IT',{weekday:'long',day:'numeric',month:'short',year:'numeric'}).format(new Date(`${day}T12:00:00`))}</h3><strong className={dayTotal>0?'green':dayTotal<0?'red':'muted'}>{dayTotal>0?'+ ':''}{eur(dayTotal)}</strong></div><div className="tx-card surface">{list.map(row=>{
       const rowCategory=categoryData(row.category_name);
       return <button type="button" className="transaction transaction-button" key={row.id} onClick={()=>open(row)}><CategoryIcon name={row.category_name} icon={rowCategory?.icon} color={rowCategory?.color}/><span><b>{row.note||row.category_name}</b><small>{row.category_name}{row.author_name?` · ${row.author_name}`:''}</small></span><strong className={Number(row.amount)>=0?'green':'red'}>{Number(row.amount)>=0?'+ ':''}{eur(Number(row.amount))}</strong></button>;
-    })}</div></section>)}
+    })}</div></section>})}
     <div className="pager"><button disabled={page===1} onClick={()=>load(page-1)}>Indietro</button><span>{page}</span><button disabled={page*30>=count} onClick={()=>load(page+1)}>Avanti</button></div>
 
     {editing&&<div className="modal transaction-modal" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)closeModal()}}><div className="modal-card transaction-modal-card surface" role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title">
@@ -226,7 +256,7 @@ export default function Movimenti(){
         <div className="two-col"><div className="field"><label>Importo</label><input inputMode="decimal" value={amount} onChange={event=>setAmount(event.target.value)}/></div><div className="field"><label>Data</label><input type="date" value={date} onChange={event=>setDate(event.target.value)}/></div></div>
         <div className="field"><label>Descrizione</label><input value={note} onChange={event=>setNote(event.target.value)}/></div>
         <div className="field"><label>Categoria</label><div className="transaction-category-field"><CategoryIcon name={category||editing.category_name} icon={categoryData(category)?.icon} color={categoryData(category)?.color} size={44}/><select value={category} onChange={event=>setCategory(event.target.value)}>{categories.map(item=><option key={item.name}>{item.name}</option>)}</select></div></div>
-        <div className="field"><label>Conto</label><input value={account} onChange={event=>setAccount(event.target.value)}/></div>
+        <div className="field"><label>Conto</label><input value={account} readOnly aria-readonly="true" title="Modificabile da Impostazioni > Conto per lo spazio visualizzato"/></div>
         {recurring&&<div className="transaction-scope"><b>Applica la modifica a</b><div className="scope-choice"><label><input type="radio" name="edit-scope" checked={scope==='occurrence'} onChange={()=>setScope('occurrence')}/> Solo questa occorrenza</label><label><input type="radio" name="edit-scope" checked={scope==='series'} onChange={()=>setScope('series')}/> Occorrenza e serie futura</label></div></div>}
         {modalMsg&&<div className="notice" role="status">{modalMsg}</div>}
         <div className="transaction-edit-actions"><button className="save-btn" disabled={busy} onClick={save}>{busy?'Salvataggio…':'Salva modifiche'}</button><button className="secondary" disabled={busy} onClick={()=>{setModalView('detail');setModalMsg('')}}>Annulla</button></div>

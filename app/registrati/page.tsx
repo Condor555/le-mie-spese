@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 
 export default function Registrati() {
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -20,6 +22,11 @@ export default function Registrati() {
 
   async function signup(e: React.FormEvent) {
     e.preventDefault();
+
+    if (displayName.trim().length < 2) {
+      setMessage('Inserisci un nome di almeno 2 caratteri.');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setMessage('Le password non coincidono.');
@@ -41,6 +48,13 @@ export default function Registrati() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          display_name: displayName.trim(),
+          invite_code: inviteCode.trim().toUpperCase() || null,
+        },
+      },
     });
 
     setBusy(false);
@@ -50,14 +64,21 @@ export default function Registrati() {
       return;
     }
 
+    localStorage.setItem('onboarding_display_name', displayName.trim());
+    if (inviteCode.trim()) {
+      localStorage.setItem('onboarding_invite_code', inviteCode.trim().toUpperCase());
+    } else {
+      localStorage.removeItem('onboarding_invite_code');
+    }
+
     if (data.session) {
-      router.replace('/');
+      router.replace('/onboarding');
       router.refresh();
       return;
     }
 
     setMessage(
-      'Account creato. Ora puoi accedere.'
+      'Account creato. Conferma l’email, poi accedi per completare il tuo spazio.'
     );
   }
 
@@ -69,6 +90,19 @@ export default function Registrati() {
       <p>Inizia a gestire le tue spese</p>
 
       <form className="surface auth-panel" onSubmit={signup}>
+        <label>Nome visualizzato</label>
+
+        <input
+          type="text"
+          autoComplete="name"
+          required
+          minLength={2}
+          maxLength={60}
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder="Es. Fabrizio"
+        />
+
         <label>Email</label>
 
         <input
@@ -120,6 +154,17 @@ export default function Registrati() {
             {showConfirmPassword ? 'Nascondi' : 'Mostra'}
           </button>
         </div>
+
+        <label>Codice invito <span className="optional-label">facoltativo</span></label>
+
+        <input
+          type="text"
+          autoCapitalize="characters"
+          maxLength={24}
+          value={inviteCode}
+          onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+          placeholder="Per entrare nello spazio Famiglia"
+        />
 
         <button className="auth-submit" disabled={busy}>
           {busy ? 'Creazione...' : 'Crea account'}

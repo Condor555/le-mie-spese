@@ -7,6 +7,7 @@ export default function AppHeader(){
   const hidden =
     pathname === '/login' ||
     pathname === '/registrati' ||
+    pathname === '/onboarding' ||
     pathname === '/nuovo' ||
     pathname === '/account' ||
     pathname.startsWith('/account/') ||
