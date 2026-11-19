@@ -231,11 +231,11 @@ html[data-theme="dark"] .back-link span {
 
 
 /* V3.6 — Statistiche period selector: una sola icona, card interamente cliccabile */
-.stats-month-control{position:relative;width:178px;min-width:178px;min-height:46px;padding:11px 14px;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;color:var(--text);font-variant-numeric:tabular-nums;box-shadow:var(--shadow);cursor:pointer;overflow:hidden}
+.stats-month-control{position:relative;width:178px;min-width:178px;min-height:46px;padding:11px 14px;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;color:var(--text);font:inherit;font-variant-numeric:tabular-nums;text-align:left;box-shadow:var(--shadow);cursor:pointer;overflow:hidden;-webkit-appearance:none;appearance:none}
 .stats-month-control>svg{flex:0 0 auto;color:var(--text)}
 .stats-month-control>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;text-transform:lowercase}
-.stats-month-control .stats-month-picker{position:absolute;z-index:2;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;opacity:.001;cursor:pointer}
-.stats-month-control:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(86,89,234,.16)}
+.stats-month-picker{position:fixed;left:-100vw;top:0;width:1px;height:1px;margin:0;padding:0;border:0;opacity:0;pointer-events:none;clip-path:inset(50%)}
+.stats-month-control:focus-visible{outline:0;border-color:var(--primary);box-shadow:0 0 0 3px rgba(86,89,234,.16)}
 @media(max-width:390px){.stats-head{display:grid;grid-template-columns:minmax(0,1fr);align-items:start}.stats-month-control{width:100%;min-width:0}}
 
 /* V3.5.7 — shared active-space selector */
@@ -279,11 +279,8 @@ html[data-theme="dark"] .back-link span {
 
 
 /* V3.6 REV2.2 — cumulative UI and multi-space recurring hotfix */
-/* Statistiche: il controllo nativo copre la card ma non disegna icone/chevron propri. */
+/* Statistiche: il picker nativo resta fuori dal layout; la card visibile non può quindi mostrare icone o chevron del browser. */
 .stats-month-control{isolation:isolate;overflow:hidden}
-.stats-month-control .stats-month-picker{-webkit-appearance:none;appearance:none;color:transparent;background:transparent!important;box-shadow:none!important;color-scheme:light dark}
-.stats-month-control .stats-month-picker::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer}
-.stats-month-control .stats-month-picker::-webkit-inner-spin-button,.stats-month-control .stats-month-picker::-webkit-clear-button{display:none;-webkit-appearance:none}
 
 /* SPAZIO VISUALIZZATO: nessun ritaglio dell'etichetta in light/dark/mobile. */
 .space-selector{min-height:74px;padding:11px 14px;overflow:visible;align-items:center}
