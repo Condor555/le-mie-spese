@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import BackToAccount from '../../../components/BackToAccount';
-import { type IconName } from '../../../components/Icon';
-import CategoryIcon from '../../../components/CategoryIcon';
+import type { IconName } from '../../../components/Icon';
 import CategoryPhosphorIcon from '../../../components/CategoryPhosphorIcon';
+import CategoryIcon from '../../../components/CategoryIcon';
 import {
   iconChoices,
   colorChoices,
@@ -155,8 +155,28 @@ export default function Categorie() {
     }
 
     if (response.status === 409) {
+      const transactionCount = Number(result.count) || 0;
+      const recurringCount = Number(result.recurringCount) || 0;
+      const parts = [];
+
+      if (transactionCount) {
+        parts.push(
+          `${transactionCount} ${
+            transactionCount === 1 ? 'movimento' : 'movimenti'
+          }`
+        );
+      }
+
+      if (recurringCount) {
+        parts.push(
+          `${recurringCount} ${
+            recurringCount === 1 ? 'ricorrenza attiva' : 'ricorrenze attive'
+          }`
+        );
+      }
+
       setMsg(
-        `La categoria contiene ${result.count} transazioni. ` +
+        `La categoria contiene ${parts.join(' e ')}. ` +
           'Scegli una categoria di destinazione e usa "Migra ed elimina".'
       );
       return;

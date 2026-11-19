@@ -1,111 +1,99 @@
-import type { ComponentProps } from 'react';
 import {
-  AirplaneTiltIcon,
-  AmazonLogoIcon,
-  BabyIcon,
-  BarbellIcon,
-  BedIcon,
-  BookOpenIcon,
-  CameraIcon,
-  CarIcon,
-  CoffeeIcon,
-  DeviceMobileIcon,
-  FilmSlateIcon,
-  FirstAidIcon,
-  ForkKnifeIcon,
-  GameControllerIcon,
-  GasPumpIcon,
-  GiftIcon,
-  GraduationCapIcon,
-  HeartIcon,
-  HouseIcon,
-  LaptopIcon,
-  MapPinIcon,
-  MusicNotesIcon,
-  PackageIcon,
-  PawPrintIcon,
-  PlayIcon,
-  ReceiptIcon,
-  ScissorsIcon,
-  ScooterIcon,
-  ShoppingBagIcon,
-  ShoppingCartIcon,
-  SoccerBallIcon,
-  StethoscopeIcon,
-  TagIcon,
-  TicketIcon,
-  TrainIcon,
-  UsersThreeIcon,
+  AirplaneTilt,
+  AmazonLogo,
+  Baby,
+  Barbell,
+  Bed,
+  BookOpen,
+  Camera,
+  Car,
+  Coffee,
+  DeviceMobile,
+  FilmSlate,
+  FirstAidKit,
+  ForkKnife,
+  GameController,
+  GasPump,
+  Gift,
+  GraduationCap,
+  Heart,
+  House,
+  Laptop,
+  MusicNotes,
+  Package,
+  Parking,
+  PawPrint,
+  Play,
+  Receipt,
+  Scissors,
+  Scooter,
+  ShoppingBag,
+  ShoppingCart,
+  SoccerBall,
+  Stethoscope,
+  Tag,
+  Ticket,
+  Train,
+  UsersThree,
 } from '@phosphor-icons/react/ssr';
 
-type PhosphorIcon = typeof TagIcon;
-type PhosphorIconProps = ComponentProps<typeof TagIcon>;
-
-const CATEGORY_ICONS: Record<string, PhosphorIcon> = {
-  amazon: AmazonLogoIcon,
-  bag: ShoppingBagIcon,
-  bed: BedIcon,
-  book: BookOpenIcon,
-  camera: CameraIcon,
-  car: CarIcon,
-  cart: ShoppingCartIcon,
-  child: BabyIcon,
-  coffee: CoffeeIcon,
-  doctor: StethoscopeIcon,
-  dumbbell: BarbellIcon,
-  education: GraduationCapIcon,
-  family: UsersThreeIcon,
-  food: ForkKnifeIcon,
-  football: SoccerBallIcon,
-  fuel: GasPumpIcon,
-  gamepad: GameControllerIcon,
-  gift: GiftIcon,
-  health: FirstAidIcon,
-  heart: HeartIcon,
-  house: HouseIcon,
-  laptop: LaptopIcon,
-  movie: FilmSlateIcon,
-  music: MusicNotesIcon,
-  package: PackageIcon,
-  parking: MapPinIcon,
-  paw: PawPrintIcon,
-  phone: DeviceMobileIcon,
-  plane: AirplaneTiltIcon,
-  play: PlayIcon,
-  receipt: ReceiptIcon,
-  rent: HouseIcon,
-  scissors: ScissorsIcon,
-  scooter: ScooterIcon,
-  tag: TagIcon,
-  tax: ReceiptIcon,
-  ticket: TicketIcon,
-  train: TrainIcon,
-  wedding: HeartIcon,
+const ICONS: Record<string, typeof Tag> = {
+  tag: Tag,
+  food: ForkKnife,
+  coffee: Coffee,
+  cart: ShoppingCart,
+  fuel: GasPump,
+  train: Train,
+  car: Car,
+  scooter: Scooter,
+  parking: Parking,
+  rent: House,
+  tax: Receipt,
+  wedding: Heart,
+  health: FirstAidKit,
+  doctor: Stethoscope,
+  house: House,
+  receipt: Receipt,
+  gift: Gift,
+  plane: AirplaneTilt,
+  play: Play,
+  bag: ShoppingBag,
+  amazon: AmazonLogo,
+  scissors: Scissors,
+  football: SoccerBall,
+  movie: FilmSlate,
+  book: BookOpen,
+  ticket: Ticket,
+  education: GraduationCap,
+  family: UsersThree,
+  child: Baby,
+  bed: Bed,
+  heart: Heart,
+  gamepad: GameController,
+  phone: DeviceMobile,
+  package: Package,
+  paw: PawPrint,
+  dumbbell: Barbell,
+  music: MusicNotes,
+  laptop: Laptop,
+  camera: Camera,
 };
-
-type CategoryPhosphorIconProps = {
-  name?: string | null;
-  size?: number;
-  color?: string;
-  className?: string;
-} & Pick<PhosphorIconProps, 'aria-label'>;
 
 export default function CategoryPhosphorIcon({
   name,
   size = 22,
-  color = 'currentColor',
   className,
-  'aria-label': ariaLabel,
-}: CategoryPhosphorIconProps) {
-  const Icon = CATEGORY_ICONS[name || ''] || TagIcon;
+}: {
+  name?: string | null;
+  size?: number;
+  className?: string;
+}) {
+  const PhosphorIcon = ICONS[name || ''] || Tag;
 
   return (
-    <Icon
-      aria-hidden={ariaLabel ? undefined : true}
-      aria-label={ariaLabel}
+    <PhosphorIcon
+      aria-hidden="true"
       className={className}
-      color={color}
-      focusable={false}
       size={size}
       weight="duotone"
     />
