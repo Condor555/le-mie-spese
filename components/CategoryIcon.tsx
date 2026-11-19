@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react';
 import { categoryStyle } from '../lib/category-style';
 import CategoryPhosphorIcon from './CategoryPhosphorIcon';
-import type { IconName } from './Icon';
 
 function pastelBackground(color: string) {
   const longHex = /^#[0-9a-f]{6}$/i;
@@ -29,7 +28,7 @@ export default function CategoryIcon({
   size?: number;
 }) {
   const style = categoryStyle(name, {
-    icon: icon as IconName | undefined,
+    icon: icon || undefined,
     color: color || undefined,
   });
 

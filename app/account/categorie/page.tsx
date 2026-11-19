@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import BackToAccount from '../../../components/BackToAccount';
-import type { IconName } from '../../../components/Icon';
-import CategoryPhosphorIcon from '../../../components/CategoryPhosphorIcon';
 import CategoryIcon from '../../../components/CategoryIcon';
+import IconCatalogPicker from '../../../components/IconCatalogPicker';
 import {
-  iconChoices,
   colorChoices,
   inferredCategoryStyle,
 } from '../../../lib/category-style';
@@ -22,7 +20,7 @@ export default function Categorie() {
   const [cats, setCats] = useState<Cat[]>([]);
 
   const [name, setName] = useState('');
-  const [icon, setIcon] = useState<IconName>('tag');
+  const [icon, setIcon] = useState('tag');
   const [color, setColor] = useState(colorChoices[0]);
 
   const [editing, setEditing] = useState<Cat | null>(null);
@@ -245,19 +243,14 @@ export default function Categorie() {
           Icona
         </label>
 
-        <div className="icon-picker">
-          {iconChoices.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={icon === item ? 'selected' : ''}
-              onClick={() => setIcon(item)}
-              aria-label={`Icona ${item}`}
-            >
-              <CategoryPhosphorIcon name={item} />
-            </button>
-          ))}
-        </div>
+        <IconCatalogPicker
+          value={icon}
+          onChange={(id, suggestedColor) => {
+            setIcon(id);
+            if (suggestedColor) setColor(suggestedColor);
+          }}
+          label="Scegli l'icona della nuova categoria"
+        />
 
         <label className="picker-label">
           Colore
@@ -350,28 +343,17 @@ export default function Categorie() {
               Icona
             </label>
 
-            <div className="icon-picker">
-              {iconChoices.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={
-                    editing.icon === item
-                      ? 'selected'
-                      : ''
-                  }
-                  onClick={() =>
-                    setEditing({
-                      ...editing,
-                      icon: item,
-                    })
-                  }
-                  aria-label={`Icona ${item}`}
-                >
-                  <CategoryPhosphorIcon name={item} />
-                </button>
-              ))}
-            </div>
+            <IconCatalogPicker
+              value={editing.icon}
+              onChange={(id, suggestedColor) =>
+                setEditing({
+                  ...editing,
+                  icon: id,
+                  color: suggestedColor || editing.color,
+                })
+              }
+              label={`Scegli l'icona di ${editing.name}`}
+            />
 
             <label className="picker-label">
               Colore
