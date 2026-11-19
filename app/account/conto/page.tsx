@@ -89,7 +89,7 @@ export default function Conto(){
   return <>
     <BackToAccount/>
     <header className="page-head"><div><h1>Conto</h1><p>Un nome distinto per ogni spazio</p></div></header>
-    <form className="settings-card surface" onSubmit={save}>
+    <form className="settings-card surface account-settings-card" onSubmit={save}>
       <h2>Spazio da configurare</h2>
       <div className="account-space-picker"><span><Icon name={selected?.type==='personal'?'user':'family'} size={21}/></span><select value={spaceId} disabled={loading&&!spaces.length} onChange={event=>chooseSpace(event.target.value)}>{spaces.map(space=><option key={space.id} value={space.id}>{space.name}</option>)}</select><Icon name="arrowDown" size={17}/></div>
       <p className="settings-help">Il Conto è separato dallo Spazio. Il nome scelto viene applicato ai movimenti e alle ricorrenze appartenenti allo spazio selezionato.</p>

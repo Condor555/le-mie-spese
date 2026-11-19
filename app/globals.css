@@ -276,3 +276,70 @@ html[data-theme="dark"] .back-link span {
 .import-csv-card{margin-bottom:18px}.import-csv-card code{font-size:.9em;color:var(--text)}.import-file-input{margin-top:13px;padding:13px;background:var(--surface2);border:1px solid var(--line);border-radius:14px}.import-csv-submit{width:auto;min-width:150px;margin:0 0 14px}.insight>div:last-child{min-width:0}
 @media(max-width:520px){.import-csv-card{margin-bottom:20px}.import-csv-submit{width:100%;margin-top:0}}
 .insight{grid-template-columns:38px minmax(0,1fr)}
+
+
+/* V3.6 REV2.2 — cumulative UI and multi-space recurring hotfix */
+/* Statistiche: il controllo nativo copre la card ma non disegna icone/chevron propri. */
+.stats-month-control{isolation:isolate;overflow:hidden}
+.stats-month-control .stats-month-picker{-webkit-appearance:none;appearance:none;color:transparent;background:transparent!important;box-shadow:none!important;color-scheme:light dark}
+.stats-month-control .stats-month-picker::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer}
+.stats-month-control .stats-month-picker::-webkit-inner-spin-button,.stats-month-control .stats-month-picker::-webkit-clear-button{display:none;-webkit-appearance:none}
+
+/* SPAZIO VISUALIZZATO: nessun ritaglio dell'etichetta in light/dark/mobile. */
+.space-selector{min-height:74px;padding:11px 14px;overflow:visible;align-items:center}
+.space-selector-copy{align-self:stretch;min-height:48px;padding:2px 0;display:flex;flex-direction:column;justify-content:center;overflow:visible;line-height:1.25}
+.space-selector-copy small{flex:0 0 auto;margin:0;padding:2px 0 1px;line-height:1.5;overflow:visible;white-space:nowrap}
+.space-selector-copy strong{flex:0 0 auto;margin:0;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.space-selector select{border-radius:19px}
+@media(max-width:380px){.space-selector{min-height:70px;padding:10px 11px}.space-selector-copy{min-height:46px;padding:2px 0}.space-selector-copy small{padding-top:2px;line-height:1.55}.space-selector-copy strong{line-height:1.3}}
+
+/* Impostazioni > Conto: contrasto esplicito dei controlli in entrambi i temi. */
+.account-settings-card .account-space-picker,.account-settings-card input{background:var(--surface2);border-color:var(--line);color:var(--text);-webkit-text-fill-color:var(--text)}
+.account-settings-card .account-space-picker select{background:transparent;color:var(--text);-webkit-text-fill-color:var(--text);color-scheme:light dark}
+.account-settings-card .account-space-picker select option{background:var(--surface);color:var(--text)}
+.account-settings-card .account-space-picker:focus-within,.account-settings-card input:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 18%,transparent)}
+.account-settings-card input:disabled,.account-settings-card select:disabled{opacity:1;background:var(--surface2);color:var(--muted);-webkit-text-fill-color:var(--muted);cursor:not-allowed}
+.account-settings-card .account-space-picker:has(select:disabled){opacity:.78}
+html[data-theme="dark"] .account-settings-card{color-scheme:dark}
+html[data-theme="dark"] .account-settings-card .account-space-picker,html[data-theme="dark"] .account-settings-card input{background:#171c28;border-color:#353d50;color:#f5f7fb;-webkit-text-fill-color:#f5f7fb}
+html[data-theme="dark"] .account-settings-card .account-space-picker>span{background:#222837}
+html[data-theme="dark"] .account-settings-card .account-space-picker select{background:transparent;color:#f5f7fb;-webkit-text-fill-color:#f5f7fb}
+html[data-theme="dark"] .account-settings-card .account-space-picker select option{background:#222837;color:#f5f7fb}
+html[data-theme="dark"] .account-settings-card input:disabled{background:#151a25;color:#aeb7ca;-webkit-text-fill-color:#aeb7ca;opacity:1}
+
+/* Movimenti: data e totale hanno una gerarchia simile a un libro giornaliero. */
+.day-ledger{margin-top:22px}
+.day-ledger .day-heading{align-items:flex-end;margin:0 3px 9px;padding:0 1px}
+.day-date{min-width:0}
+.day-date small,.day-total small{display:block;margin-bottom:3px;color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+.day-ledger .day-date h3{margin:0;color:var(--text);font-size:15px;line-height:1.25;font-weight:850;letter-spacing:-.15px;text-transform:none}
+.day-total{flex:0 0 auto;text-align:right}
+.day-ledger .day-total strong{display:block;font-size:18px;line-height:1.15;font-weight:900;letter-spacing:-.2px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.day-transactions{padding:5px 14px;border-radius:19px;box-shadow:none;background:color-mix(in srgb,var(--surface) 82%,var(--bg))}
+.day-transactions .transaction{min-height:64px;padding:10px 1px;border-color:color-mix(in srgb,var(--line) 72%,transparent)}
+.day-transactions .transaction-button:hover{background:color-mix(in srgb,var(--primary) 5%,transparent)}
+.day-transactions .transaction-button:focus-visible{outline:3px solid color-mix(in srgb,var(--primary) 25%,transparent);outline-offset:2px;border-radius:12px}
+.day-transactions .transaction b{font-size:14px;line-height:1.25}
+.day-transactions .transaction small{font-size:11px;line-height:1.3}
+.day-transactions .transaction>strong{font-size:15px;font-weight:900;font-variant-numeric:tabular-nums}
+@media(max-width:380px){.day-ledger{margin-top:19px}.day-ledger .day-date h3{font-size:13px}.day-ledger .day-total strong{font-size:16px}.day-date small,.day-total small{font-size:8px}.day-transactions{padding-left:10px;padding-right:10px}.day-transactions .transaction{grid-template-columns:41px minmax(0,1fr) auto;gap:9px}.day-transactions .transaction>strong{font-size:13px}}
+
+/* Ricorrenze accessibili, raggruppate per spazio. */
+.recurring-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.recurring-section-head h2{margin:0}
+.recurring-section-head small{display:block;margin-top:4px;color:var(--muted);font-size:10px}
+.recurring-space-badge{display:inline-flex;align-items:center;gap:6px;max-width:48%;padding:7px 9px;border-radius:99px;background:color-mix(in srgb,var(--primary) 11%,var(--surface));color:var(--primary);font-size:10px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recurring-overview{margin-top:22px}
+.recurring-overview-title{display:flex;justify-content:space-between;align-items:end;margin:0 2px 9px}
+.recurring-overview-title h2{font-size:18px}.recurring-overview-title p{margin:3px 0 0;font-size:11px}
+.recurring-space-group{margin-top:11px;padding:0 15px;overflow:hidden;border-radius:20px}
+.recurring-space-group>header{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;padding:14px 0;border-bottom:1px solid var(--line)}
+.recurring-space-group>header>span{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:var(--primary);background:color-mix(in srgb,var(--primary) 10%,var(--surface))}
+.recurring-space-group>header small,.recurring-space-group>header h3{display:block;margin:0}.recurring-space-group>header small{color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.recurring-space-group>header h3{margin-top:2px;font-size:15px}.recurring-space-group>header>b{min-width:27px;padding:5px 8px;border-radius:99px;background:var(--surface2);text-align:center;font-size:11px}
+.recurring-list .recurrence-card{grid-template-columns:42px minmax(0,1fr) auto auto;padding:13px 0}
+.recurrence-card>div:nth-child(2){min-width:0}.recurrence-card>div:nth-child(2)>b,.recurrence-card>div:nth-child(2)>small,.recurrence-card>div:nth-child(2)>em{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recurrence-card>div:nth-child(2)>em{margin-top:4px;color:var(--primary);font-size:9px;font-style:normal;font-weight:800}.recurrence-card>strong{font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.recurrence-actions{display:flex;align-items:center;gap:5px}.recurrence-actions .recurrence-edit{padding:7px 8px;background:var(--surface2);color:var(--primary);font-size:10px}.recurrence-actions .recurrence-delete{width:29px;height:29px;padding:0;background:color-mix(in srgb,var(--red) 13%,var(--surface));color:var(--red);font-size:17px}
+.recurring-empty{margin:0;padding:17px 0;color:var(--muted);font-size:12px}
+.recurring-edit-modal>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.recurring-edit-modal>header small{color:var(--primary);font-size:10px;font-weight:850}.recurring-edit-modal>header h2{margin:3px 0 0}
+@media(max-width:520px){.recurring-section-head{display:grid}.recurring-space-badge{max-width:100%;width:max-content}.recurring-list .recurrence-card{grid-template-columns:42px minmax(0,1fr) auto}.recurrence-card>strong{grid-column:3;grid-row:1}.recurrence-actions{grid-column:2/4;justify-content:flex-end}.recurrence-actions .recurrence-edit{padding:6px 9px}}
+@media(max-width:380px){.recurring-space-group{padding:0 11px}.recurrence-card>strong{font-size:12px}.recurring-create-card .two-col,.recurring-edit-modal .two-col{grid-template-columns:1fr}}
