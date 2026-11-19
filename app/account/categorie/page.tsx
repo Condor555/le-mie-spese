@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import BackToAccount from '../../../components/BackToAccount';
-import Icon, { type IconName } from '../../../components/Icon';
+import { type IconName } from '../../../components/Icon';
 import CategoryIcon from '../../../components/CategoryIcon';
+import CategoryPhosphorIcon from '../../../components/CategoryPhosphorIcon';
 import {
   iconChoices,
   colorChoices,
@@ -233,7 +234,7 @@ export default function Categorie() {
               onClick={() => setIcon(item)}
               aria-label={`Icona ${item}`}
             >
-              <Icon name={item} />
+              <CategoryPhosphorIcon name={item} />
             </button>
           ))}
         </div>
@@ -347,7 +348,7 @@ export default function Categorie() {
                   }
                   aria-label={`Icona ${item}`}
                 >
-                  <Icon name={item} />
+                  <CategoryPhosphorIcon name={item} />
                 </button>
               ))}
             </div>
