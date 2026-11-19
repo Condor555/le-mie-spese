@@ -1,747 +1,245 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import Icon from '../../components/Icon';
 import CategoryIcon from '../../components/CategoryIcon';
 
-type Transaction = {
-  id: string;
-  date: string;
-  category_name: string;
-  amount: number;
-  currency?: string | null;
-  note?: string | null;
-  account_name?: string | null;
-  source?: string | null;
-  source_id?: string | null;
-  author_name?: string | null;
+type Transaction={
+  id:string;
+  date:string;
+  category_name:string;
+  amount:number;
+  currency?:string;
+  note:string;
+  account_name:string;
+  source?:string;
+  source_id?:string;
+  created_by?:string|null;
+  author_name?:string;
 };
+type Category={name:string;icon?:string;color?:string};
+type Member={userId:string;name:string};
+type Kind='expense'|'income';
+type Scope='occurrence'|'series';
+type ModalView='detail'|'edit'|'delete';
 
-type Category = {
-  name: string;
-  icon?: string | null;
-  color?: string | null;
-};
+const eur=(value:number)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(value);
+const longDate=(value:string)=>new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'long',year:'numeric'}).format(new Date(`${value}T12:00:00`));
 
-type Kind = 'expense' | 'income';
-type ModalView = 'detail' | 'edit' | 'delete';
-type ChangeScope = 'occurrence' | 'series';
+export default function Movimenti(){
+  const [rows,setRows]=useState<Transaction[]>([]);
+  const [categories,setCategories]=useState<Category[]>([]);
+  const [members,setMembers]=useState<Member[]>([]);
+  const [q,setQ]=useState('');
+  const [month,setMonth]=useState('');
+  const [author,setAuthor]=useState('');
+  const [page,setPage]=useState(1);
+  const [count,setCount]=useState(0);
+  const [error,setError]=useState('');
 
-const eur = (value: number) =>
-  new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(value);
+  const [editing,setEditing]=useState<Transaction|null>(null);
+  const [modalView,setModalView]=useState<ModalView>('detail');
+  const [date,setDate]=useState('');
+  const [category,setCategory]=useState('');
+  const [amount,setAmount]=useState('');
+  const [note,setNote]=useState('');
+  const [account,setAccount]=useState('');
+  const [kind,setKind]=useState<Kind>('expense');
+  const [scope,setScope]=useState<Scope>('occurrence');
+  const [busy,setBusy]=useState(false);
+  const [modalMsg,setModalMsg]=useState('');
 
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('it-IT', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(`${date}T12:00:00`));
-
-function recurringSeriesId(transaction?: Transaction | null) {
-  if (
-    transaction?.source !== 'recurring' ||
-    typeof transaction.source_id !== 'string'
-  ) {
-    return null;
-  }
-
-  const candidate = transaction.source_id.split(':', 1)[0];
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    candidate
-  )
-    ? candidate
-    : null;
-}
-
-export default function Movimenti() {
-  const [rows, setRows] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [query, setQuery] = useState('');
-  const [month, setMonth] = useState('');
-  const [page, setPage] = useState(1);
-  const [count, setCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [feedback, setFeedback] = useState('');
-
-  const [selected, setSelected] = useState<Transaction | null>(null);
-  const [modalView, setModalView] = useState<ModalView>('detail');
-  const [modalError, setModalError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [scope, setScope] = useState<ChangeScope>('occurrence');
-
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
-  const [category, setCategory] = useState('');
-  const [date, setDate] = useState('');
-  const [kind, setKind] = useState<Kind>('expense');
-  const [account, setAccount] = useState('Spese');
-
-  async function load(requestedPage = page) {
-    setLoading(true);
+  async function load(targetPage=page){
     setError('');
-
-    try {
-      const response = await fetch(
-        `/api/transactions?q=${encodeURIComponent(query)}` +
-          `&month=${encodeURIComponent(month)}` +
-          `&page=${requestedPage}`,
-        { cache: 'no-store' }
-      );
-      const result = await response.json();
-
-      if (!response.ok) {
+    const params=new URLSearchParams({q,month,author,page:String(targetPage)});
+    try{
+      const response=await fetch(`/api/transactions?${params}`,{cache:'no-store'});
+      const result=await response.json();
+      if(!response.ok){
         setRows([]);
         setCount(0);
-        setError(
-          result.error || 'Impossibile caricare i movimenti.'
-        );
+        setError(result.error||'Impossibile caricare i movimenti.');
         return;
       }
-
-      setRows(Array.isArray(result.data) ? result.data : []);
-      setCount(Number(result.count) || 0);
-    } catch {
+      setRows(Array.isArray(result.data)?result.data:[]);
+      setCount(Number(result.count||0));
+      setPage(targetPage);
+    }catch{
+      setError('Errore di connessione.');
       setRows([]);
       setCount(0);
-      setError('Errore di connessione durante il caricamento.');
-    } finally {
-      setLoading(false);
     }
   }
 
-  async function loadCategories() {
-    try {
-      const response = await fetch('/api/categories', {
-        cache: 'no-store',
-      });
-      const result = await response.json();
-
-      if (response.ok && Array.isArray(result.data)) {
-        setCategories(result.data);
-      }
-    } catch {
-      // The current category remains editable even if the picker cannot refresh.
-    }
-  }
-
-  useEffect(() => {
+  useEffect(()=>{
     load(1);
-    loadCategories();
-    // Initial load only. Filters are applied explicitly by the user.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    Promise.all([
+      fetch('/api/categories',{cache:'no-store'}).then(response=>response.json()),
+      fetch('/api/members',{cache:'no-store'}).then(response=>response.json()),
+    ]).then(([categoryResult,memberResult])=>{
+      setCategories(categoryResult.data||[]);
+      setMembers(memberResult.data||[]);
+    });
+  },[]);
 
-  const groups = rows.reduce<Record<string, Transaction[]>>(
-    (accumulator, transaction) => {
-      (accumulator[transaction.date] ||= []).push(transaction);
-      return accumulator;
-    },
-    {}
-  );
+  useEffect(()=>{
+    if(!editing)return;
+    const previousOverflow=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    function onKeyDown(event:KeyboardEvent){
+      if(event.key==='Escape'&&!busy)closeModal();
+    }
+    window.addEventListener('keydown',onKeyDown);
+    return()=>{
+      document.body.style.overflow=previousOverflow;
+      window.removeEventListener('keydown',onKeyDown);
+    };
+  },[editing,busy]);
 
-  function fillEditor(transaction: Transaction) {
-    const numericAmount = Number(transaction.amount);
-    setAmount(String(Math.abs(numericAmount)).replace('.', ','));
-    setNote(transaction.note || '');
-    setCategory(transaction.category_name);
-    setDate(transaction.date);
-    setKind(numericAmount >= 0 ? 'income' : 'expense');
-    setAccount(transaction.account_name || 'Spese');
+  const groups=useMemo(()=>rows.reduce<Record<string,Transaction[]>>((all,row)=>{
+    (all[row.date]||=[]).push(row);
+    return all;
+  },{}),[rows]);
+
+  function categoryData(name:string){
+    return categories.find(item=>item.name===name);
+  }
+
+  function open(row:Transaction){
+    setEditing(row);
+    setDate(row.date);
+    setCategory(row.category_name);
+    setAmount(String(Math.abs(Number(row.amount))).replace('.',','));
+    setNote(row.note||'');
+    setAccount(row.account_name||'Spese');
+    setKind(Number(row.amount)<0?'expense':'income');
     setScope('occurrence');
-    setModalError('');
-  }
-
-  function openTransaction(transaction: Transaction) {
-    setSelected(transaction);
-    fillEditor(transaction);
     setModalView('detail');
-    setFeedback('');
+    setModalMsg('');
   }
 
-  function closeModal() {
-    if (busy) return;
-    setSelected(null);
+  function closeModal(){
+    setEditing(null);
     setModalView('detail');
-    setModalError('');
-    setScope('occurrence');
+    setModalMsg('');
   }
 
-  async function saveChanges() {
-    if (!selected) return;
+  const recurring=editing?.source==='recurring'&&Boolean(editing.source_id);
+  const activeCategory=editing?categoryData(editing.category_name):undefined;
 
-    const numericAmount = Number(amount.replace(',', '.'));
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      setModalError('Inserisci un importo valido.');
+  async function save(){
+    if(!editing)return;
+    const numeric=Number(amount.replace(',','.'));
+    if(!Number.isFinite(numeric)||numeric<=0){
+      setModalMsg('Inserisci un importo valido.');
       return;
     }
-
-    if (!category) {
-      setModalError('Seleziona una categoria.');
+    if(!category){
+      setModalMsg('Seleziona una categoria.');
       return;
     }
-
-    if (!date) {
-      setModalError('Seleziona una data.');
-      return;
-    }
-
     setBusy(true);
-    setModalError('');
-
-    try {
-      const response = await fetch(
-        `/api/transactions/${encodeURIComponent(selected.id)}`,
-        {
-          method: 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            date,
-            category_name: category,
-            amount: Math.abs(numericAmount),
-            currency: selected.currency || 'EUR',
-            note,
-            account_name: account || 'Spese',
-            kind,
-            scope,
-          }),
-        }
-      );
-      const result = await response.json();
-
-      if (!response.ok) {
-        setModalError(
-          result.error || 'Impossibile modificare il movimento.'
-        );
+    setModalMsg('');
+    try{
+      const response=await fetch(`/api/transactions/${editing.id}`,{
+        method:'PATCH',
+        headers:{'content-type':'application/json'},
+        body:JSON.stringify({date,category_name:category,amount:numeric,note,account_name:account,kind,scope}),
+      });
+      const result=await response.json();
+      if(!response.ok){
+        setModalMsg(result.error||'Impossibile salvare.');
         return;
       }
-
-      setFeedback(
-        scope === 'series'
-          ? 'Movimento e prossime ricorrenze aggiornati.'
-          : 'Movimento aggiornato.'
-      );
-      setSelected(null);
-      setModalView('detail');
+      closeModal();
       await load(page);
-    } catch {
-      setModalError('Errore di connessione durante la modifica.');
-    } finally {
+    }catch{
+      setModalMsg('Errore di connessione.');
+    }finally{
       setBusy(false);
     }
   }
 
-  async function deleteTransaction() {
-    if (!selected) return;
-
+  async function remove(){
+    if(!editing)return;
     setBusy(true);
-    setModalError('');
-
-    try {
-      const response = await fetch(
-        `/api/transactions/${encodeURIComponent(selected.id)}` +
-          `?scope=${scope}`,
-        { method: 'DELETE' }
-      );
-      const result = await response.json();
-
-      if (!response.ok) {
-        setModalError(
-          result.error || 'Impossibile eliminare il movimento.'
-        );
+    setModalMsg('');
+    try{
+      const response=await fetch(`/api/transactions/${editing.id}?scope=${scope}`,{method:'DELETE'});
+      const result=await response.json();
+      if(!response.ok){
+        setModalMsg(result.error||'Impossibile eliminare.');
         return;
       }
-
-      const nextPage = page > 1 && rows.length === 1 ? page - 1 : page;
-      setPage(nextPage);
-      setFeedback(
-        scope === 'series'
-          ? 'Movimento eliminato e serie ricorrente interrotta.'
-          : 'Movimento eliminato.'
-      );
-      setSelected(null);
-      setModalView('detail');
-      await load(nextPage);
-    } catch {
-      setModalError('Errore di connessione durante eliminazione.');
-    } finally {
+      closeModal();
+      await load(page);
+    }catch{
+      setModalMsg('Errore di connessione.');
+    }finally{
       setBusy(false);
     }
   }
 
-  const seriesId = recurringSeriesId(selected);
-  const selectedCategory = categories.find(
-    (item) => item.name === category
-  );
+  return <>
+    <header className="page-head"><div><h1>Movimenti</h1><p>{count} transazioni</p></div></header>
+    <div className="search-box surface"><Icon name="search" size={19}/><input value={q} onChange={event=>setQ(event.target.value)} onKeyDown={event=>event.key==='Enter'&&load(1)} placeholder="Cerca una spesa…"/></div>
+    <div className="filter-row"><input type="month" value={month} onChange={event=>setMonth(event.target.value)}/><select value={author} onChange={event=>setAuthor(event.target.value)} aria-label="Inserito da"><option value="">Inserito da: tutti</option>{members.map(member=><option key={member.userId} value={member.userId}>{member.name}</option>)}</select><button onClick={()=>load(1)}>Applica filtri</button></div>
+    {error&&<div className="auth-error" role="alert">{error}</div>}
+    {!error&&!rows.length&&<div className="empty-state surface"><b>Nessun movimento trovato</b><p>Modifica i filtri o aggiungi una nuova transazione.</p></div>}
+    {Object.entries(groups).map(([day,list])=><section className="day" key={day}><h3>{new Intl.DateTimeFormat('it-IT',{weekday:'long',day:'numeric',month:'short',year:'numeric'}).format(new Date(`${day}T12:00:00`))}</h3><div className="tx-card surface">{list.map(row=>{
+      const rowCategory=categoryData(row.category_name);
+      return <button type="button" className="transaction transaction-button" key={row.id} onClick={()=>open(row)}><CategoryIcon name={row.category_name} icon={rowCategory?.icon} color={rowCategory?.color}/><span><b>{row.note||row.category_name}</b><small>{row.category_name}{row.author_name?` · ${row.author_name}`:''}</small></span><strong className={Number(row.amount)>=0?'green':'red'}>{Number(row.amount)>=0?'+ ':''}{eur(Number(row.amount))}</strong></button>;
+    })}</div></section>)}
+    <div className="pager"><button disabled={page===1} onClick={()=>load(page-1)}>Indietro</button><span>{page}</span><button disabled={page*30>=count} onClick={()=>load(page+1)}>Avanti</button></div>
 
-  return (
-    <>
-      <header className="page-head">
-        <div>
-          <h1>Movimenti</h1>
-          <p>
-            {loading
-              ? 'Caricamento…'
-              : `${count} transazioni`}
-          </p>
-        </div>
-      </header>
+    {editing&&<div className="modal transaction-modal" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)closeModal()}}><div className="modal-card transaction-modal-card surface" role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title">
+      {modalView==='detail'&&<>
+        <header className="transaction-modal-head">
+          <div><span className="transaction-eyebrow">Dettaglio movimento</span><h2 id="transaction-modal-title">{editing.note||editing.category_name}</h2></div>
+          <button type="button" className="transaction-close" aria-label="Chiudi dettaglio" onClick={closeModal}>×</button>
+        </header>
 
-      <div className="search-box surface">
-        <Icon name="search" size={19} />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              setPage(1);
-              setFeedback('');
-              load(1);
-            }
-          }}
-          placeholder="Cerca una spesa..."
-        />
-      </div>
-
-      <div className="filter-row">
-        <input
-          aria-label="Filtra per mese"
-          type="month"
-          value={month}
-          onChange={(event) => setMonth(event.target.value)}
-        />
-        <button
-          type="button"
-          onClick={() => {
-            setPage(1);
-            setFeedback('');
-            load(1);
-          }}
-        >
-          Applica filtri
-        </button>
-      </div>
-
-      {feedback && <div className="notice">{feedback}</div>}
-      {error && <div className="notice error-notice">{error}</div>}
-
-      {!loading && !error && count === 0 && (
-        <div className="empty-state surface">
-          <b>Nessun movimento trovato</b>
-          <p>
-            Controlla lo spazio selezionato oppure rimuovi i filtri.
-          </p>
-        </div>
-      )}
-
-      {Object.entries(groups).map(([groupDate, list]) => (
-        <section className="day" key={groupDate}>
-          <h3>
-            {new Intl.DateTimeFormat('it-IT', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'short',
-            }).format(new Date(`${groupDate}T12:00:00`))}
-          </h3>
-
-          <div className="tx-card surface">
-            {list.map((transaction) => (
-              <button
-                type="button"
-                className="transaction transaction-button"
-                key={transaction.id}
-                onClick={() => openTransaction(transaction)}
-                aria-label={`Apri ${
-                  transaction.note || transaction.category_name
-                }, ${eur(Number(transaction.amount))}`}
-              >
-                <CategoryIcon name={transaction.category_name} />
-                <span className="transaction-copy">
-                  <b>
-                    {transaction.note || transaction.category_name}
-                  </b>
-                  <small>{transaction.category_name}</small>
-                </span>
-                <strong
-                  className={
-                    Number(transaction.amount) >= 0 ? 'green' : 'red'
-                  }
-                >
-                  {Number(transaction.amount) >= 0 ? '+ ' : ''}
-                  {eur(Number(transaction.amount))}
-                </strong>
-              </button>
-            ))}
-          </div>
+        <section className="transaction-hero">
+          <CategoryIcon name={editing.category_name} icon={activeCategory?.icon} color={activeCategory?.color} size={58}/>
+          <div className="transaction-hero-copy"><strong className={Number(editing.amount)>=0?'green':'red'}>{Number(editing.amount)>=0?'+ ':''}{eur(Number(editing.amount))}</strong><span>{editing.category_name}</span></div>
+          <span className={`transaction-kind ${Number(editing.amount)>=0?'income':'expense'}`}>{Number(editing.amount)>=0?'Entrata':'Uscita'}</span>
         </section>
-      ))}
 
-      {!error && count > 0 && (
-        <div className="pager">
-          <button
-            type="button"
-            disabled={page === 1 || loading}
-            onClick={() => {
-              const previousPage = page - 1;
-              setPage(previousPage);
-              setFeedback('');
-              load(previousPage);
-            }}
-          >
-            Indietro
-          </button>
-          <span>{page}</span>
-          <button
-            type="button"
-            disabled={page * 30 >= count || loading}
-            onClick={() => {
-              const nextPage = page + 1;
-              setPage(nextPage);
-              setFeedback('');
-              load(nextPage);
-            }}
-          >
-            Avanti
-          </button>
-        </div>
-      )}
+        <dl className="transaction-facts">
+          <div><dt>Data</dt><dd>{longDate(editing.date)}</dd></div>
+          <div><dt>Conto</dt><dd>{editing.account_name||'Spese'}</dd></div>
+          <div><dt>Inserito da</dt><dd>{editing.author_name||'—'}</dd></div>
+          {recurring&&<div><dt>Ricorrenza</dt><dd><span className="recurring-badge">Movimento ricorrente</span></dd></div>}
+        </dl>
 
-      {selected && (
-        <div className="modal" role="presentation">
-          <section
-            className="modal-card transaction-modal surface"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="transaction-modal-title"
-          >
-            <header className="transaction-modal-head">
-              <div>
-                <small>
-                  {modalView === 'detail'
-                    ? 'Dettaglio movimento'
-                    : modalView === 'edit'
-                      ? 'Modifica movimento'
-                      : 'Conferma eliminazione'}
-                </small>
-                <h2 id="transaction-modal-title">
-                  {selected.note || selected.category_name}
-                </h2>
-              </div>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={closeModal}
-                disabled={busy}
-                aria-label="Chiudi"
-              >
-                ×
-              </button>
-            </header>
+        {recurring&&<div className="transaction-scope"><b>Applica l’azione a</b><div className="scope-choice"><label><input type="radio" name="detail-scope" checked={scope==='occurrence'} onChange={()=>setScope('occurrence')}/> Solo questa occorrenza</label><label><input type="radio" name="detail-scope" checked={scope==='series'} onChange={()=>setScope('series')}/> Occorrenza e serie futura</label></div></div>}
 
-            {modalView === 'detail' && (
-              <>
-                <div
-                  className={`transaction-detail-amount ${
-                    Number(selected.amount) >= 0 ? 'green' : 'red'
-                  }`}
-                >
-                  {Number(selected.amount) >= 0 ? '+ ' : ''}
-                  {eur(Number(selected.amount))}
-                </div>
+        <div className="transaction-actions"><button type="button" className="transaction-edit" onClick={()=>{setModalView('edit');setModalMsg('')}}>Modifica movimento</button><button type="button" className="transaction-delete-link" onClick={()=>{setModalView('delete');setModalMsg('')}}>Elimina movimento</button></div>
+      </>}
 
-                <div className="transaction-detail-list">
-                  <div>
-                    <span>Categoria</span>
-                    <b>{selected.category_name}</b>
-                  </div>
-                  <div>
-                    <span>Data</span>
-                    <b>{formatDate(selected.date)}</b>
-                  </div>
-                  <div>
-                    <span>Tipo</span>
-                    <b>
-                      {Number(selected.amount) >= 0
-                        ? 'Entrata'
-                        : 'Uscita'}
-                    </b>
-                  </div>
-                  <div>
-                    <span>Conto</span>
-                    <b>{selected.account_name || 'Spese'}</b>
-                  </div>
-                  {selected.author_name && (
-                    <div>
-                      <span>Inserito da</span>
-                      <b>{selected.author_name}</b>
-                    </div>
-                  )}
-                </div>
+      {modalView==='edit'&&<>
+        <header className="transaction-modal-head">
+          <div><span className="transaction-eyebrow">{editing.note||editing.category_name}</span><h2 id="transaction-modal-title">Modifica movimento</h2></div>
+          <button type="button" className="transaction-close" aria-label="Annulla modifica" disabled={busy} onClick={()=>setModalView('detail')}>×</button>
+        </header>
+        <div className="segmented"><button type="button" className={kind==='expense'?'active':''} onClick={()=>setKind('expense')}>Uscita</button><button type="button" className={kind==='income'?'active':''} onClick={()=>setKind('income')}>Entrata</button></div>
+        <div className="two-col"><div className="field"><label>Importo</label><input inputMode="decimal" value={amount} onChange={event=>setAmount(event.target.value)}/></div><div className="field"><label>Data</label><input type="date" value={date} onChange={event=>setDate(event.target.value)}/></div></div>
+        <div className="field"><label>Descrizione</label><input value={note} onChange={event=>setNote(event.target.value)}/></div>
+        <div className="field"><label>Categoria</label><div className="transaction-category-field"><CategoryIcon name={category||editing.category_name} icon={categoryData(category)?.icon} color={categoryData(category)?.color} size={44}/><select value={category} onChange={event=>setCategory(event.target.value)}>{categories.map(item=><option key={item.name}>{item.name}</option>)}</select></div></div>
+        <div className="field"><label>Conto</label><input value={account} onChange={event=>setAccount(event.target.value)}/></div>
+        {recurring&&<div className="transaction-scope"><b>Applica la modifica a</b><div className="scope-choice"><label><input type="radio" name="edit-scope" checked={scope==='occurrence'} onChange={()=>setScope('occurrence')}/> Solo questa occorrenza</label><label><input type="radio" name="edit-scope" checked={scope==='series'} onChange={()=>setScope('series')}/> Occorrenza e serie futura</label></div></div>}
+        {modalMsg&&<div className="notice" role="status">{modalMsg}</div>}
+        <div className="transaction-edit-actions"><button className="save-btn" disabled={busy} onClick={save}>{busy?'Salvataggio…':'Salva modifiche'}</button><button className="secondary" disabled={busy} onClick={()=>{setModalView('detail');setModalMsg('')}}>Annulla</button></div>
+      </>}
 
-                {selected.source === 'recurring' && (
-                  <div className="recurring-scope-note">
-                    <b>Movimento ricorrente</b>
-                    <p>
-                      {seriesId
-                        ? 'Puoi agire solo su questa occorrenza oppure anche sulle prossime.'
-                        : 'Il collegamento alla serie non è disponibile: puoi agire solo su questo movimento.'}
-                    </p>
-                  </div>
-                )}
-
-                <div className="transaction-actions">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      fillEditor(selected);
-                      setModalView('edit');
-                    }}
-                  >
-                    Modifica
-                  </button>
-                  <button
-                    type="button"
-                    className="delete-btn"
-                    onClick={() => {
-                      setScope('occurrence');
-                      setModalError('');
-                      setModalView('delete');
-                    }}
-                  >
-                    Elimina
-                  </button>
-                </div>
-              </>
-            )}
-
-            {modalView === 'edit' && (
-              <div className="transaction-editor">
-                <div className="segmented">
-                  <button
-                    type="button"
-                    className={kind === 'expense' ? 'active' : ''}
-                    onClick={() => setKind('expense')}
-                  >
-                    Uscita
-                  </button>
-                  <button
-                    type="button"
-                    className={kind === 'income' ? 'active' : ''}
-                    onClick={() => setKind('income')}
-                  >
-                    Entrata
-                  </button>
-                </div>
-
-                <input
-                  className="amount-input"
-                  aria-label="Importo"
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                  placeholder="€ 0,00"
-                />
-
-                <div className="field">
-                  <label htmlFor="edit-note">Descrizione</label>
-                  <input
-                    id="edit-note"
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    placeholder="Es. Spesa Conad"
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="edit-category">Categoria</label>
-                  <div className="category-picker">
-                    <CategoryIcon
-                      name={category || 'Categoria'}
-                      icon={selectedCategory?.icon}
-                      color={selectedCategory?.color}
-                    />
-                    <select
-                      id="edit-category"
-                      value={category}
-                      onChange={(event) => setCategory(event.target.value)}
-                    >
-                      {!categories.some(
-                        (item) => item.name === category
-                      ) && (
-                        <option value={category}>{category}</option>
-                      )}
-                      {categories.map((item) => (
-                        <option key={item.name} value={item.name}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="two-col">
-                  <div className="field">
-                    <label htmlFor="edit-date">Data</label>
-                    <input
-                      id="edit-date"
-                      type="date"
-                      value={date}
-                      onChange={(event) => setDate(event.target.value)}
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="edit-account">Conto</label>
-                    <input
-                      id="edit-account"
-                      value={account}
-                      onChange={(event) => setAccount(event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {seriesId && (
-                  <fieldset className="scope-picker">
-                    <legend>Ambito della modifica</legend>
-                    <label>
-                      <input
-                        type="radio"
-                        name="edit-scope"
-                        checked={scope === 'occurrence'}
-                        onChange={() => setScope('occurrence')}
-                      />
-                      <span>
-                        <b>Solo questo movimento</b>
-                        <small>La serie resta invariata</small>
-                      </span>
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        name="edit-scope"
-                        checked={scope === 'series'}
-                        onChange={() => setScope('series')}
-                      />
-                      <span>
-                        <b>Questo e le prossime ricorrenze</b>
-                        <small>
-                          Aggiorna importo, descrizione, categoria e conto
-                        </small>
-                      </span>
-                    </label>
-                  </fieldset>
-                )}
-
-                {seriesId && scope === 'series' && (
-                  <p className="scope-help">
-                    La nuova data vale solo per questo movimento. Frequenza e
-                    calendario della serie non cambiano.
-                  </p>
-                )}
-
-                {modalError && (
-                  <div className="notice error-notice">{modalError}</div>
-                )}
-
-                <div className="transaction-actions">
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => {
-                      setModalError('');
-                      setScope('occurrence');
-                      setModalView('detail');
-                    }}
-                    disabled={busy}
-                  >
-                    Annulla
-                  </button>
-                  <button
-                    type="button"
-                    onClick={saveChanges}
-                    disabled={busy}
-                  >
-                    {busy ? 'Salvataggio…' : 'Salva modifiche'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {modalView === 'delete' && (
-              <div className="delete-confirmation">
-                <p>
-                  <b>Eliminare questa transazione?</b>
-                  <br />
-                  L&apos;operazione non può essere annullata.
-                </p>
-
-                {seriesId && (
-                  <fieldset className="scope-picker">
-                    <legend>Cosa vuoi eliminare?</legend>
-                    <label>
-                      <input
-                        type="radio"
-                        name="delete-scope"
-                        checked={scope === 'occurrence'}
-                        onChange={() => setScope('occurrence')}
-                      />
-                      <span>
-                        <b>Solo questo movimento</b>
-                        <small>Le prossime ricorrenze continueranno</small>
-                      </span>
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        name="delete-scope"
-                        checked={scope === 'series'}
-                        onChange={() => setScope('series')}
-                      />
-                      <span>
-                        <b>Questo movimento e interrompi la serie</b>
-                        <small>I movimenti precedenti restano invariati</small>
-                      </span>
-                    </label>
-                  </fieldset>
-                )}
-
-                {modalError && (
-                  <div className="notice error-notice">{modalError}</div>
-                )}
-
-                <div className="transaction-actions">
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => {
-                      setModalError('');
-                      setScope('occurrence');
-                      setModalView('detail');
-                    }}
-                    disabled={busy}
-                  >
-                    Annulla
-                  </button>
-                  <button
-                    type="button"
-                    className="delete-btn"
-                    onClick={deleteTransaction}
-                    disabled={busy}
-                  >
-                    {busy
-                      ? 'Eliminazione…'
-                      : scope === 'series'
-                        ? 'Elimina e interrompi serie'
-                        : 'Elimina movimento'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </section>
-        </div>
-      )}
-    </>
-  );
+      {modalView==='delete'&&<section className="transaction-confirm" aria-labelledby="transaction-modal-title">
+        <span className="transaction-confirm-icon" aria-hidden="true">!</span>
+        <h2 id="transaction-modal-title">Eliminare il movimento?</h2>
+        <p>{recurring&&scope==='series'?'Questa occorrenza verrà eliminata e la serie futura sarà interrotta. I movimenti precedenti resteranno invariati.':'Il movimento verrà eliminato definitivamente. L’operazione non può essere annullata.'}</p>
+        <div className="transaction-confirm-summary"><span>{editing.note||editing.category_name}</span><strong className={Number(editing.amount)>=0?'green':'red'}>{Number(editing.amount)>=0?'+ ':''}{eur(Number(editing.amount))}</strong></div>
+        {modalMsg&&<div className="notice" role="status">{modalMsg}</div>}
+        <div className="transaction-confirm-actions"><button type="button" className="secondary" disabled={busy} onClick={()=>{setModalView('detail');setModalMsg('')}}>Annulla</button><button type="button" className="delete-btn" disabled={busy} onClick={remove}>{busy?'Eliminazione…':'Elimina definitivamente'}</button></div>
+      </section>}
+    </div></div>}
+  </>;
 }
