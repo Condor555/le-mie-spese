@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import BackToAccount from '../../../components/BackToAccount';
-import CategoryIcon from '../../../components/CategoryIcon';
 import IconCatalogPicker from '../../../components/IconCatalogPicker';
+import CategoryIcon from '../../../components/CategoryIcon';
 import {
   colorChoices,
   inferredCategoryStyle,
@@ -153,28 +153,8 @@ export default function Categorie() {
     }
 
     if (response.status === 409) {
-      const transactionCount = Number(result.count) || 0;
-      const recurringCount = Number(result.recurringCount) || 0;
-      const parts = [];
-
-      if (transactionCount) {
-        parts.push(
-          `${transactionCount} ${
-            transactionCount === 1 ? 'movimento' : 'movimenti'
-          }`
-        );
-      }
-
-      if (recurringCount) {
-        parts.push(
-          `${recurringCount} ${
-            recurringCount === 1 ? 'ricorrenza attiva' : 'ricorrenze attive'
-          }`
-        );
-      }
-
       setMsg(
-        `La categoria contiene ${parts.join(' e ')}. ` +
+        `La categoria contiene ${result.count} transazioni. ` +
           'Scegli una categoria di destinazione e usa "Migra ed elimina".'
       );
       return;
@@ -243,14 +223,7 @@ export default function Categorie() {
           Icona
         </label>
 
-        <IconCatalogPicker
-          value={icon}
-          onChange={(id, suggestedColor) => {
-            setIcon(id);
-            if (suggestedColor) setColor(suggestedColor);
-          }}
-          label="Scegli l'icona della nuova categoria"
-        />
+        <IconCatalogPicker value={icon} onChange={setIcon} />
 
         <label className="picker-label">
           Colore
@@ -343,17 +316,7 @@ export default function Categorie() {
               Icona
             </label>
 
-            <IconCatalogPicker
-              value={editing.icon}
-              onChange={(id, suggestedColor) =>
-                setEditing({
-                  ...editing,
-                  icon: id,
-                  color: suggestedColor || editing.color,
-                })
-              }
-              label={`Scegli l'icona di ${editing.name}`}
-            />
+            <IconCatalogPicker value={editing.icon} onChange={(nextIcon) => setEditing({...editing, icon: nextIcon})} />
 
             <label className="picker-label">
               Colore

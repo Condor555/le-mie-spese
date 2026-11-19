@@ -1,248 +1,50 @@
 'use client';
-
-import {
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {
-  ICON_CATALOG,
-  ICON_GROUPS,
-  type IconCatalogEntry,
-  getIconCatalogEntry,
-  matchesIconSearch,
-} from '../lib/icon-catalog';
+import {useEffect,useMemo,useState} from 'react';
 import CategoryPhosphorIcon from './CategoryPhosphorIcon';
+import {brandCatalog,iconGroups,phosphorIconCatalog} from '../lib/category-icon-catalog';
 
-const FAVORITES_KEY = 'le-mie-spese.icon-favorites.v2';
-const RECENTS_KEY = 'le-mie-spese.icon-recents.v2';
-const PAGE_SIZE = 48;
-const MAX_RECENTS = 16;
+type Tab='all'|'recent'|'favorites'|'brand';
+const RECENT='lms_icon_recent_v2',FAVORITES='lms_icon_favorites_v2';
+const read=(key:string)=>{try{return JSON.parse(localStorage.getItem(key)||'[]') as string[]}catch{return []}};
 
-type CatalogTab = 'all' | 'recent' | 'favorites' | 'brand';
-
-function readIds(key: string) {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
-    return Array.isArray(parsed)
-      ? parsed.filter((value): value is string => typeof value === 'string')
-      : [];
-  } catch {
-    return [];
+export default function IconCatalogPicker({value,onChange}:{value:string;onChange:(id:string)=>void}){
+  const [query,setQuery]=useState(''),[tab,setTab]=useState<Tab>('all'),[group,setGroup]=useState('Tutte');
+  const [recent,setRecent]=useState<string[]>([]),[favorites,setFavorites]=useState<string[]>([]),[limit,setLimit]=useState(48);
+  useEffect(()=>{setRecent(read(RECENT));setFavorites(read(FAVORITES))},[]);
+  const all=useMemo(()=>[
+    ...phosphorIconCatalog.map(x=>({...x,brand:false,search:[x.label,x.id,...x.keywords].join(' ').toLocaleLowerCase('it')})),
+    ...brandCatalog.map(x=>({...x,component:'BrandMark',group:'Brand',brand:true,search:[x.label,x.id,...x.keywords].join(' ').toLocaleLowerCase('it')})),
+  ],[]);
+  const filtered=useMemo(()=>all.filter(item=>{
+    if(tab==='brand'&&!item.brand)return false;
+    if(tab==='recent'&&!recent.includes(item.id))return false;
+    if(tab==='favorites'&&!favorites.includes(item.id))return false;
+    if(group!=='Tutte'&&item.group!==group)return false;
+    const terms=query.trim().toLocaleLowerCase('it').split(/\s+/).filter(Boolean);
+    return terms.every(term=>item.search.includes(term));
+  }),[all,tab,recent,favorites,group,query]);
+  function choose(id:string){
+    onChange(id);const next=[id,...recent.filter(x=>x!==id)].slice(0,16);setRecent(next);
+    try{localStorage.setItem(RECENT,JSON.stringify(next))}catch{}
   }
-}
-
-function writeIds(key: string, ids: string[]) {
-  try {
-    localStorage.setItem(key, JSON.stringify(ids));
-  } catch {
-    // The picker remains fully usable when private browsing blocks storage.
+  function favorite(id:string,e:React.MouseEvent){
+    e.stopPropagation();const next=favorites.includes(id)?favorites.filter(x=>x!==id):[id,...favorites];setFavorites(next);
+    try{localStorage.setItem(FAVORITES,JSON.stringify(next))}catch{}
   }
-}
-
-export default function IconCatalogPicker({
-  value,
-  onChange,
-  label = 'Catalogo icone',
-}: {
-  value: string;
-  onChange: (id: string, suggestedColor?: string) => void;
-  label?: string;
-}) {
-  const [query, setQuery] = useState('');
-  const deferredQuery = useDeferredValue(query);
-  const [tab, setTab] = useState<CatalogTab>('all');
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [recents, setRecents] = useState<string[]>([]);
-  const [limit, setLimit] = useState(PAGE_SIZE);
-
-  useEffect(() => {
-    setFavorites(readIds(FAVORITES_KEY));
-    setRecents(readIds(RECENTS_KEY));
-  }, []);
-
-  useEffect(() => {
-    setLimit(PAGE_SIZE);
-  }, [tab, deferredQuery]);
-
-  const items = useMemo(() => {
-    const byId = new Map(ICON_CATALOG.map((item) => [item.id, item]));
-    let source: IconCatalogEntry[];
-
-    if (tab === 'recent') {
-      source = recents
-        .map((id) => byId.get(id))
-        .filter((item): item is IconCatalogEntry => Boolean(item));
-    } else if (tab === 'favorites') {
-      source = favorites
-        .map((id) => byId.get(id))
-        .filter((item): item is IconCatalogEntry => Boolean(item));
-    } else if (tab === 'brand') {
-      source = ICON_CATALOG.filter((item) => item.brand);
-    } else {
-      source = ICON_CATALOG;
-    }
-
-    return source.filter((item) => matchesIconSearch(item, deferredQuery));
-  }, [deferredQuery, favorites, recents, tab]);
-
-  const visibleItems = items.slice(0, limit);
-  const groups = ICON_GROUPS.map((group) => ({
-    group,
-    items: visibleItems.filter((item) => item.group === group),
-  })).filter(({ items: groupItems }) => groupItems.length > 0);
-
-  function choose(item: IconCatalogEntry) {
-    const next = [item.id, ...recents.filter((id) => id !== item.id)].slice(
-      0,
-      MAX_RECENTS
-    );
-    setRecents(next);
-    writeIds(RECENTS_KEY, next);
-    onChange(item.id, item.suggestedColor);
-  }
-
-  function toggleFavorite(id: string) {
-    const next = favorites.includes(id)
-      ? favorites.filter((favorite) => favorite !== id)
-      : [id, ...favorites];
-    setFavorites(next);
-    writeIds(FAVORITES_KEY, next);
-  }
-
-  const selected = getIconCatalogEntry(value);
-
-  return (
-    <section className="icon-catalog" aria-label={label}>
-      <div className="icon-catalog-selected">
-        <span>
-          <CategoryPhosphorIcon name={value} size={24} />
-        </span>
-        <div>
-          <small>Icona selezionata</small>
-          <b>{selected?.label || 'Compatibile / personalizzata'}</b>
-        </div>
-      </div>
-
-      <div className="icon-catalog-search">
-        <span aria-hidden="true">⌕</span>
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Cerca: spesa, auto, Netflix..."
-          aria-label="Cerca nel catalogo icone"
-        />
-        {query && (
-          <button
-            type="button"
-            className="icon-search-clear"
-            onClick={() => setQuery('')}
-            aria-label="Cancella ricerca"
-          >
-            ×
-          </button>
-        )}
-      </div>
-
-      <div className="icon-catalog-tabs" role="tablist" aria-label="Filtra icone">
-        {(
-          [
-            ['all', 'Tutte'],
-            ['recent', 'Recenti'],
-            ['favorites', 'Preferite'],
-            ['brand', 'Brand'],
-          ] as const
-        ).map(([id, text]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            className={tab === id ? 'active' : ''}
-            onClick={() => setTab(id)}
-          >
-            {text}
-          </button>
-        ))}
-      </div>
-
-      {groups.length ? (
-        <div className="icon-catalog-scroll">
-          {groups.map(({ group, items: groupItems }) => (
-            <section className="icon-catalog-group" key={group}>
-              <h3>{group}</h3>
-              <div className="icon-catalog-grid">
-                {groupItems.map((item) => {
-                  const favorite = favorites.includes(item.id);
-                  return (
-                    <div
-                      className={`icon-catalog-item${
-                        value === item.id ? ' selected' : ''
-                      }`}
-                      key={item.id}
-                    >
-                      <button
-                        type="button"
-                        className="icon-catalog-choose"
-                        onClick={() => choose(item)}
-                        title={item.label}
-                        aria-label={`Scegli ${item.label}`}
-                        aria-pressed={value === item.id}
-                      >
-                        <CategoryPhosphorIcon name={item.id} size={24} />
-                        <span>{item.label}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`icon-favorite${favorite ? ' active' : ''}`}
-                        onClick={() => toggleFavorite(item.id)}
-                        aria-label={`${
-                          favorite ? 'Rimuovi' : 'Aggiungi'
-                        } ${item.label} ${
-                          favorite ? 'dalle' : 'alle'
-                        } preferite`}
-                        aria-pressed={favorite}
-                      >
-                        {favorite ? '★' : '☆'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
-
-          {items.length > visibleItems.length && (
-            <button
-              type="button"
-              className="icon-catalog-more"
-              onClick={() => setLimit((current) => current + PAGE_SIZE)}
-            >
-              Mostra altre {Math.min(PAGE_SIZE, items.length - visibleItems.length)}
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="icon-catalog-empty">
-          <b>Nessuna icona trovata</b>
-          <small>
-            {tab === 'favorites'
-              ? 'Aggiungi una stella alle icone che usi più spesso.'
-              : tab === 'recent'
-                ? 'Le icone scelte appariranno qui.'
-                : 'Prova un termine più generale.'}
-          </small>
-        </div>
-      )}
-
-      <p className="icon-catalog-count" aria-live="polite">
-        {items.length} {items.length === 1 ? 'risultato' : 'risultati'}
-        {items.length > visibleItems.length
-          ? ` · ${visibleItems.length} visualizzati`
-          : ''}
-      </p>
-    </section>
-  );
+  useEffect(()=>setLimit(48),[query,tab,group]);
+  return <div className="catalog-picker">
+    <input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Cerca icona o servizio…" aria-label="Cerca icona"/>
+    <div className="catalog-tabs">
+      {([['all','Tutte'],['recent','Recenti'],['favorites','Preferite'],['brand','Brand']] as const).map(([id,label])=><button type="button" key={id} className={tab===id?'selected':''} onClick={()=>setTab(id)}>{label}</button>)}
+    </div>
+    {tab==='all'&&<select value={group} onChange={e=>setGroup(e.target.value)} aria-label="Gruppo icone"><option>Tutte</option>{iconGroups.map(x=><option key={x}>{x}</option>)}</select>}
+    <div className="catalog-grid">
+      {filtered.slice(0,limit).map(item=><button type="button" key={item.id} className={value===item.id?'selected':''} onClick={()=>choose(item.id)} title={item.label} aria-label={`Icona ${item.label}`}>
+        <CategoryPhosphorIcon icon={item.id} size={24}/><span>{item.label}</span>
+        <i onClick={e=>favorite(item.id,e)} aria-label={favorites.includes(item.id)?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}>{favorites.includes(item.id)?'★':'☆'}</i>
+      </button>)}
+    </div>
+    {!filtered.length&&<p className="catalog-empty">Nessuna icona trovata.</p>}
+    {limit<filtered.length&&<button type="button" className="catalog-more" onClick={()=>setLimit(v=>v+48)}>Mostra altre ({filtered.length-limit})</button>}
+  </div>;
 }

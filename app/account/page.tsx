@@ -1,3 +1,15 @@
-'use client';import Link from 'next/link';import {useRouter} from 'next/navigation';import {createClient} from '../../lib/supabase/client';import Icon from '../../components/Icon';
-const items=[{href:'/account/aspetto',icon:'sun',title:'Aspetto',sub:'Tema chiaro, scuro o automatico'},{href:'/account/categorie',icon:'category',title:'Categorie',sub:'Crea, modifica, unisci o elimina'},{href:'/account/ricorrenze',icon:'repeat',title:'Transazioni ricorrenti',sub:'Crea e gestisci le ricorrenze'},{href:'/spazi',icon:'family',title:'Spazi e membri',sub:'Gestisci Personale, Famiglia e inviti'},{href:'/account/dati',icon:'download',title:'Importazione / esportazione dati',sub:'Importa Money Lover o esporta CSV'}] as const;
-export default function Account(){const router=useRouter();async function logout(){await createClient().auth.signOut();router.replace('/login');router.refresh()}return <><header className="page-head"><div><h1>Account</h1><p>Impostazioni e gestione dell'app</p></div></header><section className="profile-menu surface">{items.map(x=><Link key={x.href} href={x.href} className="profile-menu-row"><span className="profile-menu-icon"><Icon name={x.icon}/></span><div><b>{x.title}</b><small>{x.sub}</small></div><strong>›</strong></Link>)}</section><button className="danger profile-logout" onClick={logout}><Icon name="logout" size={18}/> Esci dall'account</button></>}
+'use client';
+import Link from 'next/link';
+import {useRouter} from 'next/navigation';
+import {createClient} from '../../lib/supabase/client';
+import Icon from '../../components/Icon';
+const items=[
+  {href:'/account/profilo',icon:'user',title:'Profilo',sub:'Nome utente e password'},
+  {href:'/account/conto',icon:'wallet',title:'Conto',sub:'Scegli il nome mostrato nei movimenti'},
+  {href:'/account/aspetto',icon:'sun',title:'Aspetto',sub:'Tema chiaro, scuro o automatico'},
+  {href:'/account/categorie',icon:'category',title:'Categorie',sub:'Crea, modifica, unisci o elimina'},
+  {href:'/account/ricorrenze',icon:'repeat',title:'Transazioni ricorrenti',sub:'Crea e gestisci le ricorrenze'},
+  {href:'/spazi',icon:'family',title:'Spazi e membri',sub:'Gestisci Personale, Famiglia e inviti'},
+  {href:'/account/dati',icon:'download',title:'Importazione / esportazione dati',sub:'Importa Money Lover o esporta CSV'},
+] as const;
+export default function Impostazioni(){const router=useRouter();async function logout(){await createClient().auth.signOut();router.replace('/login');router.refresh()}return <><header className="page-head"><div><h1>Impostazioni</h1><p>Profilo e gestione dell'app</p></div></header><section className="profile-menu surface">{items.map(x=><Link key={x.href} href={x.href} className="profile-menu-row"><span className="profile-menu-icon"><Icon name={x.icon}/></span><div><b>{x.title}</b><small>{x.sub}</small></div><strong>›</strong></Link>)}</section><button className="danger profile-logout" onClick={logout}><Icon name="logout" size={18}/> Esci dall'account</button></>}
