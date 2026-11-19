@@ -16,5 +16,6 @@ export async function activeSpace(requestedSpaceId?:string|null){
     const {data:spaces}=await sb.from('spaces').select('id,type').in('id',ids);
     id=(spaces||[]).find(space=>space.type==='personal')?.id||ids[0];
   }
+  if(!id)throw new Error('No space');
   return {sb,user,spaceId:id,spaces:ids.map(spaceId=>({id:spaceId}))};
 }
