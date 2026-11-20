@@ -44,7 +44,10 @@ assert(statsPage.includes("stats.balance>0?'+':''")&&statsPage.includes("subtitl
 
 for(const token of ['hasBudgetPlan','totalBudgetRow','Boolean(totalBudgetRow)','projectedOverage:totalBudget>0'])assert(macroLib.includes(token),`Snapshot Budget: manca ${token}`);
 for(const token of ['normalizeBudgetData','Array.isArray(source.macros)','filter((item)','budget.emptyTitle','budget.emptyOwner','budget.emptyMember','setInitializing(true)','budget-back'])assert(budgetPage.includes(token),`Budget UI robusta: manca ${token}`);
-for(const token of ['hasActiveLimit','activeAvailable==null?\'—\'','displayAvailable==null?\'—\''])assert(budgetPage.includes(token),`Budget senza limite: manca ${token}`);
+for(const token of ['hasActiveLimit','activeAvailable==null?\'—\'','macro-compact-list','allocation-summary','openEditor','saveEditor','includedCategories'])assert(budgetPage.includes(token),`Budget semplificato: manca ${token}`);
+assert(!budgetPage.includes('macro-structure-main')&&!budgetPage.includes('function moveMacro')&&!budgetPage.includes('Sposta su'),'La vista principale non deve mostrare editor strutturale o frecce di riordino.');
+assert.equal(Math.round(2000*.35*100)/100,700,'35% di 2.000 € deve equivalere a 700 €.');
+assert(budgetPage.includes('allocationPercentTotal>100.001')&&budgetPage.includes("distributionState=allocationPercentTotal>100.001?'over'"),'La sovra-allocazione deve essere visibile e bloccare il salvataggio.');
 assert(budgetApi.includes('Budget snapshot load failed')&&budgetApi.includes('Impossibile caricare il budget per il periodo selezionato.'));
 assert(nav.includes("pathname === '/budget'")&&nav.includes("label: 'nav.statistics'"),'Budget deve restare sotto Statistiche nella bottom navigation.');
 assert(!nav.includes("href: '/budget',\n    label"),'Budget non deve diventare una quinta tab principale.');

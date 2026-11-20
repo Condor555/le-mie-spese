@@ -89,7 +89,11 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 
 - otto macro-categorie iniziali: Casa & Utenze, Alimentazione, Mobilità, Salute & Famiglia, Tempo libero, Shopping, Viaggi e Altro;
 - budget totale meno impegni programmati uguale budget discrezionale distribuibile;
-- allocazioni macro principalmente percentuali, con equivalente euro e inserimento diretto in euro;
+- vista principale compatta e allocation-first: ogni macro mostra quota percentuale, equivalente euro, categorie associate, speso e progresso;
+- totale percentuali, importo allocato e residuo da allocare sempre visibili; la sovra-allocazione oltre il 100% blocca il salvataggio;
+- esempio: con 2.000 € distribuibili, una quota del 35% equivale automaticamente a 700 €;
+- nome, colore, percentuale, categorie incluse, rollover, salvataggio ed eliminazione sono raccolti nel dettaglio dedicato della singola macro;
+- `+ Nuova macro-categoria` è un'azione separata; la vista principale non espone frecce di riordino né controlli amministrativi ripetuti;
 - categorie esistenti come drill-down analitico, assegnabili alle macro;
 - creazione, rinomina, colore, ordine e rollover opzionale del residuo;
 - ricorrenze e abbonamenti conteggiati come impegni fissi del mese;
