@@ -5,8 +5,10 @@ import AmountExpressionInput from '../../components/AmountExpressionInput';
 import Icon from '../../components/Icon';
 import CategoryIcon from '../../components/CategoryIcon';
 import DateRangePicker,{type DateRange} from '../../components/DateRangePicker';
+import MovementFilterDropdown from '../../components/MovementFilterDropdown';
 import {onActiveSpaceChanged} from '../../lib/active-space-client';
 import {amountForSave} from '../../lib/amount-expression';
+import {useI18n} from '../../components/LanguageProvider';
 
 type Transaction={
   id:string;
@@ -22,16 +24,14 @@ type Transaction={
   created_by?:string|null;
   author_name?:string;
 };
-type Category={name:string;icon?:string;color?:string};
+type Category={name:string;kind:'expense'|'income';icon?:string;color?:string};
 type Member={userId:string;name:string};
 type Kind='expense'|'income';
 type Scope='occurrence'|'series';
 type ModalView='detail'|'edit'|'delete';
 
-const eur=(value:number)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(value);
-const longDate=(value:string)=>new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'long',year:'numeric'}).format(new Date(`${value}T12:00:00`));
-
 export default function Movimenti(){
+  const {currency,date:formatDate,t}=useI18n();
   const [rows,setRows]=useState<Transaction[]>([]);
   const [categories,setCategories]=useState<Category[]>([]);
   const [members,setMembers]=useState<Member[]>([]);
@@ -138,6 +138,15 @@ export default function Movimenti(){
     (all[row.date]||=[]).push(row);
     return all;
   },{}),[rows]);
+  const categoryOptions=useMemo(()=>[
+    {value:'',label:t('movements.allCategories')},
+    ...categories.map(item=>({value:item.name,label:item.name})),
+  ],[categories,t]);
+  const kindOptions=useMemo(()=>[
+    {value:'',label:t('movements.allTypes')},
+    {value:'expense',label:t('common.expenses')},
+    {value:'income',label:t('common.incomes')},
+  ],[t]);
 
   function categoryData(name:string){
     return categories.find(item=>item.name===name);
@@ -164,6 +173,8 @@ export default function Movimenti(){
 
   const recurring=editing?.source==='recurring'&&Boolean(editing.recurring_id||editing.source_id);
   const activeCategory=editing?categoryData(editing.category_name):undefined;
+  const editCategories=categories.filter(item=>item.kind===kind);
+  function changeEditKind(next:Kind){if(next===kind)return;setKind(next);setCategory(categories.find(item=>item.kind===next)?.name||'');}
 
   async function save(){
     if(!editing)return;
@@ -219,22 +230,22 @@ export default function Movimenti(){
   }
 
   return <>
-    <header className="page-head"><div><h1>Movimenti</h1><p>{loading?'Aggiornamento…':`${count} ${count===1?'transazione':'transazioni'}`}</p></div></header>
-    <div className="search-box surface"><Icon name="search" size={19}/><input value={q} onChange={event=>setQ(event.target.value)} placeholder="Cerca una descrizione…" aria-label="Cerca movimenti per descrizione"/>{q&&<button type="button" className="search-clear" aria-label="Cancella ricerca" onClick={()=>{setQ('');setDebouncedQ('');setPage(1)}}>×</button>}</div>
+    <header className="page-head"><div><h1>{t('movements.title')}</h1><p>{loading?t('movements.updating'):count===1?t('movements.one'):t('movements.many',{count})}</p></div></header>
+    <div className="search-box surface"><Icon name="search" size={19}/><input value={q} onChange={event=>setQ(event.target.value)} placeholder={t('movements.search')} aria-label={t('movements.search')}/>{q&&<button type="button" className="search-clear" aria-label={t('movements.clearFilters')} onClick={()=>{setQ('');setDebouncedQ('');setPage(1)}}>×</button>}</div>
     <div className="live-filter-bar">
       <DateRangePicker start={periodStart} end={periodEnd} onChange={changeRange}/>
-      <label className="compact-filter"><span>Categoria</span><select value={categoryFilter} onChange={event=>{setCategoryFilter(event.target.value);setPage(1)}}><option value="">Tutte</option>{categories.map(item=><option value={item.name} key={item.name}>{item.name}</option>)}</select></label>
-      <label className="compact-filter"><span>Tipo</span><select value={kindFilter} onChange={event=>{setKindFilter(event.target.value);setPage(1)}}><option value="">Entrate e uscite</option><option value="expense">Uscite</option><option value="income">Entrate</option></select></label>
-      {hasFilters&&<button type="button" className="clear-filters" onClick={clearFilters}>Azzera filtri</button>}
+      <MovementFilterDropdown label={t('movements.category')} value={categoryFilter} options={categoryOptions} onChange={value=>{setCategoryFilter(value);setPage(1)}}/>
+      <MovementFilterDropdown label={t('movements.type')} value={kindFilter} options={kindOptions} onChange={value=>{setKindFilter(value);setPage(1)}}/>
+      {hasFilters&&<button type="button" className="clear-filters" onClick={clearFilters}>{t('movements.clearFilters')}</button>}
     </div>
-    {members.length>1&&<div className="author-filter" aria-label="Filtra movimenti per persona"><span>Inserito da</span><div><button type="button" className={!author?'active':''} aria-pressed={!author} onClick={()=>{setAuthor('');setPage(1)}}>Tutti</button>{members.map(member=><button type="button" key={member.userId} className={author===member.userId?'active':''} aria-pressed={author===member.userId} onClick={()=>{setAuthor(member.userId);setPage(1)}}>{member.name}</button>)}</div></div>}
+    {members.length>1&&<div className="author-filter" aria-label={t('movements.by')}><span>{t('movements.by')}</span><div><button type="button" className={!author?'active':''} aria-pressed={!author} onClick={()=>{setAuthor('');setPage(1)}}>{t('movements.all')}</button>{members.map(member=><button type="button" key={member.userId} className={author===member.userId?'active':''} aria-pressed={author===member.userId} onClick={()=>{setAuthor(member.userId);setPage(1)}}>{member.name}</button>)}</div></div>}
     {error&&<div className="auth-error" role="alert">{error}</div>}
-    {!loading&&!error&&!rows.length&&<div className="empty-state surface"><b>Nessun movimento trovato</b><p>Modifica i filtri o aggiungi una nuova transazione.</p></div>}
-    {Object.entries(groups).map(([day,list])=>{const dayTotal=list.reduce((sum,row)=>sum+Number(row.amount),0);return <section className="day day-ledger" key={day}><div className="day-heading"><div className="day-date"><small>Movimenti del giorno</small><h3>{new Intl.DateTimeFormat('it-IT',{weekday:'long',day:'numeric',month:'short',year:'numeric'}).format(new Date(`${day}T12:00:00`))}</h3></div><div className="day-total"><small>Totale giorno</small><strong className={dayTotal>0?'green':dayTotal<0?'red':'muted'}>{dayTotal>0?'+ ':''}{eur(dayTotal)}</strong></div></div><div className="tx-card day-transactions surface">{list.map(row=>{
+    {!loading&&!error&&!rows.length&&<div className="empty-state surface"><b>{t('movements.empty')}</b><p>{t('movements.emptyHelp')}</p></div>}
+    {Object.entries(groups).map(([day,list])=>{const dayTotal=list.reduce((sum,row)=>sum+Number(row.amount),0);return <section className="day day-ledger" key={day}><div className="day-heading"><div className="day-date"><small>{t('movements.day')}</small><h3>{formatDate(day,{weekday:'long',day:'numeric',month:'short',year:'numeric'})}</h3></div><div className="day-total"><small>{t('movements.dayTotal')}</small><strong className={dayTotal>0?'green':dayTotal<0?'red':'muted'}>{dayTotal>0?'+ ':''}{currency(dayTotal)}</strong></div></div><div className="tx-card day-transactions surface">{list.map(row=>{
       const rowCategory=categoryData(row.category_name);
-      return <button type="button" className="transaction transaction-button" key={row.id} onClick={()=>open(row)}><CategoryIcon name={row.category_name} icon={rowCategory?.icon} color={rowCategory?.color}/><span><b>{row.note||row.category_name}</b><small>{row.category_name}{row.author_name?` · ${row.author_name}`:''}</small></span><strong className={Number(row.amount)>=0?'green':'red'}>{Number(row.amount)>=0?'+ ':''}{eur(Number(row.amount))}</strong></button>;
+      return <button type="button" className="transaction transaction-button" key={row.id} onClick={()=>open(row)}><CategoryIcon name={row.category_name} icon={rowCategory?.icon} color={rowCategory?.color}/><span><b>{row.note||row.category_name}</b><small>{row.category_name}{row.author_name?` · ${row.author_name}`:''}</small></span><strong className={Number(row.amount)>=0?'green':'red'}>{Number(row.amount)>=0?'+ ':''}{currency(Number(row.amount))}</strong></button>;
     })}</div></section>})}
-    <div className="pager"><button disabled={page===1||loading} onClick={()=>setPage(value=>Math.max(1,value-1))}>Indietro</button><span>{page}</span><button disabled={page*30>=count||loading} onClick={()=>setPage(value=>value+1)}>Avanti</button></div>
+    <div className="pager"><button disabled={page===1||loading} onClick={()=>setPage(value=>Math.max(1,value-1))}>{t('movements.previous')}</button><span>{page}</span><button disabled={page*30>=count||loading} onClick={()=>setPage(value=>value+1)}>{t('movements.next')}</button></div>
 
     {editing&&<div className="modal transaction-modal" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)closeModal()}}><div className="modal-card transaction-modal-card surface" role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title">
       {modalView==='detail'&&<>
@@ -245,12 +256,12 @@ export default function Movimenti(){
 
         <section className="transaction-hero">
           <CategoryIcon name={editing.category_name} icon={activeCategory?.icon} color={activeCategory?.color} size={58}/>
-          <div className="transaction-hero-copy"><strong className={Number(editing.amount)>=0?'green':'red'}>{Number(editing.amount)>=0?'+ ':''}{eur(Number(editing.amount))}</strong><span>{editing.category_name}</span></div>
+          <div className="transaction-hero-copy"><strong className={Number(editing.amount)>=0?'green':'red'}>{Number(editing.amount)>=0?'+ ':''}{currency(Number(editing.amount))}</strong><span>{editing.category_name}</span></div>
           <span className={`transaction-kind ${Number(editing.amount)>=0?'income':'expense'}`}>{Number(editing.amount)>=0?'Entrata':'Uscita'}</span>
         </section>
 
         <dl className="transaction-facts">
-          <div><dt>Data</dt><dd>{longDate(editing.date)}</dd></div>
+          <div><dt>Data</dt><dd>{formatDate(editing.date,{day:'numeric',month:'long',year:'numeric'})}</dd></div>
           <div><dt>Conto</dt><dd>{editing.account_name||'Spese'}</dd></div>
           <div><dt>Inserito da</dt><dd>{editing.author_name||'—'}</dd></div>
           {recurring&&<div><dt>Ricorrenza</dt><dd><span className="recurring-badge">Movimento ricorrente</span></dd></div>}
@@ -266,10 +277,10 @@ export default function Movimenti(){
           <div><span className="transaction-eyebrow">{editing.note||editing.category_name}</span><h2 id="transaction-modal-title">Modifica movimento</h2></div>
           <button type="button" className="transaction-close" aria-label="Annulla modifica" disabled={busy} onClick={()=>setModalView('detail')}>×</button>
         </header>
-        <div className="segmented"><button type="button" className={kind==='expense'?'active':''} onClick={()=>setKind('expense')}>Uscita</button><button type="button" className={kind==='income'?'active':''} onClick={()=>setKind('income')}>Entrata</button></div>
+        <div className="segmented"><button type="button" className={kind==='expense'?'active':''} onClick={()=>changeEditKind('expense')}>Uscita</button><button type="button" className={kind==='income'?'active':''} onClick={()=>changeEditKind('income')}>Entrata</button></div>
         <div className="two-col"><div className="field"><label htmlFor="edit-transaction-amount">Importo</label><AmountExpressionInput id="edit-transaction-amount" value={amount} onChange={setAmount} ariaLabel="Importo del movimento"/></div><div className="field"><label>Data</label><input type="date" value={date} onChange={event=>setDate(event.target.value)}/></div></div>
         <div className="field"><label>Descrizione</label><input value={note} onChange={event=>setNote(event.target.value)}/></div>
-        <div className="field"><label>Categoria</label><div className="transaction-category-field"><CategoryIcon name={category||editing.category_name} icon={categoryData(category)?.icon} color={categoryData(category)?.color} size={44}/><select value={category} onChange={event=>setCategory(event.target.value)}>{categories.map(item=><option key={item.name}>{item.name}</option>)}</select></div></div>
+        <div className="field"><label>Categoria {kind==='income'?'di entrata':'di spesa'}</label><div className="transaction-category-field"><CategoryIcon name={category||editing.category_name} icon={categoryData(category)?.icon} color={categoryData(category)?.color} size={44}/><select value={category} onChange={event=>setCategory(event.target.value)}>{editCategories.map(item=><option key={item.name}>{item.name}</option>)}</select></div></div>
         <div className="field"><label>Conto</label><input value={account} readOnly aria-readonly="true" title="Modificabile da Impostazioni > Conto per lo spazio visualizzato"/></div>
         {recurring&&<div className="transaction-scope"><b>Applica la modifica a</b><div className="scope-choice"><label><input type="radio" name="edit-scope" checked={scope==='occurrence'} onChange={()=>setScope('occurrence')}/> Solo questa occorrenza</label><label><input type="radio" name="edit-scope" checked={scope==='series'} onChange={()=>setScope('series')}/> Occorrenza e serie futura</label></div></div>}
         {modalMsg&&<div className="notice" role="status">{modalMsg}</div>}
@@ -280,7 +291,7 @@ export default function Movimenti(){
         <span className="transaction-confirm-icon" aria-hidden="true">!</span>
         <h2 id="transaction-modal-title">Eliminare il movimento?</h2>
         <p>{recurring&&scope==='series'?'Questa occorrenza verrà eliminata e la serie futura sarà interrotta. I movimenti precedenti resteranno invariati.':'Il movimento verrà eliminato definitivamente. L’operazione non può essere annullata.'}</p>
-        <div className="transaction-confirm-summary"><span>{editing.note||editing.category_name}</span><strong className={Number(editing.amount)>=0?'green':'red'}>{Number(editing.amount)>=0?'+ ':''}{eur(Number(editing.amount))}</strong></div>
+        <div className="transaction-confirm-summary"><span>{editing.note||editing.category_name}</span><strong className={Number(editing.amount)>=0?'green':'red'}>{Number(editing.amount)>=0?'+ ':''}{currency(Number(editing.amount))}</strong></div>
         {modalMsg&&<div className="notice" role="status">{modalMsg}</div>}
         <div className="transaction-confirm-actions"><button type="button" className="secondary" disabled={busy} onClick={()=>{setModalView('detail');setModalMsg('')}}>Annulla</button><button type="button" className="delete-btn" disabled={busy} onClick={remove}>{busy?'Eliminazione…':'Elimina definitivamente'}</button></div>
       </section>}

@@ -4,10 +4,11 @@ import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {ArrowsDownUpIcon} from '@phosphor-icons/react/ssr';
 import Icon, {type IconName} from './Icon';
+import {useI18n} from './LanguageProvider';
 
 type NavigationTab = {
   href: string;
-  label: string;
+  label: 'nav.home'|'nav.movements'|'nav.statistics'|'nav.settings';
   icon: IconName | 'movements';
   isActive: (pathname: string) => boolean;
 };
@@ -15,20 +16,20 @@ type NavigationTab = {
 const navigationTabs: NavigationTab[] = [
   {
     href: '/',
-    label: 'Home',
+    label: 'nav.home',
     icon: 'home',
     isActive: (pathname) => pathname === '/',
   },
   {
     href: '/movimenti',
-    label: 'Movimenti',
+    label: 'nav.movements',
     icon: 'movements',
     isActive: (pathname) =>
       pathname === '/movimenti' || pathname.startsWith('/movimenti/'),
   },
   {
     href: '/statistiche',
-    label: 'Statistiche',
+    label: 'nav.statistics',
     icon: 'chart',
     isActive: (pathname) =>
       pathname === '/statistiche' ||
@@ -38,7 +39,7 @@ const navigationTabs: NavigationTab[] = [
   },
   {
     href: '/account',
-    label: 'Impostazioni',
+    label: 'nav.settings',
     icon: 'settings',
     isActive: (pathname) =>
       pathname === '/account' ||
@@ -62,6 +63,7 @@ function NavigationIcon({icon}: {icon: NavigationTab['icon']}) {
 
 export default function Nav() {
   const pathname = usePathname();
+  const {t}=useI18n();
 
   if (hiddenRoutes.has(pathname)) return null;
 
@@ -78,19 +80,19 @@ export default function Nav() {
         <span className="nav-tab-icon">
           <NavigationIcon icon={tab.icon} />
         </span>
-        <span>{tab.label}</span>
+        <span>{t(tab.label)}</span>
       </Link>
     );
   };
 
   return (
-    <nav className="bottom-nav" aria-label="Navigazione principale">
+    <nav className="bottom-nav" aria-label={t('nav.main')}>
       {navigationTabs.slice(0, 2).map(renderTab)}
 
       <Link
         className="nav-plus"
         href="/nuovo"
-        aria-label="Nuova transazione"
+        aria-label={t('nav.newTransaction')}
       >
         <Icon name="plus" size={28} />
       </Link>

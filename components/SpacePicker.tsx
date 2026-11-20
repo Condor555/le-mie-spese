@@ -2,6 +2,7 @@
 
 import {useEffect,useId,useRef,useState} from 'react';
 import Icon from './Icon';
+import {useI18n} from './LanguageProvider';
 
 export type SpacePickerOption={id:string;name:string;type:'personal'|'shared'|string};
 
@@ -17,6 +18,7 @@ type Props={
 };
 
 export default function SpacePicker({spaces,value,onChange,variant='destination',label,help,disabled=false,className=''}:Props){
+  const {t}=useI18n();
   const [open,setOpen]=useState(false);
   const [activeIndex,setActiveIndex]=useState(0);
   const rootRef=useRef<HTMLDivElement>(null);
@@ -87,7 +89,7 @@ export default function SpacePicker({spaces,value,onChange,variant='destination'
   }
 
   const iconName=selected?.type==='personal'?'user':'family';
-  const accessibleLabel=label||(variant==='compact'?'Spazio visualizzato':'Spazio di destinazione');
+  const accessibleLabel=label||(variant==='compact'?t('space.viewed'):t('space.destination'));
 
   return <div ref={rootRef} className={`space-picker space-picker-${variant}${open?' is-open':''}${className?` ${className}`:''}`}>
     {variant==='destination'&&<label className="space-picker-label">{accessibleLabel}</label>}
@@ -95,7 +97,7 @@ export default function SpacePicker({spaces,value,onChange,variant='destination'
       ref={triggerRef}
       type="button"
       className="space-picker-trigger"
-      aria-label={`${accessibleLabel}: ${selected?.name||'nessuno'}`}
+      aria-label={`${accessibleLabel}: ${selected?.name||t('space.none')}`}
       aria-haspopup="listbox"
       aria-expanded={open}
       aria-controls={open?listboxId:undefined}
@@ -106,8 +108,8 @@ export default function SpacePicker({spaces,value,onChange,variant='destination'
     >
       <span className="space-picker-trigger-icon" aria-hidden="true"><Icon name={iconName} size={variant==='compact'?16:20}/></span>
       <span className="space-picker-trigger-copy">
-        {variant==='destination'&&<small>{selected?.type==='personal'?'Spazio personale':'Spazio condiviso'}</small>}
-        <strong>{selected?.name||'Seleziona spazio'}</strong>
+        {variant==='destination'&&<small>{selected?.type==='personal'?t('space.personal'):t('space.shared')}</small>}
+        <strong>{selected?.name||t('space.select')}</strong>
       </span>
       <span className="space-picker-trigger-chevron" aria-hidden="true"><Icon name="arrowDown" size={variant==='compact'?14:17}/></span>
     </button>
@@ -127,7 +129,7 @@ export default function SpacePicker({spaces,value,onChange,variant='destination'
           onClick={()=>choose(space.id)}
         >
           <span aria-hidden="true"><Icon name={space.type==='personal'?'user':'family'} size={18}/></span>
-          <span><strong>{space.name}</strong><small>{space.type==='personal'?'Personale':'Condiviso'}</small></span>
+          <span><strong>{space.name}</strong><small>{space.type==='personal'?t('space.personalShort'):t('space.sharedShort')}</small></span>
           <b aria-hidden="true">{chosen?'✓':''}</b>
         </button>;
       })}

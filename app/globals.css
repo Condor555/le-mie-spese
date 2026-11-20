@@ -196,7 +196,7 @@ html[data-theme="dark"] .back-link span {
 .transaction-delete-link:hover{background:rgba(239,93,101,.08)}
 .transaction-modal-card>.segmented{margin-bottom:4px}
 .transaction-category-field{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center}
-.transaction-edit-actions{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:22px}
+.transaction-edit-actions{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:flex-end;margin-bottom:22px}
 .transaction-edit-actions .save-btn,.transaction-edit-actions .secondary{margin-top:17px}
 .transaction-edit-actions .secondary{width:auto;min-width:96px}
 .transaction-confirm{margin-top:28px;margin-bottom:24px;text-align:center}
@@ -210,7 +210,7 @@ html[data-theme="dark"] .back-link span {
 .transaction-confirm-actions .secondary,.transaction-confirm-actions .delete-btn{width:100%;margin:0;min-height:45px}
 .transaction-confirm-actions .delete-btn{background:#c94f57;color:#fff}
 @media(max-width:520px){
-  .transaction-modal{align-items:end;padding:0;background:rgba(8,11,20,.68)}
+  .transaction-modal{align-items:flex-end;padding:0;background:rgba(8,11,20,.68)}
   .transaction-modal-card{width:100%;max-height:92dvh;border-radius:27px 27px 0 0;border-bottom:0}
   .transaction-modal-card>*{margin-left:18px;margin-right:18px}
   .transaction-modal-head{margin-top:18px}
@@ -330,7 +330,7 @@ html[data-theme="dark"] .account-settings-card input:disabled{background:#151a25
 .recurring-section-head small{display:block;margin-top:4px;color:var(--muted);font-size:10px}
 .recurring-space-badge{display:inline-flex;align-items:center;gap:6px;max-width:48%;padding:7px 9px;border-radius:99px;background:color-mix(in srgb,var(--primary) 11%,var(--surface));color:var(--primary);font-size:10px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .recurring-overview{margin-top:22px}
-.recurring-overview-title{display:flex;justify-content:space-between;align-items:end;margin:0 2px 9px}
+.recurring-overview-title{display:flex;justify-content:space-between;align-items:flex-end;margin:0 2px 9px}
 .recurring-overview-title h2{font-size:18px}.recurring-overview-title p{margin:3px 0 0;font-size:11px}
 .recurring-space-group{margin-top:11px;padding:0 15px;overflow:hidden;border-radius:20px}
 .recurring-space-group>header{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;padding:14px 0;border-bottom:1px solid var(--line)}
@@ -453,6 +453,8 @@ html[data-theme="dark"] .space-picker-trigger,html[data-theme="dark"] .space-pic
 /* V3.9.3 — repository sorgente in Informazioni */
 .source-repository-link{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);color:var(--text);text-decoration:none}.source-repository-link:hover{border-color:color-mix(in srgb,var(--primary) 42%,var(--line));background:color-mix(in srgb,var(--primary) 7%,var(--surface2))}.source-repository-link:focus-visible{outline:3px solid color-mix(in srgb,var(--primary) 28%,transparent);outline-offset:2px}.source-repository-link span b,.source-repository-link span small{display:block}.source-repository-link span small{margin-top:3px;color:var(--muted);font-size:10px;overflow-wrap:anywhere}.source-repository-link>strong{color:var(--primary);font-size:18px}html[data-theme="dark"] .source-repository-link{background:var(--surface2);color:var(--text)}
 
+/* V3.9.4 — language preference and resilient Budget empty state */
+.language-options{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.language-options button{display:grid;grid-template-columns:38px 1fr 18px;align-items:center;gap:9px;text-align:left;background:var(--surface2);color:var(--text);border:1px solid var(--line);padding:11px}.language-options button>span{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:var(--surface);color:var(--primary);font-size:12px;font-weight:850}.language-options button>i{font-style:normal;color:var(--primary);font-size:18px}.language-options button.selected{border:2px solid var(--primary);background:color-mix(in srgb,var(--primary) 9%,var(--surface))}.language-options button:disabled{cursor:wait;opacity:.75}.subpage-breadcrumb{display:flex;align-items:center}.budget-back span{flex:0 0 30px}.budget-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:30px 22px}.budget-empty .empty-state-icon{width:48px;height:48px;border-radius:15px;background:var(--surface2);color:var(--primary);display:grid;place-items:center}.budget-empty p{max-width:390px;margin:0 0 8px}.budget-empty button{min-width:190px}.budget-cancel-setup{width:auto;margin:0 0 10px;padding:9px 12px}.analytics-kpis .metric span{line-height:1.35}@media(max-width:420px){.language-options{grid-template-columns:1fr}.budget-empty button{width:100%}.budget-back{max-width:100%}}
 
-/* V3.9.3 — empty state guidato Budget */
-.budget-guided-empty{margin:0 0 13px;padding:18px;text-align:left;border-color:color-mix(in srgb,var(--primary) 24%,var(--line));background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 8%,var(--surface)),var(--surface))}.budget-guided-empty p{margin:6px 0 0}.budget-guided-empty button{margin-top:12px;padding:9px 12px}.category-kind-empty{padding:16px;border:1px dashed var(--line);border-radius:14px;background:var(--surface2);text-align:center}.category-kind-empty b,.category-kind-empty small{display:block}.category-kind-empty small{margin-top:4px;color:var(--muted)}
+/* V3.9.4 regression guard — recurring dropdowns/date and native icon suppression */
+.recurring-custom-select .movement-filter-dropdown{width:100%;min-width:0;flex:1 1 auto}.recurring-custom-select .movement-filter-trigger{height:48px;background:var(--surface);color:var(--text)}.recurring-custom-select .movement-filter-list{top:54px}.date-input-control{position:relative;display:block;width:100%}.date-input-control>svg{position:absolute;z-index:1;left:11px;top:50%;transform:translateY(-50%);color:var(--primary);pointer-events:none}.date-input-control>input{padding-left:38px;color-scheme:light}.date-input-control>input::-webkit-calendar-picker-indicator{opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer}html[data-theme="dark"] .date-input-control>input{color-scheme:dark;background:var(--surface);color:var(--text);border-color:var(--line)}html[data-theme="dark"] .recurring-custom-select .movement-filter-trigger{background:var(--surface);color:var(--text);border-color:var(--line)}

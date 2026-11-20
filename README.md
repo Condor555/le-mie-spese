@@ -4,7 +4,7 @@
 
 **Expense tracker personale e familiare, mobile-first, con spazi privati e condivisi.**
 
-[![Versione](https://img.shields.io/badge/versione-3.9.3-5b5ce2?style=flat-square)](#stato-del-progetto)
+[![Versione](https://img.shields.io/badge/versione-3.9.4-5b5ce2?style=flat-square)](#stato-del-progetto)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -18,7 +18,18 @@
 
 ## Panoramica
 
-La versione **V3.9.3 Macro Budget** mantiene Smart UX e la UX Hotfix V3.9.2, aggiungendo macro-categorie, impegni programmati, rollover, analytics macro e navigazione attiva. Ogni spazio **Personale** o **Condiviso** mantiene struttura e piano budget indipendenti; soltanto owner/creatore può modificarli negli spazi condivisi.
+La versione **V3.9.4 Lingua e Statistiche** parte dalla V3.9.3 stabile e aggiunge una base i18n centralizzata Italiano/English, preferenza lingua persistita per utente, formati locali coerenti, correzione della proiezione di fine mese e gestione robusta dei mesi senza Budget. Ogni spazio **Personale** o **Condiviso** mantiene struttura e piano budget indipendenti; soltanto owner/creatore può modificarli negli spazi condivisi.
+
+### Novità V3.9.4
+
+- dizionari IT/EN centralizzati in `lib/i18n.ts`, provider applicativo unico e Italiano come default/fallback;
+- preferenza **Impostazioni → Account → Lingua** persistita in `profiles.language`, quindi disponibile anche dopo login da un altro dispositivo;
+- etichette e tooltip dei grafici `income`/`expense` tradotti come **Entrate/Uscite** o **Income/Expenses**;
+- **Proiezione fine mese** calcolata soltanto per il mese corrente: `uscite / giorni trascorsi × giorni del mese`, con media giornaliera esplicita;
+- per i mesi conclusi la card mostra **Saldo del mese = Entrate − Uscite**; per i mesi futuri non mostra stime fuorvianti;
+- Budget senza piano mensile gestito con empty state **Nessun budget configurato**: owner può avviare la configurazione, member vede uno stato informativo in sola lettura;
+- Budget resta una sezione secondaria sotto Statistiche: la bottom navigation conserva quattro destinazioni più `+`, mentre `/budget` ha un pulsante Indietro accessibile e coerente con light/dark e mobile/desktop;
+- nessun rebranding o nuovo nome applicato.
 
 L'app è costruita con **Next.js**, **Supabase** e **Vercel**. Non richiede servizi a pagamento per il flusso base: autenticazione, database PostgreSQL, Row Level Security e deploy possono utilizzare i rispettivi free tier.
 
@@ -60,7 +71,7 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - raggruppamento per data con anno sempre visibile;
 - count e totale giornaliero sincronizzati ai risultati filtrati;
 - dettaglio, modifica ed eliminazione con conferma;
-- mini-calcolatrice negli importi di nuova/modifica transazione: `+`, `-`, `×`, `÷`, `*`, `/`, parentesi, virgola e punto decimale, anteprima e salvataggio del solo risultato numerico;
+- input importo pulito senza pulsante calcolatrice: placeholder `€ 0,00`, operatori `+`, `-`, `×`, `÷`, `*`, `/`, parentesi, virgola e punto digitati direttamente, anteprima solo per espressioni e salvataggio del solo risultato numerico;
 - gestione della singola occorrenza o della serie futura per i movimenti ricorrenti;
 - importazione CSV con intestazioni italiane/inglesi e compatibilità con il formato Money Lover esistente;
 - export CSV dei dati già presente nel progetto.
@@ -72,7 +83,7 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - speso, disponibile, percentuale utilizzata e confronto col mese precedente;
 - soglie visive: avviso all’80% e superamento al 100%;
 - lettura per tutti i membri e modifica riservata all’owner tramite RLS.
-- mini-calcolatrice disponibile sia sul limite complessivo sia sui budget di categoria.
+- lo stesso input espressione senza pulsante è disponibile sul limite complessivo e sugli importi Macro Budget; le percentuali restano input numerici semplici.
 
 ### Macro Budget V3.9.3
 
@@ -114,7 +125,7 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - conferma pagamento atomica, che crea una sola transazione per scadenza;
 - registrazione automatica opzionale e conferma manuale;
 - permessi multiutente e RLS basati sull’appartenenza allo spazio.
-- mini-calcolatrice disponibile in creazione e modifica di ricorrenze/abbonamenti.
+- input importo con espressioni dirette e senza pulsante in creazione/modifica ricorrenze e abbonamenti.
 
 ### Interfaccia
 
@@ -135,6 +146,8 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - **Saldo:** `entrate - uscite`.
 - **Totale giornaliero Movimenti:** somma algebrica degli importi visibili nel gruppo; in una giornata mista entrate e uscite si compensano, coerentemente con il saldo.
 - **Media giornaliera uscite:** `uscite del mese / giorni considerati`. Nel mese corrente il denominatore va dal giorno 1 a oggi e include i giorni senza movimenti; nei mesi conclusi usa tutti i giorni del mese.
+- **Proiezione fine mese:** soltanto per il mese corrente, `uscite / giorni trascorsi × giorni totali del mese`. Nei mesi conclusi viene sostituita dal saldo consuntivo; nei mesi futuri non viene calcolata.
+- **Mese senza Budget:** `hasBudgetPlan=false`; l'API restituisce comunque uno snapshot normalizzato. L'owner vede la configurazione iniziale su richiesta, il member un empty state in sola lettura; nessuna proprietà viene letta da valori `undefined`.
 - **Variazione categoria principale:** `(mese corrente - mese precedente) / mese precedente × 100`. Se il mese precedente è zero o privo di dati viene mostrato un testo esplicito, mai `Infinity` o `NaN`.
 
 ## Stack tecnico
@@ -216,7 +229,7 @@ La migration V3.7-V3.9 è idempotente, mantiene i dati esistenti e assegna alle 
 
 1. Sostituire i file applicativi mantenendo `public/icons/categories/` e `public/icons/brands/`.
 2. Non eseguire nuove query SQL: V3.9.1 non introduce tabelle, colonne, funzioni o policy.
-3. Eseguire `npm test`, `npm run check:phosphor` e `npm run build`.
+3. Eseguire `npm test` e `npm run build`.
 4. Collaudare un calcolo in nuova/modifica transazione, ricorrenza e budget; verificare poi ricerca e suggerimenti icone.
 
 ### Aggiornamento da V3.9.2 a V3.9.3
@@ -225,9 +238,19 @@ La migration V3.7-V3.9 è idempotente, mantiene i dati esistenti e assegna alle 
 2. In **Supabase SQL Editor**, eseguire una sola volta `supabase/migrations/20261120_v3_9_3_macro_budgets.sql`.
 3. Verificare le tabelle `budget_macro_categories` e `macro_budget_allocations` e la colonna `categories.macro_category_id`.
 4. Distribuire tutti i file V3.9.3. Il runtime non usa `public/icons/color/`.
-5. Eseguire `npm test`, `npm run audit:icons`, `npm run check:phosphor` e `npm run build`.
+5. Eseguire `npm test`, `npm run audit:icons` e `npm run build`.
 
 La migration crea le macro predefinite per ogni spazio, aggiunge il tipo categoria, assegna le sole categorie expense alle macro e converte i vecchi budget categoria in allocazioni macro. I nomi chiaramente reddituali e le categorie usate soltanto con importi positivi diventano income; categorie miste/ambigue restano expense. Le ricorrenze legacy incoerenti vengono spostate sui fallback corretti, senza riscrivere le transazioni storiche. I record `budgets` precedenti non vengono cancellati; se esistono budget categoria senza budget totale, la migration ricava un totale compatibile dalla loro somma.
+
+### Aggiornamento da V3.9.3 a V3.9.4
+
+1. Eseguire un backup del database Supabase.
+2. In **Supabase SQL Editor**, eseguire una sola volta `supabase/migrations/20261120_v3_9_4_user_language.sql`.
+3. Verificare che `profiles.language` abbia default `it` e vincolo `it|en`.
+4. Distribuire i file V3.9.4 ed eseguire `npm test` e `npm run build`.
+5. Collaudare Italiano/English con due dispositivi o sessioni, quindi Budget su mese con/senza piano per Personale e Famiglia, sia owner sia member.
+
+La migration è incrementale e riutilizza le RLS `profiles` esistenti: ogni utente può aggiornare soltanto la propria preferenza.
 
 ## Deploy su Vercel
 
@@ -237,7 +260,7 @@ La migration crea le macro predefinite per ogni spazio, aggiunge il tipo categor
 4. Eseguire il deploy.
 5. Aggiungere il dominio Vercel tra gli URL consentiti da Supabase Auth.
 
-Ogni push sul branch collegato genera un nuovo deployment. Lo script `prebuild` verifica inoltre che gli import Phosphor utilizzati esistano nella versione installata.
+Ogni push sul branch collegato genera un nuovo deployment. `next build` esegue il controllo TypeScript degli import effettivamente usati.
 
 ## Struttura della repository
 
@@ -270,7 +293,7 @@ supabase/
 
 ## Stato del progetto
 
-**Versione corrente: V3.9.3 Macro Budget.**
+**Versione corrente: V3.9.4 Lingua e Statistiche.**
 
 Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzionalità disponibili” appartengono alla versione implementata; quelle riportate qui sotto sono pianificate e **non devono essere considerate già disponibili**.
 
@@ -285,23 +308,22 @@ Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzi
 | V3.9.1 | ✅ Implementata | Calcolatrice importi e catalogo icone Color locale smart |
 | V3.9.2 | ✅ Implementata | Selettore mese custom e filtri Movimenti accessibili |
 | V3.9.3 | ✅ Implementata | Macro Budget, impegni, rollover, analytics macro e nav attiva |
-| V3.10 | 🧭 Pianificata | Smart Add e suggerimenti di inserimento rapido |
-| V3.11 | ↩️ Anticipata in V3.9.3 | Obiettivi di risparmio e avanzamento |
-| V3.12 | 🧭 Pianificata | Import/export evoluto, backup e ripristino |
-| V3.13 | 🧭 Pianificata | Più conti/portafogli, saldi e trasferimenti |
-| V3.14 | 🧭 Pianificata | Debiti, crediti, anticipi e rimborsi |
-| V4.0 | 🧭 Pianificata | Automazioni, notifiche, passkey e Home personalizzabile |
+| V3.9.4 | ✅ Implementata | IT/EN persistente, proiezione corretta, Budget empty state e back navigation |
+| V3.10 | 🧭 Prossima | Obiettivi di risparmio visibili e completi |
+| V3.11 | 🧭 Pianificata | Backup & Portabilità |
+| V4.0 | 🧭 Pianificata | Branding: nome, dominio, repository, logo e manifest |
+
+**In stand-by, senza implementazione in V3.9.4:** Conti/Portafogli multipli e Debiti/Crediti.
 
 ## Verifica prima di una release
 
 ```bash
 npm test
 npm run audit:icons
-npm run check:phosphor
 npm run build
 ```
 
-`npm test` verifica ricorrenze, filtri, parser importi, UX Hotfix, Macro Budget, RLS, compatibilità dati, navigazione attiva e path di tutti gli asset. `npm run audit:icons` esegue inoltre parsing XML, rendering CairoSVG e decodifica PNG/Pillow di ogni icona locale.
+`npm test` verifica parità dei dizionari IT/EN, persistenza profilo, proiezione mensile, stati passato/corrente/futuro, normalizzazione difensiva della risposta Budget, empty state owner/member, navigazione secondaria e trascompilazione dei sorgenti TypeScript/TSX. `npm run audit:icons` esegue inoltre parsing XML, rendering CairoSVG e decodifica PNG/Pillow di ogni icona locale.
 
 Per V3.6 eseguire anche un test con **Account A** e **Account B**:
 
@@ -332,7 +354,7 @@ Costruita per una gestione finanziaria semplice, privata e condivisibile — sen
 - nuova transazione;
 - modifica movimento;
 - nuova e modifica ricorrenza/abbonamento;
-- budget complessivo e budget di categoria.
+- budget complessivo e Macro Budget.
 
 ### Catalogo icone
 
@@ -349,6 +371,16 @@ Costruita per una gestione finanziaria semplice, privata e condivisibile — sen
 - fallback esclusivo Phosphor Tag per icone sconosciute o non disponibili.
 
 La cartella artificiale `public/icons/color/`, il relativo manifest generato e lo script colorizer non sono più referenziati dal runtime. Restano fisicamente nella repository solo per una successiva rimozione controllata dopo la verifica dei dati salvati.
+
+Prima di eliminare asset legacy eseguire su Supabase:
+
+```sql
+select count(*)
+from public.categories
+where icon like 'color:%';
+```
+
+Eliminare `public/icons/color/`, `lib/category-icon-catalog-data.ts` o script di generazione soltanto se il conteggio è `0` e dopo un audit separato. La V3.9.4 non cancella automaticamente nessun asset potenzialmente referenziato.
 
 ### Licenze e attribuzioni
 
@@ -380,6 +412,6 @@ V3.9.1 non richiede migration Supabase. I nuovi comportamenti sono frontend e ma
 - **fallback = Phosphor Tag**;
 - vietati mixing di famiglie, glifi generati, colorizer locale e sovrapposizioni decorative.
 
-## Obiettivi di risparmio
+## Obiettivi di risparmio — stand-by fino alla V3.10
 
-Gli Obiettivi sono separati semanticamente dal Budget: il Budget limita la spesa, gli Obiettivi accumulano denaro, gli Impegni rappresentano spese future. Ogni obiettivo ha spazio, nome, icona/colore, target, accumulato, data opzionale, stato e contributo suggerito. I contributi sono registrati in una tabella dedicata e non generano automaticamente transazioni o spese. Owner/creatore configura gli obiettivi; i membri dello spazio condiviso possono visualizzare e contribuire.
+La V3.9.4 non espone Obiettivi in Home, Statistiche o Impostazioni e l'URL preparatorio reindirizza ad Account. Lo schema e le route preparatorie già presenti nella baseline cumulativa restano dormienti per compatibilità, ma non costituiscono una funzionalità utente della V3.9.4. L'esperienza visibile e completa sarà sviluppata e collaudata separatamente nella V3.10.

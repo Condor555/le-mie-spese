@@ -3,62 +3,57 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
 import AmountExpressionInput from '../../components/AmountExpressionInput';
-import BackToAccount from '../../components/BackToAccount';
 import CategoryIcon from '../../components/CategoryIcon';
+import {useI18n} from '../../components/LanguageProvider';
 import MonthPicker from '../../components/MonthPicker';
+import Icon from '../../components/Icon';
 import {onActiveSpaceChanged} from '../../lib/active-space-client';
 import {useSharedMonth} from '../../lib/selected-period-client';
 import {amountForSave} from '../../lib/amount-expression';
 
-const eur=(value:number)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(value);
 const numeric=(value:string)=>{const parsed=Number(value.replace(',','.'));return Number.isFinite(parsed)?parsed:null};
 const moneyInput=(value:number)=>value?String(Math.round(value*100)/100).replace('.',','):'';
 const percentInput=(value:number)=>value?String(Math.round(value*1000)/1000).replace('.',','):'';
 type Status='ok'|'warning'|'over';
 type Category={name:string;icon?:string|null;color?:string|null;spent:number;fixedSpent:number;discretionarySpent:number};
 type Macro={id:string;name:string;color:string;sortOrder:number;rolloverEnabled:boolean;allocationPercent:number;allocationAmount:number;rolloverAmount:number;commitments:number;budget:number;spent:number;available:number;percentage:number;status:Status;projected:number;projectedPercentage:number;categories:Category[]};
-type BudgetData={month:string;spaceId:string;canEdit:boolean;totalBudget:number;totalSpent:number;totalPercentage:number;totalAvailable:number;commitments:number;distributable:number;allocated:number;unallocated:number;overcommitted:number;discretionarySpent:number;fixedSpent:number;projectedExpense:number;projectedOverage:number;daysInMonth:number;daysConsidered:number;previousExpense:number;changePercent:number|null;macros:Macro[]};
+type BudgetData={month:string;spaceId:string;canEdit:boolean;hasBudgetPlan:boolean;totalBudget:number;totalSpent:number;totalPercentage:number;totalAvailable:number;commitments:number;distributable:number;allocated:number;unallocated:number;overcommitted:number;discretionarySpent:number;fixedSpent:number;projectedExpense:number;projectedOverage:number;daysInMonth:number;daysConsidered:number;previousExpense:number;changePercent:number|null;macros:Macro[]};
 type AllocationDraft={percent:string;euro:string;last:'percent'|'euro'};
 type StructureDraft={name:string;color:string;rolloverEnabled:boolean};
 
-const numberOrZero=(value:unknown)=>{const parsed=Number(value);return Number.isFinite(parsed)?parsed:0};
-const budgetErrorMessage=(value:unknown)=>{const message=String(value||'').trim();if(/Cannot read properties|TypeError/i.test(message))return 'Il budget del periodo non è ancora configurato o contiene dati incompleti.';return message||'Impossibile caricare i budget.'};
-const statusOrOk=(value:unknown):Status=>value==='warning'||value==='over'?value:'ok';
-function normalizeCategory(value:unknown):Category|null{
-  if(!value||typeof value!=='object')return null;const row=value as Record<string,unknown>;const name=typeof row.name==='string'?row.name.trim():'';if(!name)return null;
-  return {name,icon:typeof row.icon==='string'?row.icon:null,color:typeof row.color==='string'?row.color:null,spent:numberOrZero(row.spent),fixedSpent:numberOrZero(row.fixedSpent),discretionarySpent:numberOrZero(row.discretionarySpent??row.spent)};
-}
-function normalizeMacro(value:unknown):Macro|null{
-  if(!value||typeof value!=='object')return null;const row=value as Record<string,unknown>;const id=typeof row.id==='string'?row.id:'';const name=typeof row.name==='string'?row.name.trim():'';if(!id||!name)return null;
-  const budget=numberOrZero(row.budget),spent=numberOrZero(row.spent);return {id,name,color:typeof row.color==='string'?row.color:'#68738C',sortOrder:numberOrZero(row.sortOrder),rolloverEnabled:Boolean(row.rolloverEnabled),allocationPercent:numberOrZero(row.allocationPercent),allocationAmount:numberOrZero(row.allocationAmount),rolloverAmount:numberOrZero(row.rolloverAmount),commitments:numberOrZero(row.commitments),budget,spent,available:Number.isFinite(Number(row.available))?Number(row.available):budget-spent,percentage:numberOrZero(row.percentage),status:statusOrOk(row.status),projected:numberOrZero(row.projected),projectedPercentage:numberOrZero(row.projectedPercentage),categories:Array.isArray(row.categories)?row.categories.map(normalizeCategory).filter((item):item is Category=>Boolean(item)):[]};
-}
-function normalizeBudgetData(value:unknown,requestedMonth:string,fallbackSpaceId:string):BudgetData{
-  const row=value&&typeof value==='object'?value as Record<string,unknown>:{};const legacyTotal=row.total&&typeof row.total==='object'?row.total as Record<string,unknown>:{};
-  const totalBudget=numberOrZero(row.totalBudget??legacyTotal.budget);const totalSpent=numberOrZero(row.totalSpent??legacyTotal.spent);const commitments=numberOrZero(row.commitments);const distributable=numberOrZero(row.distributable??Math.max(0,totalBudget-commitments));const macros=Array.isArray(row.macros)?row.macros.map(normalizeMacro).filter((item):item is Macro=>Boolean(item)):[];
-  return {month:typeof row.month==='string'?row.month:requestedMonth,spaceId:typeof row.spaceId==='string'?row.spaceId:fallbackSpaceId,canEdit:Boolean(row.canEdit),totalBudget,totalSpent,totalPercentage:numberOrZero(row.totalPercentage??legacyTotal.percentage),totalAvailable:Number.isFinite(Number(row.totalAvailable??legacyTotal.available))?Number(row.totalAvailable??legacyTotal.available):totalBudget-totalSpent,commitments,distributable,allocated:numberOrZero(row.allocated),unallocated:numberOrZero(row.unallocated??distributable),overcommitted:numberOrZero(row.overcommitted),discretionarySpent:numberOrZero(row.discretionarySpent),fixedSpent:numberOrZero(row.fixedSpent),projectedExpense:numberOrZero(row.projectedExpense),projectedOverage:numberOrZero(row.projectedOverage),daysInMonth:numberOrZero(row.daysInMonth),daysConsidered:numberOrZero(row.daysConsidered),previousExpense:numberOrZero(row.previousExpense),changePercent:row.changePercent==null?null:numberOrZero(row.changePercent),macros};
-}
-
 function ProgressBar({value,status}:{value:number;status:Status}){return <div className={`budget-progress ${status}`}><span style={{width:`${Math.min(100,Math.max(0,value))}%`}}/></div>}
 
+const numberValue=(value:unknown)=>{const parsed=Number(value);return Number.isFinite(parsed)?parsed:0};
+const statusValue=(value:unknown):Status=>value==='warning'||value==='over'?value:'ok';
+function normalizeBudgetData(value:unknown,month:string):BudgetData{
+  const source=value&&typeof value==='object'?value as Record<string,unknown>:{};
+  const macros=Array.isArray(source.macros)?source.macros.filter((item):item is Record<string,unknown>=>Boolean(item)&&typeof item==='object').map(item=>({
+    id:String(item.id||''),name:String(item.name||''),color:String(item.color||'#68738C'),sortOrder:numberValue(item.sortOrder),rolloverEnabled:Boolean(item.rolloverEnabled),allocationPercent:numberValue(item.allocationPercent),allocationAmount:numberValue(item.allocationAmount),rolloverAmount:numberValue(item.rolloverAmount),commitments:numberValue(item.commitments),budget:numberValue(item.budget),spent:numberValue(item.spent),available:numberValue(item.available),percentage:numberValue(item.percentage),status:statusValue(item.status),projected:numberValue(item.projected),projectedPercentage:numberValue(item.projectedPercentage),categories:Array.isArray(item.categories)?item.categories.filter((category):category is Record<string,unknown>=>Boolean(category)&&typeof category==='object').map(category=>({name:String(category.name||''),icon:category.icon==null?null:String(category.icon),color:category.color==null?null:String(category.color),spent:numberValue(category.spent),fixedSpent:numberValue(category.fixedSpent),discretionarySpent:numberValue(category.discretionarySpent)})):[],
+  })).filter(item=>item.id&&item.name):[];
+  return {month:String(source.month||month),spaceId:String(source.spaceId||''),canEdit:Boolean(source.canEdit),hasBudgetPlan:Boolean(source.hasBudgetPlan),totalBudget:numberValue(source.totalBudget),totalSpent:numberValue(source.totalSpent),totalPercentage:numberValue(source.totalPercentage),totalAvailable:numberValue(source.totalAvailable),commitments:numberValue(source.commitments),distributable:numberValue(source.distributable),allocated:numberValue(source.allocated),unallocated:numberValue(source.unallocated),overcommitted:numberValue(source.overcommitted),discretionarySpent:numberValue(source.discretionarySpent),fixedSpent:numberValue(source.fixedSpent),projectedExpense:numberValue(source.projectedExpense),projectedOverage:numberValue(source.projectedOverage),daysInMonth:numberValue(source.daysInMonth),daysConsidered:numberValue(source.daysConsidered),previousExpense:numberValue(source.previousExpense),changePercent:source.changePercent==null?null:numberValue(source.changePercent),macros};
+}
+
 export default function Budget(){
+  const {currency,t}=useI18n();
   const {month,setMonth}=useSharedMonth();
   const [data,setData]=useState<BudgetData|null>(null);const [spaceId,setSpaceId]=useState('');const [totalDraft,setTotalDraft]=useState('');
   const [allocations,setAllocations]=useState<Record<string,AllocationDraft>>({});const [structure,setStructure]=useState<Record<string,StructureDraft>>({});
   const [newName,setNewName]=useState('');const [newColor,setNewColor]=useState('#68738C');const [message,setMessage]=useState('');
   const [loading,setLoading]=useState(true);const [saving,setSaving]=useState(false);const [structureBusy,setStructureBusy]=useState(false);
+  const [initializing,setInitializing]=useState(false);
   const requestRef=useRef(0);const abortRef=useRef<AbortController|null>(null);
 
-  const applyData=useCallback((result:BudgetData)=>{
-    setData(result);setSpaceId(result.spaceId);setTotalDraft(moneyInput(result.totalBudget));
+  const applyData=useCallback((raw:unknown)=>{const result=normalizeBudgetData(raw,month);
+    setData(result);setSpaceId(result.spaceId);setTotalDraft(moneyInput(result.totalBudget));setInitializing(false);
     setAllocations(Object.fromEntries(result.macros.map(item=>[item.id,{percent:percentInput(item.allocationPercent),euro:moneyInput(item.allocationAmount),last:'percent' as const}])));
     setStructure(Object.fromEntries(result.macros.map(item=>[item.id,{name:item.name,color:item.color,rolloverEnabled:item.rolloverEnabled}])));
-  },[]);
+  },[month]);
   const load=useCallback(async(targetSpaceId=spaceId)=>{
     const request=++requestRef.current;abortRef.current?.abort();const controller=new AbortController();abortRef.current=controller;setLoading(true);setMessage('');
-    try{const params=new URLSearchParams({month});if(targetSpaceId)params.set('spaceId',targetSpaceId);const response=await fetch(`/api/budgets?${params}`,{cache:'no-store',signal:controller.signal});const result:unknown=await response.json();if(request!==requestRef.current)return;if(!response.ok){const rawError=result&&typeof result==='object'&&'error' in result?(result as {error?:unknown}).error:null;throw new Error(budgetErrorMessage(rawError))}applyData(normalizeBudgetData(result,month,targetSpaceId))}catch(error:unknown){if(error instanceof DOMException&&error.name==='AbortError')return;if(request===requestRef.current){setData(null);setMessage(error instanceof Error?budgetErrorMessage(error.message):'Impossibile caricare i budget.')}}finally{if(request===requestRef.current)setLoading(false)}
-  },[month,spaceId,applyData]);
+    try{const params=new URLSearchParams({month});if(targetSpaceId)params.set('spaceId',targetSpaceId);const response=await fetch(`/api/budgets?${params}`,{cache:'no-store',signal:controller.signal});const result=await response.json();if(request!==requestRef.current)return;if(!response.ok)throw new Error('load-failed');applyData(result)}catch(error:unknown){const cause=error as {name?:string};if(cause?.name!=='AbortError'&&request===requestRef.current){setData(null);setMessage(t('budget.loadError'))}}finally{if(request===requestRef.current)setLoading(false)}
+  },[month,spaceId,applyData,t]);
   useEffect(()=>{void load();return()=>abortRef.current?.abort()},[load]);
-  useEffect(()=>onActiveSpaceChanged(id=>{requestRef.current++;abortRef.current?.abort();setSpaceId(id);setData(null)}),[]);
+  useEffect(()=>onActiveSpaceChanged(id=>{requestRef.current++;abortRef.current?.abort();setSpaceId(id);setData(null);setInitializing(false)}),[]);
 
   const draftTotal=amountForSave(totalDraft||'0',true)??0;
   const draftDistributable=Math.max(0,draftTotal-(data?.commitments||0));
@@ -80,10 +75,10 @@ export default function Budget(){
     setAllocations(current=>({...current,[id]:{percent:euro!==null&&draftDistributable>0?percentInput(euro/draftDistributable*100):current[id]?.percent||'',euro:value,last:'euro'}}));
   }
   async function savePlan(){
-    if(!data?.canEdit)return;const total=amountForSave(totalDraft||'0',true);if(total===null){setMessage('Budget totale non valido.');return}
+    if(!data?.canEdit)return;const total=amountForSave(totalDraft||'0',true);if(total===null){setMessage(t('budget.invalidTotal'));return}
     const payload=data.macros.map(item=>({macro_category_id:item.id,percentage:numeric(allocations[item.id]?.percent||'0')||0}));const sum=payload.reduce((value,item)=>value+item.percentage,0);
-    if(payload.some(item=>item.percentage<0||item.percentage>100)||sum>100.001){setMessage('Le percentuali devono essere tra 0 e 100 e la somma non può superare il 100%.');return}
-    setSaving(true);setMessage('');try{const response=await fetch('/api/budgets',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({space_id:data.spaceId,month,total_budget:total,allocations:payload})});const result=await response.json();if(!response.ok)throw new Error(result.error||'Impossibile salvare il piano budget.');setMessage('Piano macro-budget aggiornato.');await load(data.spaceId)}catch(error:any){setMessage(error.message)}finally{setSaving(false)}
+    if(payload.some(item=>item.percentage<0||item.percentage>100)||sum>100.001){setMessage(t('budget.invalidPercent'));return}
+    setSaving(true);setMessage('');try{const response=await fetch('/api/budgets',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({space_id:data.spaceId,month,total_budget:total,allocations:payload})});const result=await response.json();if(!response.ok)throw new Error(result.error||t('budget.saveError'));setMessage(t('budget.planSaved'));await load(data.spaceId)}catch(error:unknown){setMessage(error instanceof Error?error.message:t('budget.saveError'))}finally{setSaving(false)}
   }
   async function macroRequest(method:'POST'|'PATCH'|'DELETE',body?:any,query=''){
     if(!data?.canEdit)return false;setStructureBusy(true);setMessage('');try{const response=await fetch(`/api/budget-macros${query}`,{method,headers:body?{'content-type':'application/json'}:undefined,body:body?JSON.stringify({...body,space_id:data.spaceId}):undefined});const result=await response.json();if(!response.ok)throw new Error(result.error||'Operazione non riuscita.');await load(data.spaceId);return true}catch(error:any){setMessage(error.message);return false}finally{setStructureBusy(false)}
@@ -93,42 +88,48 @@ export default function Budget(){
   async function moveMacro(index:number,direction:-1|1){if(!data)return;const next=[...data.macros];const target=index+direction;if(target<0||target>=next.length)return;[next[index],next[target]]=[next[target],next[index]];if(await macroRequest('PATCH',{action:'reorder',ids:next.map(item=>item.id)}))setMessage('Ordine aggiornato.')}
   async function assignCategory(categoryName:string,macroId:string){if(await macroRequest('PATCH',{action:'assign',category_name:categoryName,macro_category_id:macroId}))setMessage('Categoria assegnata.')}
   async function removeMacro(item:Macro){if(!data||data.macros.length<2)return;const fallback=data.macros.find(macro=>macro.id!==item.id&&macro.name==='Altro')||data.macros.find(macro=>macro.id!==item.id);if(!fallback)return;if(!confirm(`Eliminare “${item.name}”? Le categorie saranno spostate in “${fallback.name}”.`))return;const query=`?spaceId=${encodeURIComponent(data.spaceId)}&id=${encodeURIComponent(item.id)}&fallbackId=${encodeURIComponent(fallback.id)}`;if(await macroRequest('DELETE',undefined,query))setMessage('Macro-categoria eliminata.')}
-  const comparison=data?.changePercent==null?'Nessun confronto disponibile':`${data.changePercent>0?'+':''}${data.changePercent}% rispetto al mese precedente`;
+  const comparison=data?.changePercent==null?t('budget.noComparison'):t('budget.vsPrevious',{value:`${data.changePercent>0?'+':''}${data.changePercent}`});
+  const activeTotal=data?.hasBudgetPlan?data.totalBudget:draftTotal;
+  const hasActiveLimit=activeTotal>0;
+  const activePercentage=hasActiveLimit&&data?Math.round(data.totalSpent/activeTotal*100):0;
+  const activeAvailable=hasActiveLimit&&data?activeTotal-data.totalSpent:null;
+  const activeStatus:Status=hasActiveLimit&&data&&data.totalSpent>=activeTotal?'over':hasActiveLimit&&data&&data.totalSpent>=activeTotal*.8?'warning':'ok';
+  const previewOvercommitted=hasActiveLimit&&data?Math.max(0,data.commitments-activeTotal):0;
 
   return <>
-    <BackToAccount/>
-    <header className="page-head budget-head"><div><h1>Budget</h1><p>Dal totale alle macro-categorie</p></div><MonthPicker value={month} onChange={setMonth}/></header>
+    <nav className="subpage-breadcrumb" aria-label={t('budget.breadcrumb')}><Link href="/statistiche" className="back-link budget-back"><span aria-hidden="true"><Icon name="chevronLeft" size={18}/></span>{t('budget.back')}</Link></nav>
+    <header className="page-head budget-head"><div><h1>{t('budget.title')}</h1><p>{t('budget.subtitle')}</p></div><MonthPicker value={month} onChange={setMonth}/></header>
     {message&&<div className="notice" role="status">{message}</div>}
-    {loading&&<div className="empty-state surface"><b>Caricamento macro-budget…</b></div>}
-    {data&&<>
-      {!data.totalBudget&&<section className="empty-state surface budget-guided-empty"><b>Nessun budget configurato per questo mese</b><p>{data.canEdit?'Imposta il limite mensile qui sotto e distribuiscilo tra le macro-categorie.':'L’owner dello spazio non ha ancora configurato il budget per il periodo selezionato.'}</p>{data.canEdit&&<button type="button" onClick={()=>document.getElementById('budget-total-input')?.focus()}>Configura budget</button>}</section>}
-      <section className={`budget-hero macro-budget-hero surface ${data.totalBudget>0&&data.totalSpent>=data.totalBudget?'over':data.totalBudget>0&&data.totalSpent>=data.totalBudget*.8?'warning':'ok'}`}>
-        <div className="budget-hero-head"><div><small>Budget totale mensile</small><strong>{eur(data.totalSpent)} <span>spesi</span></strong></div><b>{data.totalBudget?`${data.totalPercentage}%`:'—'}</b></div><ProgressBar value={data.totalPercentage} status={data.totalBudget>0&&data.totalSpent>=data.totalBudget?'over':data.totalBudget>0&&data.totalSpent>=data.totalBudget*.8?'warning':'ok'}/>
-        <div className="budget-numbers"><span>Residuo totale <b className={data.totalAvailable<0?'red':''}>{eur(data.totalAvailable)}</b></span><span>{comparison}</span></div>
-        <div className="commitment-grid"><div><small>Impegni programmati</small><b>{eur(data.commitments)}</b></div><div><small>Disponibile da distribuire</small><b>{eur(draftDistributable)}</b></div><div><small>Non allocato</small><b>{eur(Math.max(0,draftDistributable-draftDistributable*Math.min(100,allocationPercentTotal)/100))}</b></div></div>
-        {data.overcommitted>0&&<div className="budget-warning" role="alert">Gli impegni programmati superano il budget totale di {eur(data.overcommitted)}.</div>}
-        <label className="budget-input"><span>Limite dello spazio</span><AmountExpressionInput id="budget-total-input" compact disabled={!data.canEdit} value={totalDraft} onChange={changeTotal} ariaLabel="Budget mensile dello spazio"/></label>
-        {!data.canEdit&&<small>Solo owner/creatore può modificare struttura, allocazioni e rollover.</small>}
+    {loading&&<div className="empty-state surface"><b>{t('budget.loading')}</b></div>}
+    {data&&!data.hasBudgetPlan&&!initializing&&<section className="empty-state surface budget-empty"><span className="empty-state-icon"><Icon name="chart" size={25}/></span><b>{t('budget.emptyTitle')}</b><p>{t(data.canEdit?'budget.emptyOwner':'budget.emptyMember')}</p>{data.canEdit&&<button type="button" onClick={()=>setInitializing(true)}>{t('budget.configure')}</button>}</section>}
+    {data&&(data.hasBudgetPlan||initializing)&&<>
+      {initializing&&!data.hasBudgetPlan&&<button type="button" className="secondary budget-cancel-setup" onClick={()=>setInitializing(false)}>{t('budget.cancelSetup')}</button>}
+      <section className={`budget-hero macro-budget-hero surface ${activeStatus}`}>
+        <div className="budget-hero-head"><div><small>{t('budget.totalMonthly')}</small><strong>{currency(data.totalSpent)} <span>{t('budget.spent')}</span></strong></div><b>{hasActiveLimit?`${activePercentage}%`:'—'}</b></div><ProgressBar value={activePercentage} status={activeStatus}/>
+        <div className="budget-numbers"><span>{t('budget.totalRemaining')} <b className={(activeAvailable??0)<0?'red':''}>{activeAvailable==null?'—':currency(activeAvailable)}</b></span>{data.hasBudgetPlan&&<span>{comparison}</span>}</div>
+        <div className="commitment-grid"><div><small>{t('budget.commitments')}</small><b>{currency(data.commitments)}</b></div><div><small>{t('budget.distributable')}</small><b>{currency(draftDistributable)}</b></div><div><small>{t('budget.unallocated')}</small><b>{currency(Math.max(0,draftDistributable-draftDistributable*Math.min(100,allocationPercentTotal)/100))}</b></div></div>
+        {previewOvercommitted>0&&<div className="budget-warning" role="alert">{t('budget.overcommitted',{amount:currency(previewOvercommitted)})}</div>}
+        <label className="budget-input"><span>{t('budget.spaceLimit')}</span><AmountExpressionInput compact disabled={!data.canEdit} value={totalDraft} onChange={changeTotal} ariaLabel={t('budget.spaceLimitAria')}/></label>
+        {!data.canEdit&&<small>{t('budget.readOnly')}</small>}
       </section>
 
-      <section className="section surface"><div className="section-title"><div><h2>Distribuzione per macro-categoria</h2><small>Percentuale del budget disponibile, equivalente in euro e impegni fissi</small></div><b className={allocationPercentTotal>100?'red':''}>{Math.round(allocationPercentTotal*100)/100}%</b></div>
-        {!data.macros.length&&<div className="category-kind-empty"><b>Nessuna macro-categoria disponibile</b><small>{data.canEdit?'Creane una nella sezione Struttura macro-categorie.':'La struttura sarà disponibile dopo la configurazione da parte dell’owner.'}</small></div>}
-        <div className="macro-allocation-list">{data.macros.map(item=>{const draft=allocations[item.id]||{percent:'',euro:'',last:'percent' as const};return <article className={`macro-allocation ${item.status}`} key={item.id}>
-          <header><i style={{background:item.color}}/><div><h3>{item.name}</h3><small>{item.categories.length} categorie · {eur(item.commitments)} impegni</small></div><strong>{item.percentage}%</strong></header>
-          <ProgressBar value={item.percentage} status={item.status}/><div className="macro-values"><span>Speso <b>{eur(item.spent)}</b></span><span>Budget <b>{eur(item.budget)}</b></span><span>Disponibile <b className={item.available<0?'red':''}>{eur(item.available)}</b></span></div>
-          {item.rolloverAmount>0&&<small className="rollover-credit">+ {eur(item.rolloverAmount)} residuo dal mese precedente</small>}
-          <div className="macro-allocation-inputs"><label><span>Percentuale</span><div><input inputMode="decimal" disabled={!data.canEdit} value={draft.percent} onChange={event=>changePercent(item.id,event.target.value)} aria-label={`Percentuale ${item.name}`}/><i>%</i></div></label><label><span>Equivalente in euro</span><AmountExpressionInput compact disabled={!data.canEdit} value={draft.euro} onChange={value=>changeEuro(item.id,value)} ariaLabel={`Allocazione euro ${item.name}`}/></label></div>
+      <section className="section surface"><div className="section-title"><div><h2>{t('budget.distribution')}</h2><small>{t('budget.distributionSub')}</small></div><b className={allocationPercentTotal>100?'red':''}>{Math.round(allocationPercentTotal*100)/100}%</b></div>
+        <div className="macro-allocation-list">{data.macros.map(item=>{const draft=allocations[item.id]||{percent:'',euro:'',last:'percent' as const};const previewAllocation=amountForSave(draft.euro||'0',true)??0;const displayBudget=data.hasBudgetPlan?item.budget:item.commitments+previewAllocation;const hasMacroLimit=displayBudget>0;const displayAvailable=hasMacroLimit?displayBudget-item.spent:null;const displayPercentage=hasMacroLimit?Math.round(item.spent/displayBudget*100):0;const displayStatus:Status=hasMacroLimit&&item.spent>=displayBudget?'over':hasMacroLimit&&item.spent>=displayBudget*.8?'warning':'ok';return <article className={`macro-allocation ${displayStatus}`} key={item.id}>
+          <header><i style={{background:item.color}}/><div><h3>{item.name}</h3><small>{t('budget.categoriesCount',{count:item.categories.length,amount:currency(item.commitments)})}</small></div><strong>{hasMacroLimit?`${displayPercentage}%`:'—'}</strong></header>
+          <ProgressBar value={displayPercentage} status={displayStatus}/><div className="macro-values"><span>{t('budget.spent')} <b>{currency(item.spent)}</b></span><span>Budget <b>{hasMacroLimit?currency(displayBudget):'—'}</b></span><span>{t('budget.available')} <b className={(displayAvailable??0)<0?'red':''}>{displayAvailable==null?'—':currency(displayAvailable)}</b></span></div>
+          {item.rolloverAmount>0&&<small className="rollover-credit">{t('budget.rolloverCredit',{amount:currency(item.rolloverAmount)})}</small>}
+          <div className="macro-allocation-inputs"><label><span>{t('budget.percentage')}</span><div><input inputMode="decimal" disabled={!data.canEdit} value={draft.percent} onChange={event=>changePercent(item.id,event.target.value)} aria-label={`${t('budget.percentage')} ${item.name}`}/><i>%</i></div></label><label><span>{t('budget.euroEquivalent')}</span><AmountExpressionInput compact disabled={!data.canEdit} value={draft.euro} onChange={value=>changeEuro(item.id,value)} ariaLabel={`${t('budget.euroEquivalent')} ${item.name}`}/></label></div>
         </article>})}</div>
       </section>
 
-      <section className="section surface macro-analysis"><div className="section-title"><div><h2>Analisi categorie</h2><small>Le categorie restano il dettaglio analitico sotto ogni macro</small></div></div>{data.macros.map(item=><details key={item.id}><summary><i style={{background:item.color}}/><span><b>{item.name}</b><small>{eur(item.spent)} spesi · proiezione {eur(item.projected)}</small></span><strong>{item.projectedPercentage}%</strong></summary><div>{item.categories.length?item.categories.map(category=><div className="macro-category-row" key={category.name}><CategoryIcon name={category.name} icon={category.icon} color={category.color} size={34}/><span><b>{category.name}</b><small>{category.fixedSpent?`${eur(category.fixedSpent)} fissi · `:''}${eur(category.discretionarySpent)} discrezionali</small></span><strong>{eur(category.spent)}</strong></div>):<p>Nessuna categoria assegnata.</p>}</div></details>)}</section>
+      <section className="section surface macro-analysis"><div className="section-title"><div><h2>{t('budget.analysis')}</h2><small>{t('budget.analysisSub')}</small></div></div>{data.macros.map(item=><details key={item.id}><summary><i style={{background:item.color}}/><span><b>{item.name}</b><small>{t('budget.actualProjection',{spent:currency(item.spent),projected:currency(item.projected)})}</small></span><strong>{item.projectedPercentage}%</strong></summary><div>{item.categories.length?item.categories.map(category=><div className="macro-category-row" key={category.name}><CategoryIcon name={category.name} icon={category.icon} color={category.color} size={34}/><span><b>{category.name}</b><small>{category.fixedSpent?`${currency(category.fixedSpent)} ${t('stats.fixed')} · `:''}${currency(category.discretionarySpent)} ${t('stats.discretionary')}</small></span><strong>{currency(category.spent)}</strong></div>):<p>{t('stats.noAssigned')}</p>}</div></details>)}</section>
 
-      {data.canEdit&&<section className="section surface macro-structure"><div className="section-title"><div><h2>Struttura macro-categorie</h2><small>Crea, rinomina, colora, riordina e configura il rollover</small></div></div>
-        <div className="macro-create"><input value={newName} onChange={event=>setNewName(event.target.value)} placeholder="Nuova macro-categoria"/><input type="color" value={newColor} onChange={event=>setNewColor(event.target.value)} aria-label="Colore nuova macro-categoria"/><button disabled={structureBusy} onClick={createMacro}>Aggiungi</button></div>
+      {data.canEdit&&<section className="section surface macro-structure"><div className="section-title"><div><h2>{t('budget.structure')}</h2><small>{t('budget.structureSub')}</small></div></div>
+        <div className="macro-create"><input value={newName} onChange={event=>setNewName(event.target.value)} placeholder={t('budget.newMacro')}/><input type="color" value={newColor} onChange={event=>setNewColor(event.target.value)} aria-label={t('budget.newMacro')}/><button disabled={structureBusy} onClick={createMacro}>{t('budget.add')}</button></div>
         <div className="macro-structure-list">{data.macros.map((item,index)=>{const draft=structure[item.id]||{name:item.name,color:item.color,rolloverEnabled:item.rolloverEnabled};return <article key={item.id}><div className="macro-structure-main"><input type="color" value={draft.color} onChange={event=>setStructure(current=>({...current,[item.id]:{...draft,color:event.target.value}}))} aria-label={`Colore ${item.name}`}/><input value={draft.name} onChange={event=>setStructure(current=>({...current,[item.id]:{...draft,name:event.target.value}}))} aria-label={`Nome ${item.name}`}/><button aria-label={`Sposta su ${item.name}`} disabled={index===0||structureBusy} onClick={()=>moveMacro(index,-1)}>↑</button><button aria-label={`Sposta giù ${item.name}`} disabled={index===data.macros.length-1||structureBusy} onClick={()=>moveMacro(index,1)}>↓</button></div><label className="macro-rollover"><input type="checkbox" checked={draft.rolloverEnabled} onChange={event=>setStructure(current=>({...current,[item.id]:{...draft,rolloverEnabled:event.target.checked}}))}/><span>Riporta il residuo al mese successivo</span></label><div className="macro-structure-actions"><button disabled={structureBusy} onClick={()=>updateMacro(item)}>Salva</button><button className="delete-link" disabled={structureBusy||data.macros.length<2} onClick={()=>removeMacro(item)}>Elimina</button></div><div className="macro-assignments">{item.categories.map(category=><label key={category.name}><span>{category.name}</span><select value={item.id} onChange={event=>assignCategory(category.name,event.target.value)}>{data.macros.map(target=><option key={target.id} value={target.id}>{target.name}</option>)}</select></label>)}</div></article>})}</div>
       </section>}
-      {data.canEdit&&<button className="save-btn budget-save" disabled={saving||allocationPercentTotal>100.001} onClick={savePlan}>{saving?'Salvataggio…':'Salva piano macro-budget'}</button>}
-      <p className="budget-link"><Link href="/statistiche">Apri Analytics macro →</Link></p>
+      {data.canEdit&&<button className="save-btn budget-save" disabled={saving||allocationPercentTotal>100.001} onClick={savePlan}>{saving?t('common.saving'):t('budget.savePlan')}</button>}
+      <p className="budget-link"><Link href="/statistiche">{t('budget.openAnalytics')}</Link></p>
     </>}
   </>;
 }

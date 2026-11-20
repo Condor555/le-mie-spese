@@ -2,14 +2,11 @@
 
 import {useEffect,useId,useMemo,useRef,useState} from 'react';
 import Icon from './Icon';
+import {useI18n} from './LanguageProvider';
 
-const formatter=new Intl.DateTimeFormat('it-IT',{month:'long',year:'numeric',timeZone:'UTC'});
-const monthFormatter=new Intl.DateTimeFormat('it-IT',{month:'short',timeZone:'UTC'});
-const monthNames=Array.from({length:12},(_,index)=>monthFormatter.format(new Date(Date.UTC(2026,index,1))).replace('.',''));
-
-export function readableMonth(value:string){
+export function readableMonth(value:string,locale='it-IT'){
   const [year,month]=value.split('-').map(Number);
-  return Number.isFinite(year)&&Number.isFinite(month)?formatter.format(new Date(Date.UTC(year,month-1,1))):value;
+  return Number.isFinite(year)&&Number.isFinite(month)?new Intl.DateTimeFormat(locale,{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(year,month-1,1))):value;
 }
 
 function parsedYear(value:string){
@@ -17,7 +14,8 @@ function parsedYear(value:string){
   return Number.isFinite(year)?year:new Date().getFullYear();
 }
 
-export default function MonthPicker({value,onChange,className='',label='Periodo visualizzato'}:{value:string;onChange:(value:string)=>void;className?:string;label?:string}){
+export default function MonthPicker({value,onChange,className='',label}:{value:string;onChange:(value:string)=>void;className?:string;label?:string}){
+  const {localeTag,t}=useI18n();
   const [open,setOpen]=useState(false);
   const [visibleYear,setVisibleYear]=useState(()=>parsedYear(value));
   const [activeMonth,setActiveMonth]=useState(()=>Math.max(0,Number(value.slice(5,7))-1));
@@ -40,7 +38,8 @@ export default function MonthPicker({value,onChange,className='',label='Periodo 
     return()=>document.removeEventListener('pointerdown',outside);
   },[open]);
 
-  const options=useMemo(()=>monthNames.map((name,index)=>({name,value:`${visibleYear}-${String(index+1).padStart(2,'0')}`})),[visibleYear]);
+  const options=useMemo(()=>Array.from({length:12},(_,index)=>({name:new Intl.DateTimeFormat(localeTag,{month:'short',timeZone:'UTC'}).format(new Date(Date.UTC(2026,index,1))).replace('.',''),value:`${visibleYear}-${String(index+1).padStart(2,'0')}`})),[visibleYear,localeTag]);
+  const accessibleLabel=label||t('month.period');
 
   function show(){
     setVisibleYear(selectedYear);setActiveMonth(selectedMonth);setOpen(true);
@@ -82,15 +81,15 @@ export default function MonthPicker({value,onChange,className='',label='Periodo 
   }
 
   return <div ref={rootRef} className={`month-picker ${open?'is-open ':''}${className}`.trim()}>
-    <button ref={triggerRef} type="button" className="month-picker-pill" aria-label={`${label}: ${readableMonth(value)}. Apri selettore mese`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open?dialogId:undefined} onClick={()=>open?close(false):show()} onKeyDown={triggerKeys}>
-      <Icon name="calendar" size={21}/><strong>{readableMonth(value)}</strong>
+    <button ref={triggerRef} type="button" className="month-picker-pill" aria-label={`${accessibleLabel}: ${readableMonth(value,localeTag)}. ${t('month.open')}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open?dialogId:undefined} onClick={()=>open?close(false):show()} onKeyDown={triggerKeys}>
+      <Icon name="calendar" size={21}/><strong>{readableMonth(value,localeTag)}</strong>
     </button>
-    {open&&<div id={dialogId} className="month-picker-popover surface" role="dialog" aria-modal="false" aria-label="Scegli mese e anno">
-      <div className="month-picker-year"><button type="button" aria-label={`Anno precedente, ${visibleYear-1}`} onClick={()=>moveYear(-1)}>‹</button><strong aria-live="polite">{visibleYear}</strong><button type="button" aria-label={`Anno successivo, ${visibleYear+1}`} onClick={()=>moveYear(1)}>›</button></div>
-      <div className="month-picker-grid" role="grid" aria-label={`Mesi ${visibleYear}`} onKeyDown={gridKeys}>
+    {open&&<div id={dialogId} className="month-picker-popover surface" role="dialog" aria-modal="false" aria-label={t('month.choose')}>
+      <div className="month-picker-year"><button type="button" aria-label={`${t('month.previousYear')}, ${visibleYear-1}`} onClick={()=>moveYear(-1)}>‹</button><strong aria-live="polite">{visibleYear}</strong><button type="button" aria-label={`${t('month.nextYear')}, ${visibleYear+1}`} onClick={()=>moveYear(1)}>›</button></div>
+      <div className="month-picker-grid" role="grid" aria-label={`${t('month.grid')} ${visibleYear}`} onKeyDown={gridKeys}>
         {options.map((option,index)=>{const selected=option.value===value;return <button ref={node=>{monthRefs.current[index]=node}} key={option.value} type="button" role="gridcell" aria-selected={selected} tabIndex={index===activeMonth?0:-1} className={selected?'selected':''} onMouseEnter={()=>setActiveMonth(index)} onClick={()=>choose(option.value)}>{option.name}</button>})}
       </div>
-      <div className="month-picker-actions"><button type="button" onClick={current}>Mese corrente</button><button type="button" onClick={()=>close()}>Chiudi</button></div>
+      <div className="month-picker-actions"><button type="button" onClick={current}>{t('month.current')}</button><button type="button" onClick={()=>close()}>{t('month.close')}</button></div>
     </div>}
   </div>;
 }

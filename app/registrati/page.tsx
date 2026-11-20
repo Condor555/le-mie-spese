@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
+import {useI18n} from '../../components/LanguageProvider';
 
 export default function Registrati() {
+  const {t}=useI18n();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -86,11 +88,11 @@ export default function Registrati() {
     <div className="auth-screen">
       <div className="auth-logo">€</div>
 
-      <h1>Crea account</h1>
-      <p>Inizia a gestire le tue spese</p>
+      <h1>{t('auth.createTitle')}</h1>
+      <p>{t('auth.createSubtitle')}</p>
 
       <form className="surface auth-panel" onSubmit={signup}>
-        <label>Nome visualizzato</label>
+        <label>{t('auth.displayName')}</label>
 
         <input
           type="text"
@@ -100,7 +102,7 @@ export default function Registrati() {
           maxLength={60}
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="Es. Fabrizio"
+          placeholder={t('auth.nameExample')}
         />
 
         <label>Email</label>
@@ -113,7 +115,7 @@ export default function Registrati() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <label>Password</label>
+        <label>{t('auth.password')}</label>
 
         <div className="password-field">
           <input
@@ -129,11 +131,11 @@ export default function Registrati() {
             type="button"
             onClick={() => setShowPassword(!showPassword)}
           >
-            {showPassword ? 'Nascondi' : 'Mostra'}
+            {showPassword?t('profile.hide'):t('profile.show')}
           </button>
         </div>
 
-        <label>Ripeti password</label>
+        <label>{t('auth.repeatPassword')}</label>
 
         <div className="password-field">
           <input
@@ -151,11 +153,11 @@ export default function Registrati() {
               setShowConfirmPassword(!showConfirmPassword)
             }
           >
-            {showConfirmPassword ? 'Nascondi' : 'Mostra'}
+            {showConfirmPassword?t('profile.hide'):t('profile.show')}
           </button>
         </div>
 
-        <label>Codice invito <span className="optional-label">facoltativo</span></label>
+        <label>{t('auth.inviteCode')} <span className="optional-label">{t('auth.optional')}</span></label>
 
         <input
           type="text"
@@ -163,11 +165,11 @@ export default function Registrati() {
           maxLength={24}
           value={inviteCode}
           onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-          placeholder="Per entrare nello spazio Famiglia"
+          placeholder={t('auth.invitePlaceholder')}
         />
 
         <button className="auth-submit" disabled={busy}>
-          {busy ? 'Creazione...' : 'Crea account'}
+          {busy?t('auth.creating'):t('auth.create')}
         </button>
 
         {message && (
@@ -177,9 +179,9 @@ export default function Registrati() {
         )}
 
         <p className="auth-switch">
-          Hai già un account?{' '}
+          {t('auth.haveAccount')}{' '}
           <Link href="/login">
-            Accedi
+            {t('auth.signIn')}
           </Link>
         </p>
       </form>

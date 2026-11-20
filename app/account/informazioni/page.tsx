@@ -6,7 +6,7 @@ export default function Informazioni(){
     <header className="page-head"><div><h1>Informazioni</h1><p>Versione, licenze e attribuzioni</p></div></header>
     <section className="settings-card surface about-card">
       <h2>Le Mie Spese</h2>
-      <p className="settings-help">Versione 3.9.3 Macro Budget.</p>
+      <p className="settings-help">Versione 3.9.4 cumulativa.</p>
       <div className="about-row"><span>Icone funzionali dell’interfaccia</span><b>Phosphor Icons</b></div>
       <div className="about-row"><span>Icone delle categorie</span><b>Icons8 Color</b></div>
       <div className="about-row"><span>Marchi</span><b>Asset dedicati locali</b></div>

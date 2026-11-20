@@ -6,6 +6,7 @@ create extension if not exists pgcrypto;
 create table public.profiles(
   user_id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
+  language text not null default 'it' check(language in ('it','en')),
   created_at timestamptz not null default now()
 );
 create table public.spaces(

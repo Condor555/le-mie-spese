@@ -40,7 +40,7 @@ export type MacroBudgetAnalysis={
 };
 
 export type MacroBudgetSnapshot={
-  month:string;spaceId:string;totalBudget:number;totalSpent:number;totalPercentage:number;totalAvailable:number;
+  month:string;spaceId:string;hasBudgetPlan:boolean;totalBudget:number;totalSpent:number;totalPercentage:number;totalAvailable:number;
   commitments:number;distributable:number;allocated:number;unallocated:number;overcommitted:number;
   discretionarySpent:number;fixedSpent:number;projectedExpense:number;projectedOverage:number;daysInMonth:number;daysConsidered:number;
   macros:MacroBudgetAnalysis[];
@@ -79,7 +79,7 @@ export async function loadMacroBudgetSnapshot(sb:SupabaseClient,spaceId:string,m
   const otherId=macroList.find(item=>item.name==='Altro')?.id||macroList[0]?.id||null;
   const categoryMacro=new Map<string,string|null>(categoryList.map(item=>[item.name,item.macro_category_id||otherId]));
   const macroFor=(categoryName:string)=>categoryMacro.get(categoryName)||otherId;
-  const totalBudget=Number(budgetList.find(row=>row.category_name===null)?.amount||0);
+  const totalBudgetRow=budgetList.find(row=>row.category_name===null);const hasBudgetPlan=Boolean(totalBudgetRow);const totalBudget=Number(totalBudgetRow?.amount||0);
   const paidOccurrences=new Set(transactionRows.filter(row=>row.recurring_id).map(row=>`${row.recurring_id}:${row.date}`));
   const commitmentsByMacro=new Map<string,number>();
   const fixedSpentByMacro=new Map<string,number>();
@@ -135,5 +135,5 @@ export async function loadMacroBudgetSnapshot(sb:SupabaseClient,spaceId:string,m
   });
   const allocated=roundMoney(macroAnalysis.reduce((sum,item)=>sum+item.allocationAmount,0));
   const projectedExpense=roundMoney(macroAnalysis.reduce((sum,item)=>sum+item.projected,0));
-  return {month,spaceId,totalBudget,totalSpent:roundMoney(totalSpent),totalPercentage:totalBudget>0?Math.round(totalSpent/totalBudget*100):0,totalAvailable:roundMoney(totalBudget-totalSpent),commitments,distributable,allocated,unallocated:roundMoney(Math.max(0,distributable-allocated)),overcommitted,discretionarySpent:roundMoney(discretionarySpent),fixedSpent:roundMoney(fixedSpent),projectedExpense,projectedOverage:roundMoney(Math.max(0,projectedExpense-totalBudget)),daysInMonth:pace.daysInMonth,daysConsidered:pace.daysConsidered,macros:macroAnalysis};
+  return {month,spaceId,hasBudgetPlan,totalBudget,totalSpent:roundMoney(totalSpent),totalPercentage:totalBudget>0?Math.round(totalSpent/totalBudget*100):0,totalAvailable:roundMoney(totalBudget-totalSpent),commitments,distributable,allocated,unallocated:roundMoney(Math.max(0,distributable-allocated)),overcommitted,discretionarySpent:roundMoney(discretionarySpent),fixedSpent:roundMoney(fixedSpent),projectedExpense,projectedOverage:totalBudget>0?roundMoney(Math.max(0,projectedExpense-totalBudget)):0,daysInMonth:pace.daysInMonth,daysConsidered:pace.daysConsidered,macros:macroAnalysis};
 }

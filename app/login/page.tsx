@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
+import {useI18n} from '../../components/LanguageProvider';
 
 export default function Login() {
+  const {t}=useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +34,7 @@ export default function Login() {
     if (error) {
       setMessage(
         error.message === 'Invalid login credentials'
-          ? 'Email o password non corretti.'
+          ? t('auth.invalidCredentials')
           : error.message
       );
       return;
@@ -47,7 +49,7 @@ export default function Login() {
       <div className="auth-logo">€</div>
 
       <h1>Le Mie Spese</h1>
-      <p>Accedi al tuo spazio finanziario</p>
+      <p>{t('auth.loginSubtitle')}</p>
 
       <form className="surface auth-panel" onSubmit={login}>
         <label>Email</label>
@@ -61,7 +63,7 @@ export default function Login() {
           placeholder="nome@email.it"
         />
 
-        <label>Password</label>
+        <label>{t('auth.password')}</label>
 
         <div className="password-field">
           <input
@@ -70,19 +72,19 @@ export default function Login() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="La tua password"
+            placeholder={t('auth.passwordPlaceholder')}
           />
 
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
           >
-            {showPassword ? 'Nascondi' : 'Mostra'}
+            {showPassword?t('profile.hide'):t('profile.show')}
           </button>
         </div>
 
         <button className="auth-submit" disabled={busy}>
-          {busy ? 'Accesso...' : 'Accedi'}
+          {busy?t('auth.signingIn'):t('auth.signIn')}
         </button>
 
         {message && (
@@ -92,9 +94,9 @@ export default function Login() {
         )}
 
         <p className="auth-switch">
-          Non hai un account?{' '}
+          {t('auth.noAccount')}{' '}
           <Link href="/registrati">
-            Registrati
+            {t('auth.signUp')}
           </Link>
         </p>
       </form>

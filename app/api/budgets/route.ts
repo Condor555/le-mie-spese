@@ -25,7 +25,12 @@ export async function GET(req:Request){
     if(previousError)return NextResponse.json({error:previousError.message},{status:400});
     const previousExpense=-(previousRows||[]).filter((row:any)=>Number(row.amount)<0).reduce((sum:number,row:any)=>sum+Number(row.amount),0);
     return NextResponse.json({...snapshot,canEdit:membership?.role==='owner'||space?.created_by===user.id,previousExpense,changePercent:previousExpense>0?Math.round((snapshot.totalSpent-previousExpense)/previousExpense*100):null});
-  }catch(error:any){return NextResponse.json({error:error?.message||'Unauthorized'},{status:error?.message==='Unauthorized'?401:400})}
+  }catch(error:unknown){
+    const message=error instanceof Error?error.message:'';
+    if(message==='Unauthorized')return NextResponse.json({error:'Unauthorized'},{status:401});
+    console.error('Budget snapshot load failed',error);
+    return NextResponse.json({error:'Impossibile caricare il budget per il periodo selezionato.'},{status:400});
+  }
 }
 
 export async function PUT(req:Request){

@@ -2,10 +2,12 @@
 
 import {useEffect,useRef,useState} from 'react';
 import Icon from './Icon';
-import {presetRange,rangeLabel,type DateRange} from '../lib/date-range';
+import {presetRange,type DateRange} from '../lib/date-range';
+import {useI18n} from './LanguageProvider';
 export type {DateRange} from '../lib/date-range';
 
 export default function DateRangePicker({start,end,onChange}:{start:string;end:string;onChange:(range:DateRange)=>void}){
+  const {date,t}=useI18n();
   const [open,setOpen]=useState(false);
   const [customStart,setCustomStart]=useState(start);
   const [customEnd,setCustomEnd]=useState(end);
@@ -21,14 +23,16 @@ export default function DateRangePicker({start,end,onChange}:{start:string;end:s
   function choose(preset:Parameters<typeof presetRange>[0]){onChange(presetRange(preset));setOpen(false)}
   function custom(nextStart:string,nextEnd:string){setCustomStart(nextStart);setCustomEnd(nextEnd);if(nextStart&&nextEnd&&nextStart<=nextEnd)onChange({start:nextStart,end:nextEnd})}
   const active=Boolean(start&&end);
+  const short=(value:string)=>date(value,{day:'numeric',month:'short',year:'numeric'}).replaceAll('.','');
+  const label=!start||!end?t('date.all'):start===end?short(start):`${short(start)} – ${short(end)}`;
   return <div className="date-range" ref={rootRef}>
     <div className={`date-range-pill ${active?'active':''}`}>
-      <button type="button" className="date-range-open" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><Icon name="calendar" size={18}/><span><small>Periodo ·</small><b>{rangeLabel(start,end)}</b></span></button>
-      {active&&<button type="button" className="date-range-clear" aria-label="Cancella solo il filtro periodo" onClick={()=>onChange({start:'',end:''})}>×</button>}
+      <button type="button" className="date-range-open" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><Icon name="calendar" size={18}/><span><small>{t('date.period')} ·</small><b>{label}</b></span></button>
+      {active&&<button type="button" className="date-range-clear" aria-label={t('movements.clearFilters')} onClick={()=>onChange({start:'',end:''})}>×</button>}
     </div>
-    {open&&<div className="date-range-popover surface" role="dialog" aria-label="Scegli periodo">
-      <div className="date-presets"><button onClick={()=>choose('today')}>Oggi</button><button onClick={()=>choose('yesterday')}>Ieri</button><button onClick={()=>choose('this-month')}>Questo mese</button><button onClick={()=>choose('last-month')}>Mese scorso</button><button onClick={()=>choose('last-30')}>Ultimi 30 giorni</button></div>
-      <div className="custom-range"><b>Intervallo personalizzato</b><div><label><span>Dal</span><span className="date-themed-input"><Icon name="calendar" size={16}/><input type="date" value={customStart} max={customEnd||undefined} onClick={event=>event.currentTarget.showPicker?.()} onChange={event=>custom(event.target.value,customEnd)}/></span></label><label><span>Al</span><span className="date-themed-input"><Icon name="calendar" size={16}/><input type="date" value={customEnd} min={customStart||undefined} onClick={event=>event.currentTarget.showPicker?.()} onChange={event=>custom(customStart,event.target.value)}/></span></label></div>{customStart&&customEnd&&customStart>customEnd&&<small className="red">La data finale deve seguire quella iniziale.</small>}</div>
+    {open&&<div className="date-range-popover surface" role="dialog" aria-label={t('date.choose')}>
+      <div className="date-presets"><button onClick={()=>choose('today')}>{t('date.today')}</button><button onClick={()=>choose('yesterday')}>{t('date.yesterday')}</button><button onClick={()=>choose('this-month')}>{t('date.thisMonth')}</button><button onClick={()=>choose('last-month')}>{t('date.lastMonth')}</button><button onClick={()=>choose('last-30')}>{t('date.last30')}</button></div>
+      <div className="custom-range"><b>{t('date.custom')}</b><div><label><span>{t('date.from')}</span><span className="date-themed-input"><Icon name="calendar" size={16}/><input type="date" value={customStart} max={customEnd||undefined} onClick={event=>event.currentTarget.showPicker?.()} onChange={event=>custom(event.target.value,customEnd)}/></span></label><label><span>{t('date.to')}</span><span className="date-themed-input"><Icon name="calendar" size={16}/><input type="date" value={customEnd} min={customStart||undefined} onClick={event=>event.currentTarget.showPicker?.()} onChange={event=>custom(customStart,event.target.value)}/></span></label></div>{customStart&&customEnd&&customStart>customEnd&&<small className="red">{t('date.invalid')}</small>}</div>
     </div>}
   </div>;
 }
