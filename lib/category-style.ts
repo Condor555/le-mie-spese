@@ -18,6 +18,15 @@ const rules:Rule[]=[
   {match:/\buber\b/i,style:{icon:'brand:uber',color:'#111827'}},
   {match:/\bgoogle\b/i,style:{icon:'brand:google',color:'#4285F4'}},
 
+  {match:/stipendio|salario|retribuzione/i,style:color('wallet','#2EAA7B')},
+  {match:/pensione/i,style:color('building-columns','#438FDF')},
+  {match:/bonus|premi/i,style:color('award','#E3AD16')},
+  {match:/regali ricevuti/i,style:color('gift','#DB4B8B')},
+  {match:/rimbor/i,style:color('arrow-rotate-left','#3E9AA8')},
+  {match:/interess|rendit|dividend|cedola/i,style:color('chart-line','#35A96B')},
+  {match:/vendit/i,style:color('store','#9655F0')},
+  {match:/trasferiment.*entrata|altra entrata|other income/i,style:color('arrow-trend-up','#5B8DEF')},
+
   {match:/mare|spiaggia|lido|ombrellone|balneare/i,style:color('umbrella-beach','#2E9BC6')},
   {match:/vacanz|ferie/i,style:color('suitcase','#E79035')},
   {match:/viagg|volo|aereo|aeroporto/i,style:color('plane','#5B8DEF')},

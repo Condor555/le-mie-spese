@@ -21,6 +21,7 @@ type Stats={
   daysInMonth:number;
   topCategory:TopCategory|null;
   categories:{name:string;value:number}[];
+  budget:{amount:number;projected:number;projectedOverage:number;commitments:number;distributable:number};
 };
 type Trend={month:string;income:number;expense:number};
 
@@ -30,38 +31,48 @@ export default function Home(){
   const [trends,setTrends]=useState<Trend[]>([]);
   const statsRequestRef=useRef(0);
   const trendsRequestRef=useRef(0);
+  const statsAbortRef=useRef<AbortController|null>(null);
+  const trendsAbortRef=useRef<AbortController|null>(null);
 
   const loadStats=useCallback(async(targetSpaceId?:string)=>{
     const request=++statsRequestRef.current;
+    statsAbortRef.current?.abort();
+    const controller=new AbortController();statsAbortRef.current=controller;
     try{
       const params=new URLSearchParams({month});
       if(targetSpaceId)params.set('spaceId',targetSpaceId);
-      const result=await fetch(`/api/stats?${params}`,{cache:'no-store'}).then(response=>response.json());
+      const response=await fetch(`/api/stats?${params}`,{cache:'no-store',signal:controller.signal});
+      const result=await response.json();
       if(request===statsRequestRef.current&&!result.error)setStats(result);
-    }catch{if(request===statsRequestRef.current)setStats(null)}
+    }catch(error:any){if(error?.name!=='AbortError'&&request===statsRequestRef.current)setStats(null)}
   },[month]);
 
   const loadTrends=useCallback(async(targetSpaceId?:string)=>{
     const request=++trendsRequestRef.current;
+    trendsAbortRef.current?.abort();
+    const controller=new AbortController();trendsAbortRef.current=controller;
     try{
       const params=new URLSearchParams({month,months:'6'});
       if(targetSpaceId)params.set('spaceId',targetSpaceId);
-      const result=await fetch(`/api/trends?${params}`,{cache:'no-store'}).then(response=>response.json());
+      const result=await fetch(`/api/trends?${params}`,{cache:'no-store',signal:controller.signal}).then(response=>response.json());
       if(request===trendsRequestRef.current)setTrends((result.data||[]).slice(-6));
-    }catch{if(request===trendsRequestRef.current)setTrends([])}
+    }catch(error:any){if(error?.name!=='AbortError'&&request===trendsRequestRef.current)setTrends([])}
   },[month]);
 
   useEffect(()=>{
+    setStats(null);
     loadStats();
     const onFocus=()=>loadStats();
     window.addEventListener('focus',onFocus);
-    return()=>window.removeEventListener('focus',onFocus);
+    return()=>{window.removeEventListener('focus',onFocus);statsAbortRef.current?.abort()};
   },[loadStats]);
 
-  useEffect(()=>{loadTrends()},[loadTrends]);
+  useEffect(()=>{setTrends([]);loadTrends();return()=>trendsAbortRef.current?.abort()},[loadTrends]);
   useEffect(()=>onActiveSpaceChanged(spaceId=>{
     statsRequestRef.current++;
     trendsRequestRef.current++;
+    statsAbortRef.current?.abort();
+    trendsAbortRef.current?.abort();
     setStats(null);
     setTrends([]);
     loadStats(spaceId);
@@ -93,6 +104,11 @@ export default function Home(){
       <div className="home-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={trends} margin={{top:8,right:8,left:-22,bottom:0}}><CartesianGrid stroke="var(--line)" vertical={false}/><XAxis dataKey="month" tickFormatter={value=>new Intl.DateTimeFormat('it-IT',{month:'short'}).format(new Date(`${value}-01`))} axisLine={false} tickLine={false}/><YAxis axisLine={false} tickLine={false}/><Tooltip formatter={value=>eur(Number(value))}/><Line dataKey="income" stroke="#35c38f" strokeWidth={3} dot={{r:3}}/><Line dataKey="expense" stroke="#ef6469" strokeWidth={3} dot={{r:3}}/></LineChart></ResponsiveContainer></div>
       <div className="chart-key"><span><i className="key-green"/>Entrate</span><span><i className="key-red"/>Uscite</span></div>
     </section>
+
+    {(stats?.budget?.projectedOverage||0)>0&&<section className="insight budget-projection-insight surface">
+      <span className="insight-icon"><Icon name="chart" size={20}/></span>
+      <div><small>Proiezione budget</small><b>Rischio superamento a fine mese</b><p>Proiezione {eur(stats?.budget.projected||0)} · oltre il budget di {eur(stats?.budget.projectedOverage||0)}</p><p>{eur(stats?.budget.commitments||0)} sono già riservati agli impegni programmati.</p></div>
+    </section>}
 
     {top&&<section className="insight surface">
       <span className="insight-icon"><Icon name="chart" size={20}/></span>

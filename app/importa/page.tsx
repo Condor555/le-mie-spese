@@ -40,7 +40,7 @@ export default function Importa(){
       const response=await fetch('/api/import-csv',{method:'POST',body:form});
       const result=await response.json();
       if(!response.ok){setMessage(result.error||'Importazione non riuscita.');return;}
-      setMessage(`Letti ${result.read}, importati ${result.imported}, duplicati ${result.duplicates}, ignorati ${result.skipped||0}.`);
+      setMessage(`Letti ${result.read}, importati ${result.imported}, duplicati ${result.duplicates}, ignorati ${result.skipped||0}, riclassificati ${result.reclassified||0}.`);
     }catch{
       setMessage('Errore di connessione.');
     }finally{
@@ -63,6 +63,7 @@ export default function Importa(){
         disabled={busy||loadingSpaces}
       />
       <p className="settings-help">Sono accettati CSV con separatore punto e virgola o virgola e intestazioni italiane/inglesi: <code>Id/ID</code>, <code>Data/Date</code>, <code>Categoria/Category</code>, <code>Importo/Amount</code>. Valuta e nota sono facoltative. Il formato esportato da Money Lover rimane compatibile.</p>
+      <p className="settings-help">Importi negativi usano categorie di spesa; importi positivi categorie di entrata. Le categorie nuove vengono classificate dal segno e dal nome. In caso di categoria esistente incompatibile, la riga viene mappata su <b>Altro</b> o <b>Altra entrata</b> senza modificare lo storico.</p>
       <p className="settings-help">Il file viene inviato direttamente al database protetto e non è salvato nella repository.</p>
       <input className="import-file-input" type="file" accept=".csv,text/csv" onChange={event=>setFile(event.target.files?.[0])}/>
     </section>

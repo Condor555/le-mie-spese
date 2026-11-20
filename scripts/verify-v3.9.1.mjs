@@ -45,17 +45,18 @@ const assetFiles=(await readdir(new URL('public/icons/color/',root))).filter(fil
 assert.equal(assetFiles.length,declared,'Ogni voce del catalogo deve avere un asset distinto.');
 for(const file of assetFiles){
   const source=await read(`public/icons/color/${file}`);
-  assert(source.includes('viewBox=')&&source.includes('icon-gradient'),`SVG non ottimizzato: ${file}`);
+  assert(source.includes('viewBox=')&&source.includes('<path')&&!/href=["'](?:https?:|\/\/|data:)/i.test(source),`SVG locale non valido: ${file}`);
 }
 for(const token of ['suggestIconsForCategory','legacyIconAliases','normalizeIconId','brandCatalog'])assert((await read('lib/category-icon-catalog.ts')).includes(token));
 for(const token of ['IntersectionObserver','localStorage','suggestFor','favorites'])assert(picker.includes(token));
 const colorIconComponent=await read('components/CategoryColorIcon.tsx');
 assert(colorIconComponent.includes('loading="lazy"')&&colorIconComponent.includes('decoding="async"'));
+assert(colorIconComponent.includes('onError')&&colorIconComponent.includes('category-color-fallback'));
 assert(style.includes("color('umbrella-beach'")&&style.includes("['plane','holiday','color:plane']"));
 assert(assetResolver.includes('findIconEntry')&&!assetResolver.includes('`/icons/color/${'));
 assert(info.includes('Icons8')&&info.includes('Font Awesome Free'));
 assert(readme.includes('V3.9.1 Smart UX')&&readme.includes('non richiede migration Supabase'));
-const pkg=JSON.parse(packageJson);assert.equal(pkg.version,'3.9.1');assert.equal(pkg.scripts.prebuild,'npm run check:phosphor');
+const pkg=JSON.parse(packageJson);assert(/^3\.9\.(?:[1-9]|\d{2,})$/.test(pkg.version));assert.equal(pkg.scripts.prebuild,'npm run check:phosphor');
 
 const sourceFiles=[];
 async function collect(directory){

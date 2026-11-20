@@ -5,29 +5,32 @@ import {inferredCategoryStyle} from '../../../lib/category-style';
 export async function GET(req:Request){
   try{
     const {sb,user,spaceId:activeSpaceId}=await activeSpace();
-    const requested=new URL(req.url).searchParams.get('spaceId');
+    const url=new URL(req.url);const requested=url.searchParams.get('spaceId');const requestedKind=url.searchParams.get('kind');
     const spaceId=requested||activeSpaceId;
     if(spaceId!==activeSpaceId){
       const {data:membership}=await sb.from('space_members').select('space_id').eq('space_id',spaceId).eq('user_id',user.id).maybeSingle();
       if(!membership)return NextResponse.json({error:'Accesso negato'},{status:403});
     }
     const [{data:saved,error:a},{data:tx,error:b}]=await Promise.all([
-      sb.from('categories').select('name,icon,color').eq('space_id',spaceId).order('name'),
-      sb.from('transactions').select('category_name').eq('space_id',spaceId),
+      sb.from('categories').select('name,icon,color,kind').eq('space_id',spaceId).order('name'),
+      sb.from('transactions').select('category_name,amount').eq('space_id',spaceId),
     ]);
     if(a||b)return NextResponse.json({error:(a||b)?.message},{status:400});
-    const counts=new Map<string,number>();for(const row of tx||[])counts.set(row.category_name,(counts.get(row.category_name)||0)+1);
-    const map=new Map<string,any>();for(const row of saved||[])map.set(row.name,row);for(const row of tx||[])if(!map.has(row.category_name))map.set(row.category_name,{name:row.category_name});
-    return NextResponse.json({data:[...map.values()].map(row=>{const fallback=inferredCategoryStyle(row.name);return {name:row.name,icon:row.icon||fallback.icon,color:row.color||fallback.color,count:counts.get(row.name)||0}}).sort((a,b)=>a.name.localeCompare(b.name,'it'))});
+    const counts=new Map<string,number>(),signs=new Map<string,{positive:boolean;negative:boolean}>();for(const row of tx||[]){counts.set(row.category_name,(counts.get(row.category_name)||0)+1);const sign=signs.get(row.category_name)||{positive:false,negative:false};Number(row.amount)>=0?sign.positive=true:sign.negative=true;signs.set(row.category_name,sign)}
+    const map=new Map<string,any>();for(const row of saved||[])map.set(row.name,row);for(const row of tx||[])if(!map.has(row.category_name)){const sign=signs.get(row.category_name);map.set(row.category_name,{name:row.category_name,kind:sign?.positive&&!sign.negative?'income':'expense'})}
+    const data=[...map.values()].map(row=>{const fallback=inferredCategoryStyle(row.name);return {name:row.name,kind:row.kind==='income'?'income':'expense',icon:row.icon||fallback.icon,color:row.color||fallback.color,count:counts.get(row.name)||0}}).filter(row=>requestedKind==='income'||requestedKind==='expense'?row.kind===requestedKind:true).sort((a,b)=>a.name.localeCompare(b.name,'it'));
+    return NextResponse.json({data});
   }catch(error:any){return NextResponse.json({error:error?.message||'Unauthorized'},{status:401})}
 }
 
 export async function POST(req:Request){
   try{
-    const {sb,user,spaceId}=await activeSpace(),body=await req.json(),name=String(body.name||'').trim();
+    const {sb,user,spaceId}=await activeSpace(),body=await req.json(),name=String(body.name||'').trim(),kind=body.kind==='income'?'income':'expense';
     if(name.length<2)return NextResponse.json({error:'Nome troppo corto'},{status:400});
     const fallback=inferredCategoryStyle(name);
-    const {data,error}=await sb.from('categories').upsert({user_id:user.id,space_id:spaceId,name,icon:body.icon||fallback.icon,color:body.color||fallback.color},{onConflict:'space_id,name'}).select().single();
+    const {data:existing}=await sb.from('categories').select('name,kind').eq('space_id',spaceId).eq('name',name).maybeSingle();
+    if(existing)return NextResponse.json({error:'Esiste già una categoria con questo nome.'},{status:409});
+    const {data,error}=await sb.from('categories').insert({user_id:user.id,space_id:spaceId,name,kind,icon:body.icon||fallback.icon,color:body.color||fallback.color}).select().single();
     return NextResponse.json({data,error},{status:error?400:200});
   }catch(error:any){return NextResponse.json({error:error?.message||'Unauthorized'},{status:401})}
 }

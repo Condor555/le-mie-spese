@@ -10,6 +10,8 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
     if(readError||!current)return NextResponse.json({error:readError?.message||'Movimento non trovato.'},{status:404});
     const {data:space,error:spaceError}=await sb.from('spaces').select('account_name').eq('id',spaceId).single();
     if(spaceError)return NextResponse.json({error:spaceError.message},{status:400});
+    const {data:category}=await sb.from('categories').select('kind').eq('space_id',spaceId).eq('name',body.category_name).maybeSingle();
+    if(!category||category.kind!==body.kind)return NextResponse.json({error:`Seleziona una categoria di ${body.kind==='income'?'entrata':'spesa'}.`},{status:409});
     const accountName=space?.account_name||'Spese';
     const amount=body.kind==='expense'?-Math.abs(body.amount):Math.abs(body.amount);
     const {data,error}=await sb.from('transactions').update({date:body.date,category_name:body.category_name,amount,note:body.note,account_name:accountName}).eq('space_id',spaceId).eq('id',id).select().single();

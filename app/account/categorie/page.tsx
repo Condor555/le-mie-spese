@@ -11,6 +11,7 @@ import {
 
 type Cat = {
   name: string;
+  kind: 'expense' | 'income';
   icon: string;
   color: string;
   count?: number;
@@ -18,6 +19,7 @@ type Cat = {
 
 export default function Categorie() {
   const [cats, setCats] = useState<Cat[]>([]);
+  const [tab, setTab] = useState<'expense'|'income'>('expense');
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('tag');
@@ -62,6 +64,7 @@ export default function Categorie() {
       },
       body: JSON.stringify({
         name,
+         kind: tab,
         icon,
         color,
       }),
@@ -110,6 +113,7 @@ export default function Categorie() {
           newName,
           icon: editing.icon,
           color: editing.color,
+           kind: editing.kind,
         }),
       }
     );
@@ -210,8 +214,13 @@ export default function Categorie() {
         </div>
       </header>
 
+      <div className="segmented category-kind-tabs" role="tablist" aria-label="Tipo categorie">
+        <button type="button" role="tab" aria-selected={tab==='expense'} className={tab==='expense'?'active':''} onClick={()=>setTab('expense')}>Uscite ({cats.filter(item=>item.kind==='expense').length})</button>
+        <button type="button" role="tab" aria-selected={tab==='income'} className={tab==='income'?'active':''} onClick={()=>setTab('income')}>Entrate ({cats.filter(item=>item.kind==='income').length})</button>
+      </div>
+
       <section className="settings-card surface">
-        <h2>Crea categoria</h2>
+        <h2>Crea categoria di {tab==='income'?'entrata':'spesa'}</h2>
 
         <input
           value={name}
@@ -262,7 +271,7 @@ export default function Categorie() {
         <h2>Le tue categorie</h2>
 
         <div className="category-settings">
-          {cats.map((category) => (
+          {cats.filter(category=>category.kind===tab).map((category) => (
             <button
               type="button"
               className="category-setting"
@@ -311,6 +320,12 @@ export default function Categorie() {
                 })
               }
             />
+
+            <label className="picker-label">Tipo</label>
+            <div className="segmented category-kind-editor">
+              <button type="button" className={editing.kind==='expense'?'active':''} onClick={()=>{setEditing({...editing,kind:'expense'});setTarget('')}}>Uscita</button>
+              <button type="button" className={editing.kind==='income'?'active':''} onClick={()=>{setEditing({...editing,kind:'income'});setTarget('')}}>Entrata</button>
+            </div>
 
             <label className="picker-label">
               Icona
@@ -374,7 +389,7 @@ export default function Categorie() {
                 {cats
                   .filter(
                     (category) =>
-                      category.name !== originalName
+                      category.name !== originalName && category.kind === editing.kind
                   )
                   .map((category) => (
                     <option

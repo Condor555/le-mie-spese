@@ -30,6 +30,7 @@ function amountNumber(input:string){
   else if(clean.includes(','))clean=clean.replace(',','.');
   return Number(clean);
 }
+const clearIncomeName=(name:string)=>/(altra entrata|altre entrate|other income|stipend|pensione|bonus|premi|regali ricevuti|rimbor|interess|rendit|vendit|trasferiment.*entrata|dividend|cedola)/i.test(name);
 
 export async function POST(req:Request){
   try{
@@ -69,17 +70,23 @@ export async function POST(req:Request){
         account_name:space?.account_name||'Spese',
       };
     });
-    const valid=rows.filter(row=>row.source_id&&row.date&&row.category_name&&Number.isFinite(row.amount));
+    let valid=rows.filter(row=>row.source_id&&row.date&&row.category_name&&Number.isFinite(row.amount));
     const skipped=rows.length-valid.length;
+
+    const {data:existingCategories,error:existingError}=await sb.from('categories').select('name,kind').eq('space_id',spaceId);
+    if(existingError)return NextResponse.json({error:existingError.message,imported:0},{status:400});
+    const kindByName=new Map<string,'expense'|'income'>((existingCategories||[]).map((item:any)=>[item.name,item.kind==='income'?'income':'expense']));
+    const signs=new Map<string,{positive:boolean;negative:boolean}>();for(const row of valid){const sign=signs.get(row.category_name)||{positive:false,negative:false};row.amount>=0?sign.positive=true:sign.negative=true;signs.set(row.category_name,sign)}
+    for(const [name,sign] of signs)if(!kindByName.has(name))kindByName.set(name,clearIncomeName(name)||sign.positive&&!sign.negative?'income':'expense');
+    let reclassified=0;valid=valid.map(row=>{const expected: 'expense'|'income'=row.amount>=0?'income':'expense';const actual=kindByName.get(row.category_name)||'expense';if(actual===expected)return row;reclassified++;const fallback=expected==='income'?'Altra entrata':'Altro';kindByName.set(fallback,expected);return {...row,category_name:fallback}});
 
     const distinctCategories=[...new Set(valid.map(row=>row.category_name))];
     if(distinctCategories.length){
-      const categoryRows=distinctCategories.map(name=>{
-        const style=inferredCategoryStyle(name);
-        return {user_id:user.id,space_id:spaceId,name,icon:style.icon,color:style.color};
+      const categoryRows=distinctCategories.filter(name=>!(existingCategories||[]).some((item:any)=>item.name===name)).map(name=>{
+        const style=inferredCategoryStyle(name);const kind=kindByName.get(name)||'expense';
+        return {user_id:user.id,space_id:spaceId,name,kind,icon:style.icon,color:style.color};
       });
-      const {error:categoryError}=await sb.from('categories').upsert(categoryRows,{onConflict:'space_id,name',ignoreDuplicates:true});
-      if(categoryError)return NextResponse.json({error:categoryError.message,imported:0},{status:400});
+      if(categoryRows.length){const {error:categoryError}=await sb.from('categories').upsert(categoryRows,{onConflict:'space_id,name',ignoreDuplicates:true});if(categoryError)return NextResponse.json({error:categoryError.message,imported:0},{status:400})}
     }
 
     let imported=0;
@@ -88,7 +95,7 @@ export async function POST(req:Request){
       if(error)return NextResponse.json({error:error.message,imported,read:rows.length,skipped},{status:400});
       imported+=data?.length||0;
     }
-    return NextResponse.json({imported,read:rows.length,duplicates:valid.length-imported,skipped,format:delimiter===';'?'semicolon':'comma'});
+    return NextResponse.json({imported,read:rows.length,duplicates:valid.length-imported,skipped,reclassified,format:delimiter===';'?'semicolon':'comma'});
   }catch(error:any){
     return NextResponse.json({error:error?.message||'Unauthorized'},{status:401});
   }

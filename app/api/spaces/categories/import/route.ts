@@ -6,6 +6,7 @@ const Payload=z.object({
   spaceId:z.string().uuid(),
   categories:z.array(z.object({
     name:z.string().min(1),
+     kind:z.enum(['expense','income']),
     icon:z.string().nullable().optional(),
     color:z.string().nullable().optional(),
     action:z.enum(['import','skip']),
@@ -27,6 +28,7 @@ export async function POST(req:Request){
       user_id:user.id,
       space_id:payload.spaceId,
       name:category.name,
+      kind:category.kind,
       icon:category.icon||'tag',
       color:category.color||'#7C849D',
     }));

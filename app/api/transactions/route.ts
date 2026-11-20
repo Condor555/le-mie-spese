@@ -54,8 +54,10 @@ export async function POST(req:Request){
     const spaceId=payload.space_id||activeSpaceId;
     const {data:membership}=await sb.from('space_members').select('space_id').eq('space_id',spaceId).eq('user_id',user.id).maybeSingle();
     if(!membership)return NextResponse.json({error:'Non puoi salvare in questo spazio.'},{status:403});
-    const {data:category}=await sb.from('categories').select('name').eq('space_id',spaceId).eq('name',payload.category_name).maybeSingle();
+    const {data:category}=await sb.from('categories').select('name,kind').eq('space_id',spaceId).eq('name',payload.category_name).maybeSingle();
     if(!category)return NextResponse.json({error:'La categoria selezionata non appartiene allo spazio di destinazione.'},{status:409});
+    const expectedKind=payload.kind==='income'?'income':'expense';
+    if(category.kind!==expectedKind)return NextResponse.json({error:`Seleziona una categoria di ${expectedKind==='income'?'entrata':'spesa'}.`},{status:409});
     const {data:space,error:spaceError}=await sb.from('spaces').select('account_name').eq('id',spaceId).single();
     if(spaceError)return NextResponse.json({error:spaceError.message},{status:400});
     const signed=payload.kind==='expense'?-Math.abs(payload.amount):payload.kind==='income'?Math.abs(payload.amount):payload.amount;

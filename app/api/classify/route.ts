@@ -8,11 +8,11 @@ function tokens(value:string){
 
 export async function POST(req:Request){
   try{
-    const {note,spaceId:requestedSpaceId}=await req.json();
+    const {note,spaceId:requestedSpaceId,kind:requestedKind}=await req.json();const kind=requestedKind==='income'?'income':'expense';const fallback=kind==='income'?'Altra entrata':'Altro';
     const query=tokens(String(note||''));
     const {sb,spaceId}=await activeSpace(typeof requestedSpaceId==='string'?requestedSpaceId:undefined);
-    if(!query.length)return NextResponse.json({category:'Altra Spesa',confidence:.1,reason:'Descrizione insufficiente'});
-    const {data,error}=await sb.from('transactions').select('note,category_name').eq('space_id',spaceId).not('note','is',null).limit(5000);
+    if(!query.length)return NextResponse.json({category:fallback,confidence:.1,reason:'Descrizione insufficiente'});
+    let history=sb.from('transactions').select('note,category_name,amount').eq('space_id',spaceId).not('note','is',null).limit(5000);history=kind==='income'?history.gt('amount',0):history.lt('amount',0);const {data,error}=await history;
     if(error)return NextResponse.json({error:error.message},{status:400});
     const score=new Map<string,number>();
     for(const transaction of data||[]){
@@ -27,7 +27,7 @@ export async function POST(req:Request){
     const ranked=[...score].sort((a,b)=>b[1]-a[1]);
     const total=ranked.slice(0,5).reduce((sum,item)=>sum+item[1],0)||1;
     return NextResponse.json({
-      category:ranked[0]?.[0]||'Altra Spesa',
+      category:ranked[0]?.[0]||fallback,
       confidence:Math.min(.99,(ranked[0]?.[1]||0)/total),
       alternatives:ranked.slice(1,4).map(item=>item[0]),
       reason:`Basato sullo storico dello spazio selezionato: ${query.join(', ')}`,

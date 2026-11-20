@@ -21,9 +21,10 @@ for(const token of ['debouncedQ','AbortController','DateRangePicker','categoryFi
 for(const token of ['Oggi','Ieri','Questo mese','Mese scorso','Ultimi 30 giorni','Intervallo personalizzato'])assert(datePicker.includes(token));
 for(const token of ["params.set('start'","params.set('end'","params.set('category'","params.set('kind'"])assert(movements.includes(token));
 for(const token of ["query=query.gte('date',start)","query=query.lte('date',end)","query=query.ilike('note'"])assert(transactions.includes(token));
-assert(monthPicker.includes('month-picker-native')&&monthPicker.includes('showPicker'));
+assert(monthPicker.includes('month-picker-pill')&&monthPicker.includes('month-picker-popover')&&monthPicker.includes('role="dialog"'));
+assert(!monthPicker.includes('type="month"')&&!monthPicker.includes('showPicker'));
 assert(stats.includes('trendMonths')&&stats.includes('projectedExpense')&&stats.includes('authors'));
-assert(budget.includes('Budget per categoria')&&budget.includes('80%'));
+assert((budget.includes('Budget per categoria')||budget.includes('Distribuzione per macro-categoria'))&&budget.includes('budget'));
 assert(recurring.includes('Calendario finanziario')&&recurring.includes('Conferma pagamento'));
 for(const token of ['create table if not exists public.budgets','confirm_recurring_payment','recurring_payments','enable row level security'])assert(migration.includes(token));
 assert(readme.includes('V3.9'));

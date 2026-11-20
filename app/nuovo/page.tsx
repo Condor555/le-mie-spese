@@ -6,7 +6,7 @@ import CategoryIcon from '../../components/CategoryIcon';
 import SpacePicker,{type SpacePickerOption} from '../../components/SpacePicker';
 import {amountForSave,formatAmountPreview} from '../../lib/amount-expression';
 
-type Category={name:string;icon?:string|null;color?:string|null};
+type Category={name:string;kind:'expense'|'income';icon?:string|null;color?:string|null};
 type Space=SpacePickerOption;
 type Kind='expense'|'income';
 type Suggestion={note:string;category:string|null;categoryConfidence:number;frequency:number;lastUsed:string|null};
@@ -102,9 +102,9 @@ export default function Nuovo(){
     const timer=setTimeout(async()=>{
       setSuggestionsBusy(true);
       try{
-        const suggestionPromise=fetch(`/api/transactions/suggestions?spaceId=${encodeURIComponent(spaceId)}&q=${encodeURIComponent(clean)}`,{cache:'no-store',signal:controller.signal}).then(async response=>({ok:response.ok,result:await response.json()}));
+        const suggestionPromise=fetch(`/api/transactions/suggestions?spaceId=${encodeURIComponent(spaceId)}&kind=${kind}&q=${encodeURIComponent(clean)}`,{cache:'no-store',signal:controller.signal}).then(async response=>({ok:response.ok,result:await response.json()}));
         const classifyPromise=clean.length>=3
-          ?fetch('/api/classify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({note:clean,spaceId}),signal:controller.signal}).then(async response=>({ok:response.ok,result:await response.json()}))
+          ?fetch('/api/classify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({note:clean,spaceId,kind}),signal:controller.signal}).then(async response=>({ok:response.ok,result:await response.json()}))
           :Promise.resolve({ok:false,result:{}});
         const [suggestionResult,classifyResult]=await Promise.all([suggestionPromise,classifyPromise]);
         if(request!==suggestionRequestRef.current)return;
@@ -112,7 +112,7 @@ export default function Nuovo(){
         setSuggestions(nextSuggestions);
         setActiveSuggestion(0);
         setSuggestionsOpen(nextSuggestions.length>0);
-        if(classifyResult.ok&&typeof classifyResult.result.category==='string'&&categories.some(item=>item.name===classifyResult.result.category))setCategory(classifyResult.result.category);
+        if(classifyResult.ok&&typeof classifyResult.result.category==='string'&&categories.some(item=>item.name===classifyResult.result.category&&item.kind===kind))setCategory(classifyResult.result.category);
       }catch(error:any){
         if(error?.name!=='AbortError'&&request===suggestionRequestRef.current){setSuggestions([]);setSuggestionsOpen(false);}
       }finally{
@@ -120,7 +120,7 @@ export default function Nuovo(){
       }
     },240);
     return()=>{clearTimeout(timer);controller.abort();};
-  },[note,spaceId,loadingSpace,categories]);
+  },[note,spaceId,loadingSpace,categories,kind]);
 
   function changeNote(value:string){
     setNote(value);
@@ -131,7 +131,7 @@ export default function Nuovo(){
     suppressAutocompleteRef.current=true;
     suggestionRequestRef.current++;
     setNote(suggestion.note);
-    if(suggestion.category&&categories.some(item=>item.name===suggestion.category))setCategory(suggestion.category);
+    if(suggestion.category&&categories.some(item=>item.name===suggestion.category&&item.kind===kind))setCategory(suggestion.category);
     setSuggestions([]);
     setSuggestionsOpen(false);
   }
@@ -168,7 +168,7 @@ export default function Nuovo(){
     const numeric=amountForSave(amount);
     if(!spaceId){setMessage('Seleziona lo spazio di destinazione.');return;}
     if(numeric===null){setMessage('Inserisci un importo o un calcolo valido maggiore di zero.');return;}
-    if(!category||!categories.some(item=>item.name===category)){setMessage('Seleziona una categoria valida per lo spazio scelto.');return;}
+    if(!category||!categories.some(item=>item.name===category&&item.kind===kind)){setMessage(`Seleziona una categoria di ${kind==='income'?'entrata':'spesa'} valida.`);return;}
     setBusy(true);setMessage('');
     try{
       const response=await fetch('/api/transactions',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({space_id:spaceId,date,category_name:category,amount:Math.abs(numeric),currency:'EUR',note,account_name:account,kind})});
@@ -188,16 +188,18 @@ export default function Nuovo(){
   }
 
   const selectedCategory=categories.find(item=>item.name===category);
+  const visibleCategories=categories.filter(item=>item.kind===kind);
   const amountPreview=amountForSave(amount);
+  function chooseKind(next:Kind){if(next===kind)return;setKind(next);setCategory('');setSuggestions([]);setSuggestionsOpen(false);suggestionRequestRef.current++;}
 
   return <>
     <header className="page-head"><div><h1>Nuova transazione</h1><p>Registra un movimento in pochi secondi</p></div></header>
     <section className="entry-card surface">
       <SpacePicker spaces={spaces} value={spaceId} onChange={chooseSpace} variant="destination" label="Spazio di destinazione" help="Il movimento e l’eventuale ricorrenza saranno salvati qui. Il Conto rimane una proprietà distinta dello spazio." disabled={busy||loadingSpace}/>
-      <div className="segmented"><button type="button" className={kind==='expense'?'active':''} onClick={()=>setKind('expense')}>Uscita</button><button type="button" className={kind==='income'?'active':''} onClick={()=>setKind('income')}>Entrata</button></div>
+      <div className="segmented"><button type="button" className={kind==='expense'?'active':''} onClick={()=>chooseKind('expense')}>Uscita</button><button type="button" className={kind==='income'?'active':''} onClick={()=>chooseKind('income')}>Entrata</button></div>
       <AmountExpressionInput className="amount-input-wrap" value={amount} onChange={setAmount} ariaLabel="Importo della transazione" placeholder="€ 0,00 o 12,50 × 3"/>
       <div className="field autocomplete-field"><label htmlFor="transaction-note">Descrizione</label><input id="transaction-note" value={note} autoComplete="off" aria-autocomplete="list" aria-expanded={suggestionsOpen} aria-controls={suggestionsOpen?'transaction-note-suggestions':undefined} onFocus={()=>{if(suggestions.length)setSuggestionsOpen(true)}} onKeyDown={noteKeys} onChange={event=>changeNote(event.target.value)} placeholder="Es. Spesa Conad"/>{suggestionsBusy&&<span className="autocomplete-busy" aria-live="polite">Ricerca suggerimenti…</span>}{suggestionsOpen&&suggestions.length>0&&<div id="transaction-note-suggestions" className="autocomplete-list" role="listbox" aria-label="Descrizioni già usate">{suggestions.map((suggestion,index)=><button ref={node=>{suggestionRefs.current[index]=node}} key={suggestion.note.toLocaleLowerCase('it')} type="button" role="option" aria-selected={index===activeSuggestion} tabIndex={index===activeSuggestion?0:-1} onMouseDown={event=>event.preventDefault()} onMouseEnter={()=>setActiveSuggestion(index)} onKeyDown={event=>suggestionKeys(event,index)} onClick={()=>selectSuggestion(suggestion)}><span><b>{suggestion.note}</b><small>{suggestion.category||'Categoria non disponibile'} · usata {suggestion.frequency} {suggestion.frequency===1?'volta':'volte'}</small></span><strong>↵</strong></button>)}</div>}</div>
-      <div className="field"><label>Categoria</label><div className="category-picker"><CategoryIcon name={category||'Categoria'} icon={selectedCategory?.icon} color={selectedCategory?.color}/><select value={category} disabled={loadingSpace} onChange={event=>setCategory(event.target.value)}><option value="">{loadingSpace?'Caricamento categorie…':categories.length?'Seleziona categoria':'Nessuna categoria nello spazio'}</option>{categories.map(item=><option key={item.name} value={item.name}>{item.name}</option>)}</select></div></div>
+      <div className="field"><label>Categoria {kind==='income'?'di entrata':'di spesa'}</label><div className="category-picker"><CategoryIcon name={category||'Categoria'} icon={selectedCategory?.icon} color={selectedCategory?.color}/><select value={category} disabled={loadingSpace} onChange={event=>setCategory(event.target.value)}><option value="">{loadingSpace?'Caricamento categorie…':visibleCategories.length?'Seleziona categoria':'Nessuna categoria disponibile'}</option>{visibleCategories.map(item=><option key={item.name} value={item.name}>{item.name}</option>)}</select></div></div>
       <div className="two-col"><div className="field"><label>Data</label><input type="date" value={date} onChange={event=>setDate(event.target.value)}/></div><div className="field"><label>Conto</label><input value={account} readOnly aria-readonly="true" title="Modificabile da Impostazioni > Conto per lo spazio selezionato"/></div></div>
       <label className="toggle-card"><span><b>Transazione ricorrente</b><small>Generala nello stesso spazio</small></span><input type="checkbox" checked={recurring} onChange={event=>setRecurring(event.target.checked)}/></label>
       {recurring&&<select value={frequency} onChange={event=>setFrequency(event.target.value)}><option value="weekly">Ogni settimana</option><option value="monthly">Ogni mese</option><option value="yearly">Ogni anno</option></select>}

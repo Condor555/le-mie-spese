@@ -55,6 +55,11 @@ export async function POST(req:Request){
       p_invite_code:payload.inviteCode||null,
     });
     if(error)return NextResponse.json({error:error.message},{status:400});
+    const personalSpaceId=data?.personalSpaceId;
+    if(personalSpaceId){
+      const {error:incomeError}=await sb.rpc('ensure_default_income_categories',{p_space_id:personalSpaceId});
+      if(incomeError)return NextResponse.json({error:`Profilo creato, ma categorie entrata non inizializzate: ${incomeError.message}`},{status:500});
+    }
     await sb.auth.updateUser({data:{display_name:payload.displayName,invite_code:null}});
     return NextResponse.json({data});
   }catch(error){

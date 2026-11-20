@@ -23,13 +23,13 @@ export async function GET(req:Request){
   const {data:personal}=await sb.from('spaces').select('id').eq('created_by',user.id).eq('type','personal').maybeSingle();
   if(!personal)return NextResponse.json({data:[],shared:true});
   const [{data:source,error:sourceError},{data:destination,error:destinationError}]=await Promise.all([
-    sb.from('categories').select('name,icon,color').eq('space_id',personal.id).order('name'),
-    sb.from('categories').select('name,icon,color').eq('space_id',targetSpaceId).order('name'),
+    sb.from('categories').select('name,icon,color,kind').eq('space_id',personal.id).order('name'),
+    sb.from('categories').select('name,icon,color,kind').eq('space_id',targetSpaceId).order('name'),
   ]);
   if(sourceError||destinationError)return NextResponse.json({error:sourceError?.message||destinationError?.message},{status:400});
 
   const data=(source||[]).map(category=>{
-    const ranked=(destination||[]).map(item=>({...item,score:similarity(category.name,item.name)})).sort((a,b)=>b.score-a.score);
+    const ranked=(destination||[]).filter(item=>item.kind===category.kind).map(item=>({...item,score:similarity(category.name,item.name)})).sort((a,b)=>b.score-a.score);
     const suggestion=ranked[0]?.score>=.72?ranked[0]:null;
     return {...category,suggestion,defaultAction:suggestion?'skip':'import'};
   });

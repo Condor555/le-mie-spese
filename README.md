@@ -4,7 +4,7 @@
 
 **Expense tracker personale e familiare, mobile-first, con spazi privati e condivisi.**
 
-[![Versione](https://img.shields.io/badge/versione-3.9.1-5b5ce2?style=flat-square)](#stato-del-progetto)
+[![Versione](https://img.shields.io/badge/versione-3.9.3-5b5ce2?style=flat-square)](#stato-del-progetto)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -18,7 +18,7 @@
 
 ## Panoramica
 
-La versione **V3.9.1 Smart UX** parte dalla V3.9 REV1 stabile e aggiunge calcoli sicuri negli importi e un catalogo locale di 365 icone colorate, senza cambiare schema o policy Supabase. Ogni spazio **Personale** o **Condiviso** mantiene dati, budget, categorie e permessi indipendenti; Movimenti usa ricerca e filtri reattivi, mentre Home e Statistiche condividono un selettore mese compatto e accessibile.
+La versione **V3.9.3 Macro Budget** mantiene Smart UX e la UX Hotfix V3.9.2, aggiungendo macro-categorie, impegni programmati, rollover, analytics macro e navigazione attiva. Ogni spazio **Personale** o **Condiviso** mantiene struttura e piano budget indipendenti; soltanto owner/creatore può modificarli negli spazi condivisi.
 
 L'app è costruita con **Next.js**, **Supabase** e **Vercel**. Non richiede servizi a pagamento per il flusso base: autenticazione, database PostgreSQL, Row Level Security e deploy possono utilizzare i rispettivi free tier.
 
@@ -74,6 +74,28 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - lettura per tutti i membri e modifica riservata all’owner tramite RLS.
 - mini-calcolatrice disponibile sia sul limite complessivo sia sui budget di categoria.
 
+### Macro Budget V3.9.3
+
+- otto macro-categorie iniziali: Casa & Utenze, Alimentazione, Mobilità, Salute & Famiglia, Tempo libero, Shopping, Viaggi e Altro;
+- budget totale meno impegni programmati uguale budget discrezionale distribuibile;
+- allocazioni macro principalmente percentuali, con equivalente euro e inserimento diretto in euro;
+- categorie esistenti come drill-down analitico, assegnabili alle macro;
+- creazione, rinomina, colore, ordine e rollover opzionale del residuo;
+- ricorrenze e abbonamenti conteggiati come impegni fissi del mese;
+- RLS e funzioni atomiche riservano le modifiche a owner/creatore, lasciando la lettura ai membri;
+- conversione iniziale non distruttiva dei budget categoria già salvati.
+
+### Categorie di uscita e di entrata
+
+- ogni categoria ha tipo strutturale `expense` o `income`;
+- il form transazione e le ricorrenze mostrano soltanto categorie coerenti col tipo selezionato;
+- suggerimenti e classificazione storica sono filtrati per segno/tipo;
+- Impostazioni → Categorie separa Uscite ed Entrate e preserva il tipo in modifica/unione;
+- set iniziale entrate: Stipendio, Pensione, Bonus/Premi, Regali ricevuti, Rimborsi, Interessi/Rendite, Vendite, Trasferimenti in entrata e Altra entrata;
+- Macro Budget e rollover interrogano esclusivamente categorie `expense`;
+- Analytics mantiene le macro per le spese e mostra separatamente le fonti di reddito;
+- l'import CSV classifica dal segno e dai nomi inequivocabili, usando Altro/Altra entrata in caso di conflitto con una categoria esistente.
+
 ### Home e Analytics 2.0 V3.8
 
 - selettore mese compatto condiviso tra Home e Statistiche, interamente cliccabile/toccabile e utilizzabile da tastiera;
@@ -101,6 +123,8 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - icone funzionali Phosphor, brand separati e catalogo locale di 365 icone colorate organizzate in gruppi;
 - ricerca icone in italiano/inglese, sinonimi, suggerimenti dal nome categoria, preferite/recenti in `localStorage`, rendering a batch e immagini lazy;
 - compatibilità con gli identificatori icona V3.9, fallback locale sicuro e correzione semantica `Mare → Spiaggia`;
+- audit fisico e decodifica dei 365 SVG; fallback inline evita l’immagine rotta nativa in caso di errore runtime;
+- bottom navigation con stato attivo route-aware, `aria-current` e accento coerente light/dark; il pulsante `+` resta una sola azione;
 - manifest web app e navigazione ottimizzata per smartphone;
 - componenti coerenti per spazi, categorie, modali e navigazione inferiore.
 
@@ -195,6 +219,16 @@ La migration V3.7-V3.9 è idempotente, mantiene i dati esistenti e assegna alle 
 3. Eseguire `npm test`, `npm run check:phosphor` e `npm run build`.
 4. Collaudare un calcolo in nuova/modifica transazione, ricorrenza e budget; verificare poi ricerca e suggerimenti icone.
 
+### Aggiornamento da V3.9.2 a V3.9.3
+
+1. Eseguire un backup del database Supabase.
+2. In **Supabase SQL Editor**, eseguire una sola volta `supabase/migrations/20261120_v3_9_3_macro_budgets.sql`.
+3. Verificare le tabelle `budget_macro_categories` e `macro_budget_allocations` e la colonna `categories.macro_category_id`.
+4. Distribuire tutti i file V3.9.3, inclusa la cartella rigenerata `public/icons/color/`.
+5. Eseguire `npm test`, `npm run audit:icons`, `npm run check:phosphor` e `npm run build`.
+
+La migration crea le macro predefinite per ogni spazio, aggiunge il tipo categoria, assegna le sole categorie expense alle macro e converte i vecchi budget categoria in allocazioni macro. I nomi chiaramente reddituali e le categorie usate soltanto con importi positivi diventano income; categorie miste/ambigue restano expense. Le ricorrenze legacy incoerenti vengono spostate sui fallback corretti, senza riscrivere le transazioni storiche. I record `budgets` precedenti non vengono cancellati; se esistono budget categoria senza budget totale, la migration ricava un totale compatibile dalla loro somma.
+
 ## Deploy su Vercel
 
 1. Importare la repository in Vercel.
@@ -236,7 +270,7 @@ supabase/
 
 ## Stato del progetto
 
-**Versione corrente: V3.9.1 Smart UX.**
+**Versione corrente: V3.9.3 Macro Budget.**
 
 Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzionalità disponibili” appartengono alla versione implementata; quelle riportate qui sotto sono pianificate e **non devono essere considerate già disponibili**.
 
@@ -249,6 +283,8 @@ Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzi
 | V3.8 | ✅ Implementata | Analytics 2.0, trend e breakdown per autore/spazio |
 | V3.9 | ✅ Implementata | Ricorrenze 2.0, abbonamenti, scadenze e movimenti futuri |
 | V3.9.1 | ✅ Implementata | Calcolatrice importi e catalogo icone Color locale smart |
+| V3.9.2 | ✅ Implementata | Selettore mese custom e filtri Movimenti accessibili |
+| V3.9.3 | ✅ Implementata | Macro Budget, impegni, rollover, analytics macro e nav attiva |
 | V3.10 | 🧭 Pianificata | Smart Add e suggerimenti di inserimento rapido |
 | V3.11 | 🧭 Pianificata | Obiettivi di risparmio e avanzamento |
 | V3.12 | 🧭 Pianificata | Import/export evoluto, backup e ripristino |
@@ -260,11 +296,12 @@ Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzi
 
 ```bash
 npm test
+npm run audit:icons
 npm run check:phosphor
 npm run build
 ```
 
-`npm test` verifica i casi di ricorrenza a fine mese/anno bisestile, i filtri e gli oggetti SQL/RLS V3.7-V3.9, più parser importi, integrazione nei moduli, dimensione/asset del catalogo, compatibilità identificatori e mapping semantico V3.9.1.
+`npm test` verifica ricorrenze, filtri, parser importi, UX Hotfix, Macro Budget, RLS, compatibilità dati, navigazione attiva e path di tutti gli asset. `npm run audit:icons` esegue inoltre parsing XML, rendering CairoSVG e decodifica PNG/Pillow di ogni icona locale.
 
 Per V3.6 eseguire anche un test con **Account A** e **Account B**:
 
@@ -320,3 +357,16 @@ L'attribuzione Icons8 rimane visibile in **Impostazioni → Informazioni** per g
 ### Database
 
 V3.9.1 non richiede migration Supabase. I nuovi comportamenti sono frontend e mantengono lo schema V3.9 REV1.
+
+## V3.9.3 Macro Budget — note tecniche
+
+- `lib/macro-budget.ts` calcola impegni fissi, spesa discrezionale, allocazioni, rollover e proiezioni;
+- `save_macro_budget_plan` salva atomicamente totale e percentuali macro;
+- `can_manage_space_budget` e le RLS consentono la lettura ai membri e le modifiche soltanto a owner/creatore;
+- un trigger protegge `categories.macro_category_id` anche da aggiornamenti diretti;
+- rollover: `max(0, allocazione precedente + rollover precedente - spesa discrezionale precedente)`;
+- budget effettivo macro: allocazione discrezionale + impegni della macro + rollover;
+- la proiezione usa il ritmo della spesa discrezionale e aggiunge gli impegni programmati del mese;
+- la bottom navigation deriva la voce attiva da `usePathname`, incluse le sottopagine, senza trattare `+` come tab;
+- gli SVG rigenerati non usano paint server `url(#...)`, riferimenti esterni, geometrie percentuali o il precedente pallino decorativo; ruote e fori semantici restano nel path originale e un fallback inline sostituisce qualsiasi errore runtime;
+- `categories.kind` separa strutturalmente expense/income; trigger e API impediscono nuovi movimenti o ricorrenze con categoria del tipo errato, mentre le ambiguità legacy rimangono documentate e non distruttive.

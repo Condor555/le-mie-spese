@@ -7,6 +7,7 @@ import Icon from '../../components/Icon';
 
 type CategoryPreview={
   name:string;
+  kind:'expense'|'income';
   icon?:string|null;
   color?:string|null;
   suggestion?:{name:string;score:number}|null;
@@ -155,7 +156,7 @@ export default function Onboarding(){
         {categories.map(item=><label key={item.name} className={selected.has(item.name)?'selected':''}>
           <input type="checkbox" checked={selected.has(item.name)} onChange={()=>toggle(item.name)}/>
           <CategoryIcon name={item.name} icon={item.icon||undefined} color={item.color||undefined} size={40}/>
-          <span><b>{item.name}</b><small>{item.suggestion?`Simile a “${item.suggestion.name}” già presente`:'Nuova nello spazio condiviso'}</small></span>
+          <span><b>{item.name}</b><small>{item.kind==='income'?'Entrata':'Uscita'} · {item.suggestion?`simile a “${item.suggestion.name}” già presente`:'nuova nello spazio condiviso'}</small></span>
         </label>)}
       </div>
       <button className="save-btn" disabled={busy} onClick={importAndFinish}>{busy?'Completamento…':`Continua · copia ${importCount} ${importCount===1?'categoria':'categorie'}`}</button>
