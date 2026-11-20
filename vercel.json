@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "numa-money.vercel.app"
+        }
+      ],
+      "destination": "https://qoomia.vercel.app/:path*",
+      "permanent": true
+    }
+  ]
+}

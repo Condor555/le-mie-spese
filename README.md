@@ -1,37 +1,46 @@
 <div align="center">
 
-# 💶 Le Mie Spese
+<img src="./public/icons/qoomia.svg" alt="Logo Qoomia" width="112" height="112" />
 
-**Expense tracker personale e familiare, mobile-first, con spazi privati e condivisi.**
+# 🟢 Qoomia
 
-[![Versione](https://img.shields.io/badge/versione-3.9.4-5b5ce2?style=flat-square)](#stato-del-progetto)
+**Dai senso alle tue spese, in privato o in famiglia.**
+
+[![Versione](https://img.shields.io/badge/versione-4.0.0-0F766E?style=flat-square)](#stato-del-progetto)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
 [![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?style=flat-square&logo=vercel)](https://vercel.com/)
 
-*Le Mie Spese* nasce per portare in un'unica interfaccia pulita lo storico finanziario personale, l'inserimento rapido dei movimenti e la gestione delle spese di coppia o famiglia — mantenendo un'infrastruttura utilizzabile sui piani gratuiti.
+> **Qoomia** è una web app mobile-first per la gestione intelligente delle finanze personali e condivise. Nata dall’unione di **Quota** — Macro Budget, impegni programmati e rollover — e **Mia** — un ambiente personale, pulito e su misura — permette di monitorare entrate, uscite e obiettivi in **Spazi Privati** o **Spazi Condivisi** con partner e famiglia.
 
 </div>
 
 ---
 
+## ✨ Pilastri dell’esperienza Qoomia
+
+- **Spazi Privati e Condivisi**: passa con un tap dal conto personale allo spazio condiviso di coppia o famiglia tramite codice invito.
+- **Macro Budget e Rollover**: organizza le spese per macro-categorie, gestisci gli impegni ricorrenti e visualizza il budget discrezionale reale.
+- **Chiarezza Immediata**: interfaccia rapida pensata per inserire un movimento in pochi secondi, con temi Light/Dark nativi.
+
 ## Panoramica
 
-La versione **V3.9.4 Lingua e Statistiche** parte dalla V3.9.3 stabile e aggiunge una base i18n centralizzata Italiano/English, preferenza lingua persistita per utente, formati locali coerenti, correzione della proiezione di fine mese e gestione robusta dei mesi senza Budget. Ogni spazio **Personale** o **Condiviso** mantiene struttura e piano budget indipendenti; soltanto owner/creatore può modificarli negli spazi condivisi.
+**Qoomia V4.0** conserva integralmente la base funzionale V3.9.4 e aggiunge la nuova identità di prodotto: nome, logo, palette verde petrolio, metadata, favicon e asset PWA. La root è protetta dal middleware Supabase: un visitatore non autenticato viene reindirizzato a `/login`, mentre una sessione valida entra direttamente nell’app.
 
-### Novità V3.9.4
+La base applicativa include i18n Italiano/English, preferenza lingua persistita, Spazi Privati e Condivisi, Budget e Macro Budget con rollover, ricorrenze, import/export, statistiche e temi light/dark. Ogni spazio mantiene struttura e piano budget indipendenti; soltanto owner/creatore può modificarli negli spazi condivisi.
 
-- dizionari IT/EN centralizzati in `lib/i18n.ts`, provider applicativo unico e Italiano come default/fallback;
-- preferenza **Impostazioni → Account → Lingua** persistita in `profiles.language`, quindi disponibile anche dopo login da un altro dispositivo;
-- etichette e tooltip dei grafici `income`/`expense` tradotti come **Entrate/Uscite** o **Income/Expenses**;
-- **Proiezione fine mese** calcolata soltanto per il mese corrente: `uscite / giorni trascorsi × giorni del mese`, con media giornaliera esplicita;
-- per i mesi conclusi la card mostra **Saldo del mese = Entrate − Uscite**; per i mesi futuri non mostra stime fuorvianti;
-- Budget senza piano mensile gestito con empty state **Nessun budget configurato**: owner può avviare la configurazione, member vede uno stato informativo in sola lettura;
-- Budget resta una sezione secondaria sotto Statistiche: la bottom navigation conserva quattro destinazioni più `+`, mentre `/budget` ha un pulsante Indietro accessibile e coerente con light/dark e mobile/desktop;
-- nessun rebranding o nuovo nome applicato.
+### Novità V4.0 — Qoomia
 
-L'app è costruita con **Next.js**, **Supabase** e **Vercel**. Non richiede servizi a pagamento per il flusso base: autenticazione, database PostgreSQL, Row Level Security e deploy possono utilizzare i rispettivi free tier.
+- identità Qoomia applicata a Home, login, registrazione, onboarding e Informazioni;
+- logo vettoriale sorgente e icone PWA 192/512, maskable, Apple touch e favicon;
+- manifest con `name` **Qoomia — Spese, Budget e Famiglia**, `short_name` **Qoomia** e `theme_color` `#0F766E`;
+- palette coerente: light `#F8FAFC`, dark `#090D16`, accento `#0F766E`;
+- metadata SEO/Open Graph e tema browser sensibile al color scheme;
+- repository e link applicativi aggiornati a `Condor555/qoomia`;
+- redirect permanente dal dominio legacy e runbook operativo in `QOOMIA-MIGRATION-RUNBOOK.md`;
+- nessuna modifica allo schema Supabase e nessuna regressione funzionale intenzionale;
+- **Saldo del mese** e stato **Nessun budget configurato** restano invariati rispetto alla baseline V3.9.4.
 
 ## Screenshot
 
@@ -181,8 +190,8 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 ### Installazione
 
 ```bash
-git clone https://github.com/Condor555/le-mie-spese.git
-cd le-mie-spese
+git clone https://github.com/Condor555/qoomia.git
+cd qoomia
 npm install
 cp .env.local.example .env.local # se il file di esempio viene aggiunto
 npm run dev
@@ -258,11 +267,12 @@ La migration è incrementale e riutilizza le RLS `profiles` esistenti: ogni uten
 
 ## Deploy su Vercel
 
-1. Importare la repository in Vercel.
-2. Aggiungere `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` in **Project Settings → Environment Variables**.
-3. Usare il preset Next.js e Node.js 20+.
-4. Eseguire il deploy.
-5. Aggiungere il dominio Vercel tra gli URL consentiti da Supabase Auth.
+1. Collegare `Condor555/qoomia` al progetto Vercel e impostare il nome progetto `qoomia`.
+2. Aggiungere `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `NEXT_PUBLIC_SITE_URL=https://qoomia.vercel.app` in **Project Settings → Environment Variables**.
+3. Usare il preset Next.js e Node.js 20+; aggiungere `qoomia.vercel.app` come dominio primario.
+4. Mantenere temporaneamente `numa-money.vercel.app` come alias: `vercel.json` applica il redirect permanente verso il nuovo dominio.
+5. In Supabase Auth impostare **Site URL** a `https://qoomia.vercel.app` e consentire almeno `https://qoomia.vercel.app/auth/callback`.
+6. Eseguire il deploy e il collaudo anonimo/autenticato descritto in `QOOMIA-MIGRATION-RUNBOOK.md`.
 
 Ogni push sul branch collegato genera un nuovo deployment. `next build` esegue il controllo TypeScript degli import effettivamente usati.
 
@@ -297,11 +307,11 @@ supabase/
 
 ## Stato del progetto
 
-**Versione corrente: V3.9.4 Lingua e Statistiche.**
+**Versione corrente: V4.0.0 Qoomia.**
 
-Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzionalità disponibili” appartengono alla versione implementata; quelle riportate qui sotto sono pianificate e **non devono essere considerate già disponibili**.
+La repository Qoomia è un progetto in evoluzione. Le funzioni elencate in “Funzionalità disponibili” appartengono alla versione implementata; quelle riportate qui sotto sono pianificate e **non devono essere considerate già disponibili**.
 
-## Roadmap verso V4
+## Roadmap
 
 | Versione | Stato | Obiettivo |
 |---|---|---|
@@ -315,9 +325,9 @@ Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzi
 | V3.9.4 | ✅ Implementata | IT/EN persistente, proiezione corretta, Budget empty state e back navigation |
 | V3.10 | 🧭 Prossima | Obiettivi di risparmio visibili e completi |
 | V3.11 | 🧭 Pianificata | Backup & Portabilità |
-| V4.0 | 🧭 Pianificata | Branding: nome, dominio, repository, logo e manifest |
+| V4.0 | ✅ Implementata | Qoomia: nome, dominio, repository, logo, palette, metadata e manifest PWA |
 
-**In stand-by, senza implementazione in V3.9.4:** Conti/Portafogli multipli e Debiti/Crediti.
+**In stand-by, senza implementazione in V4.0:** Conti/Portafogli multipli e Debiti/Crediti.
 
 ## Verifica prima di una release
 
@@ -343,7 +353,7 @@ Per V3.6 eseguire anche un test con **Account A** e **Account B**:
 
 <div align="center">
 
-Costruita per una gestione finanziaria semplice, privata e condivisibile — senza abbandonare lo stack gratuito.
+**Qoomia** — Dai senso alle tue spese, in privato o in famiglia.
 
 </div>
 

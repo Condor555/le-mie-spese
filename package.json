@@ -1,9 +1,12 @@
 {
+  "name": "qoomia",
+  "version": "4.0.0",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node scripts/verify-v3.9.4.mjs",
+    "test": "node scripts/verify-v3.9.4.mjs && node scripts/verify-qoomia-brand.mjs",
     "verify:v3.9.1": "node scripts/verify-v3.9.1.mjs",
     "verify:hotfix": "node scripts/verify-v3.9.1-hotfix.mjs",
     "verify:v3.9.3": "node scripts/verify-v3.9.3.mjs",
@@ -26,6 +29,5 @@
     "@types/papaparse": "^5.3.15",
     "@types/react": "^19.0.7",
     "typescript": "^5.7.3"
-  },
-  "version": "3.9.4"
+  }
 }

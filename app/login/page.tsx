@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import {useI18n} from '../../components/LanguageProvider';
+import QoomiaLogo from '../../components/QoomiaLogo';
 
 export default function Login() {
   const {t}=useI18n();
@@ -46,9 +47,9 @@ export default function Login() {
 
   return (
     <div className="auth-screen">
-      <div className="auth-logo">€</div>
+      <QoomiaLogo size={64} className="auth-logo" priority/>
 
-      <h1>Le Mie Spese</h1>
+      <h1>Qoomia</h1>
       <p>{t('auth.loginSubtitle')}</p>
 
       <form className="surface auth-panel" onSubmit={login}>

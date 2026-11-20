@@ -4,6 +4,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import CategoryIcon from '../../components/CategoryIcon';
 import Icon from '../../components/Icon';
+import QoomiaLogo from '../../components/QoomiaLogo';
 
 type CategoryPreview={
   name:string;
@@ -136,8 +137,8 @@ export default function Onboarding(){
 
   return <div className="onboarding-screen">
     <header className="onboarding-head">
-      <span className="onboarding-logo">€</span>
-      <div><small>LE MIE SPESE · V3.6</small><h1>{setup?.sharedSpace?'Scegli le categorie':'Configura il tuo account'}</h1></div>
+      <QoomiaLogo size={54} className="onboarding-logo" priority/>
+      <div><small>QOOMIA · V4.0</small><h1>{setup?.sharedSpace?'Scegli le categorie':'Configura il tuo account'}</h1></div>
     </header>
 
     {!setup&&<section className="onboarding-card surface">

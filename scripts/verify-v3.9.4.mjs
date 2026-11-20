@@ -60,7 +60,7 @@ assert((recurring.match(/<DateInput/g)||[]).length>=2&&!recurring.includes('type
 assert(dateInput.includes('showPicker')&&css.includes('.date-input-control>input::-webkit-calendar-picker-indicator'));
 assert(accountPage.includes("title:'account.profileTitle'")&&!accountPage.includes("/account/obiettivi"));
 assert(goalsPage.includes("redirect('/account')"),'Obiettivi deve restare non visibile fino alla V3.10.');
-for(const token of ['InfoIcon','Repository GitHub','https://github.com/Condor555/le-mie-spese','noopener noreferrer'])assert(accountPage.includes(token)||infoPage.includes(token),`Informazioni: manca ${token}`);
+for(const token of ['InfoIcon','Repository GitHub','https://github.com/Condor555/qoomia','noopener noreferrer'])assert(accountPage.includes(token)||infoPage.includes(token),`Informazioni: manca ${token}`);
 assert(categoryPage.includes("useState<'expense'|'income'>('expense')")&&categoryPage.includes('category-kind-tabs')&&categoryPage.includes('Uscite')&&categoryPage.includes('Entrate'));
 assert(importPage.includes('variant="destination"')&&importPage.includes("form.set('space_id',spaceId)")&&!importPage.includes('Spazio visualizzato'));
 assert(suggestionsApi.includes(".eq('space_id',spaceId)")&&suggestionsApi.includes("rankTransactionSuggestions((data||[]) as SuggestionRow[],query,5)"));
@@ -78,9 +78,8 @@ assert.match(runtime.formatCurrency(1353.36,'en'),/1,353\.36/);
 assert.equal(runtime.normalizeLocale('fr'),'it');
 const itKeys=Object.keys(runtime.messages.it).sort();const enKeys=Object.keys(runtime.messages.en).sort();assert.deepEqual(enKeys,itKeys,'I dizionari IT/EN devono avere le stesse chiavi.');
 
-const pkg=JSON.parse(packageJson);assert.equal(pkg.version,'3.9.4');assert.equal(pkg.scripts.test,'node scripts/verify-v3.9.4.mjs');
-for(const token of ['V3.9.4','20261120_v3_9_4_user_language.sql','Saldo del mese','Nessun budget configurato'])assert(readme.includes(token),`README: manca ${token}`);
-assert(!/NUMA/i.test(readme),'Il nuovo branding non deve essere applicato.');
+const pkg=JSON.parse(packageJson);assert.equal(pkg.version,'4.0.0');assert.equal(pkg.scripts.test,'node scripts/verify-v3.9.4.mjs && node scripts/verify-qoomia-brand.mjs');
+for(const token of ['V4.0','20261120_v3_9_4_user_language.sql','Saldo del mese','Nessun budget configurato'])assert(readme.includes(token),`README: manca ${token}`);
 
 const sourceFiles=[];
 async function collect(directory){for(const entry of await readdir(new URL(directory,root),{withFileTypes:true})){const relative=`${directory}${entry.name}`;if(entry.isDirectory())await collect(`${relative}/`);else if(/\.(ts|tsx)$/.test(entry.name))sourceFiles.push(relative)}}

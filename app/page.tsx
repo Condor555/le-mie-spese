@@ -9,6 +9,7 @@ import {categoryStyle} from '../lib/category-style';
 import {onActiveSpaceChanged} from '../lib/active-space-client';
 import {useSharedMonth} from '../lib/selected-period-client';
 import {useI18n} from '../components/LanguageProvider';
+import QoomiaLogo from '../components/QoomiaLogo';
 
 type TopCategory={name:string;value:number;percentage:number;previousValue:number;changePercent:number|null;comparison:'available'|'no-previous-data'};
 type Stats={
@@ -88,7 +89,7 @@ export default function Home(){
     :t('home.vsLastMonth',{value:`${top.changePercent>0?'+':''}${top.changePercent}`});
 
   return <>
-    <header className="page-head home-head"><div><h1>Le Mie Spese</h1><p>{t('home.subtitle')}</p></div><MonthPicker value={month} onChange={setMonth}/></header>
+    <header className="page-head home-head"><div className="home-brand"><QoomiaLogo size={42}/><div><h1>Qoomia</h1><p>{t('home.subtitle')}</p></div></div><MonthPicker value={month} onChange={setMonth}/></header>
 
     <section className="balance-card">
       <header><Icon name="wallet" size={18}/><span>{t('home.monthBalance')}</span><Icon name="chart" size={20}/></header>

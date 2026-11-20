@@ -5,6 +5,7 @@ import {usePathname} from 'next/navigation';
 import SpacePicker,{type SpacePickerOption} from './SpacePicker';
 import {announceActiveSpace} from '../lib/active-space-client';
 import {useI18n} from './LanguageProvider';
+import QoomiaLogo from './QoomiaLogo';
 
 type Space=SpacePickerOption;
 
@@ -65,6 +66,7 @@ export default function SpaceSwitcher(){
   if(!spaces.length)return null;
 
   return <div className="app-space-bar" title={error||undefined}>
+    <span className="app-brand"><QoomiaLogo size={32}/><b>Qoomia</b></span>
     <SpacePicker spaces={spaces} value={active} onChange={choose} variant="compact" disabled={changing}/>
   </div>;
 }
