@@ -115,12 +115,12 @@ def make_svg(slug: str, index: int) -> None:
     path = re.search(r'(<path\b.*?</path>|<path\b[^>]*/>)', source, re.S)
     if not view or not path:
         raise RuntimeError(f'Unsupported SVG: {slug}')
-    c1, _, _ = PALETTES[index % len(PALETTES)]
-    # Keep each file self-contained and browser-safe: no external references, no
-    # percentage geometry, no url(#id) paint servers and no decorative dot/circle.
-    body = path.group(1).replace('<path ', f'<path fill="{c1}" ')
+    c1, c2, accent = PALETTES[index % len(PALETTES)]
+    body = path.group(1).replace('<path ', '<path fill="url(#icon-gradient)" ')
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="{view.group(1)}" role="img">
 <!-- Local color treatment; source glyph: Font Awesome Free 6.7.2, CC BY 4.0. -->
+<defs><linearGradient id="icon-gradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="{c1}"/><stop offset="1" stop-color="{c2}"/></linearGradient></defs>
+<circle cx="84%" cy="18%" r="9%" fill="{accent}" opacity=".72"/>
 {body}
 </svg>\n'''
     (OUT / f'{slug}.svg').write_text(svg)

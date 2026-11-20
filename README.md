@@ -4,7 +4,7 @@
 
 **Expense tracker personale e familiare, mobile-first, con spazi privati e condivisi.**
 
-[![Versione](https://img.shields.io/badge/versione-3.9.3-5b5ce2?style=flat-square)](#stato-del-progetto)
+[![Versione](https://img.shields.io/badge/versione-3.9.1-5b5ce2?style=flat-square)](#stato-del-progetto)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -18,7 +18,7 @@
 
 ## Panoramica
 
-La versione **V3.9.3 Macro Budget** mantiene Smart UX e la UX Hotfix V3.9.2, aggiungendo macro-categorie, impegni programmati, rollover, analytics macro e navigazione attiva. Ogni spazio **Personale** o **Condiviso** mantiene struttura e piano budget indipendenti; soltanto owner/creatore può modificarli negli spazi condivisi.
+La versione **V3.9.1 Smart UX** parte dalla V3.9 REV1 stabile e aggiunge calcoli sicuri negli importi e un catalogo locale di 365 icone colorate, senza cambiare schema o policy Supabase. Ogni spazio **Personale** o **Condiviso** mantiene dati, budget, categorie e permessi indipendenti; Movimenti usa ricerca e filtri reattivi, mentre Home e Statistiche condividono un selettore mese compatto e accessibile.
 
 L'app è costruita con **Next.js**, **Supabase** e **Vercel**. Non richiede servizi a pagamento per il flusso base: autenticazione, database PostgreSQL, Row Level Security e deploy possono utilizzare i rispettivi free tier.
 
@@ -74,28 +74,6 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - lettura per tutti i membri e modifica riservata all’owner tramite RLS.
 - mini-calcolatrice disponibile sia sul limite complessivo sia sui budget di categoria.
 
-### Macro Budget V3.9.3
-
-- otto macro-categorie iniziali: Casa & Utenze, Alimentazione, Mobilità, Salute & Famiglia, Tempo libero, Shopping, Viaggi e Altro;
-- budget totale meno impegni programmati uguale budget discrezionale distribuibile;
-- allocazioni macro principalmente percentuali, con equivalente euro e inserimento diretto in euro;
-- categorie esistenti come drill-down analitico, assegnabili alle macro;
-- creazione, rinomina, colore, ordine e rollover opzionale del residuo;
-- ricorrenze e abbonamenti conteggiati come impegni fissi del mese;
-- RLS e funzioni atomiche riservano le modifiche a owner/creatore, lasciando la lettura ai membri;
-- conversione iniziale non distruttiva dei budget categoria già salvati.
-
-### Categorie di uscita e di entrata
-
-- ogni categoria ha tipo strutturale `expense` o `income`;
-- il form transazione e le ricorrenze mostrano soltanto categorie coerenti col tipo selezionato;
-- suggerimenti e classificazione storica sono filtrati per segno/tipo;
-- Impostazioni → Categorie separa Uscite ed Entrate e preserva il tipo in modifica/unione;
-- set iniziale entrate: Stipendio, Pensione, Bonus/Premi, Regali ricevuti, Rimborsi, Interessi/Rendite, Vendite, Trasferimenti in entrata e Altra entrata;
-- Macro Budget e rollover interrogano esclusivamente categorie `expense`;
-- Analytics mantiene le macro per le spese e mostra separatamente le fonti di reddito;
-- l'import CSV classifica dal segno e dai nomi inequivocabili, usando Altro/Altra entrata in caso di conflitto con una categoria esistente.
-
 ### Home e Analytics 2.0 V3.8
 
 - selettore mese compatto condiviso tra Home e Statistiche, interamente cliccabile/toccabile e utilizzabile da tastiera;
@@ -120,11 +98,9 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 
 - design mobile-first e responsive;
 - modalità chiara, scura o automatica;
-- icone funzionali Phosphor e catalogo categorie curato composto esclusivamente dagli asset Icons8 Color legacy reali;
+- icone funzionali Phosphor, brand separati e catalogo locale di 365 icone colorate organizzate in gruppi;
 - ricerca icone in italiano/inglese, sinonimi, suggerimenti dal nome categoria, preferite/recenti in `localStorage`, rendering a batch e immagini lazy;
 - compatibilità con gli identificatori icona V3.9, fallback locale sicuro e correzione semantica `Mare → Spiaggia`;
-- audit fisico e decodifica dei 63 asset categoria e 12 brand effettivamente referenziati; fallback Phosphor Tag evita l’immagine rotta nativa;
-- bottom navigation con stato attivo route-aware, `aria-current` e accento coerente light/dark; il pulsante `+` resta una sola azione;
 - manifest web app e navigazione ottimizzata per smartphone;
 - componenti coerenti per spazi, categorie, modali e navigazione inferiore.
 
@@ -146,7 +122,7 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 | Database e Auth | Supabase PostgreSQL + Supabase Auth |
 | Sicurezza dati | PostgreSQL Row Level Security |
 | Grafici | Recharts |
-| Icone | UI: Phosphor; categorie: Icons8 Color reali; brand: asset dedicati locali |
+| Icone | Phosphor Icons; Icons8/brand storici; Font Awesome Free per il catalogo Color locale |
 | Validazione | Zod |
 | Deploy | Vercel |
 | Import CSV | Papa Parse |
@@ -214,20 +190,10 @@ La migration V3.7-V3.9 è idempotente, mantiene i dati esistenti e assegna alle 
 
 ### Aggiornamento da V3.9 REV1 a V3.9.1
 
-1. Sostituire i file applicativi mantenendo `public/icons/categories/` e `public/icons/brands/`.
+1. Sostituire i file applicativi e aggiungere `public/icons/color/`.
 2. Non eseguire nuove query SQL: V3.9.1 non introduce tabelle, colonne, funzioni o policy.
 3. Eseguire `npm test`, `npm run check:phosphor` e `npm run build`.
 4. Collaudare un calcolo in nuova/modifica transazione, ricorrenza e budget; verificare poi ricerca e suggerimenti icone.
-
-### Aggiornamento da V3.9.2 a V3.9.3
-
-1. Eseguire un backup del database Supabase.
-2. In **Supabase SQL Editor**, eseguire una sola volta `supabase/migrations/20261120_v3_9_3_macro_budgets.sql`.
-3. Verificare le tabelle `budget_macro_categories` e `macro_budget_allocations` e la colonna `categories.macro_category_id`.
-4. Distribuire tutti i file V3.9.3. Il runtime non usa `public/icons/color/`.
-5. Eseguire `npm test`, `npm run audit:icons`, `npm run check:phosphor` e `npm run build`.
-
-La migration crea le macro predefinite per ogni spazio, aggiunge il tipo categoria, assegna le sole categorie expense alle macro e converte i vecchi budget categoria in allocazioni macro. I nomi chiaramente reddituali e le categorie usate soltanto con importi positivi diventano income; categorie miste/ambigue restano expense. Le ricorrenze legacy incoerenti vengono spostate sui fallback corretti, senza riscrivere le transazioni storiche. I record `budgets` precedenti non vengono cancellati; se esistono budget categoria senza budget totale, la migration ricava un totale compatibile dalla loro somma.
 
 ## Deploy su Vercel
 
@@ -270,7 +236,7 @@ supabase/
 
 ## Stato del progetto
 
-**Versione corrente: V3.9.3 Macro Budget.**
+**Versione corrente: V3.9.1 Smart UX.**
 
 Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzionalità disponibili” appartengono alla versione implementata; quelle riportate qui sotto sono pianificate e **non devono essere considerate già disponibili**.
 
@@ -283,10 +249,8 @@ Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzi
 | V3.8 | ✅ Implementata | Analytics 2.0, trend e breakdown per autore/spazio |
 | V3.9 | ✅ Implementata | Ricorrenze 2.0, abbonamenti, scadenze e movimenti futuri |
 | V3.9.1 | ✅ Implementata | Calcolatrice importi e catalogo icone Color locale smart |
-| V3.9.2 | ✅ Implementata | Selettore mese custom e filtri Movimenti accessibili |
-| V3.9.3 | ✅ Implementata | Macro Budget, impegni, rollover, analytics macro e nav attiva |
 | V3.10 | 🧭 Pianificata | Smart Add e suggerimenti di inserimento rapido |
-| V3.11 | ↩️ Anticipata in V3.9.3 | Obiettivi di risparmio e avanzamento |
+| V3.11 | 🧭 Pianificata | Obiettivi di risparmio e avanzamento |
 | V3.12 | 🧭 Pianificata | Import/export evoluto, backup e ripristino |
 | V3.13 | 🧭 Pianificata | Più conti/portafogli, saldi e trasferimenti |
 | V3.14 | 🧭 Pianificata | Debiti, crediti, anticipi e rimborsi |
@@ -296,12 +260,11 @@ Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzi
 
 ```bash
 npm test
-npm run audit:icons
 npm run check:phosphor
 npm run build
 ```
 
-`npm test` verifica ricorrenze, filtri, parser importi, UX Hotfix, Macro Budget, RLS, compatibilità dati, navigazione attiva e path di tutti gli asset. `npm run audit:icons` esegue inoltre parsing XML, rendering CairoSVG e decodifica PNG/Pillow di ogni icona locale.
+`npm test` verifica i casi di ricorrenza a fine mese/anno bisestile, i filtri e gli oggetti SQL/RLS V3.7-V3.9, più parser importi, integrazione nei moduli, dimensione/asset del catalogo, compatibilità identificatori e mapping semantico V3.9.1.
 
 Per V3.6 eseguire anche un test con **Account A** e **Account B**:
 
@@ -336,50 +299,24 @@ Costruita per una gestione finanziaria semplice, privata e condivisibile — sen
 
 ### Catalogo icone
 
-- 63 asset categoria Icons8 Color reali in `public/icons/categories/`;
+- 365 asset SVG locali in `public/icons/color/`;
 - 12 brand separati in `public/icons/brands/`;
-- catalogo curato per i casi finanziari realmente necessari;
+- 16 gruppi tematici;
 - ricerca normalizzata italiano/inglese e sinonimi finanziari/quotidiani;
 - suggerimenti automatici dal nome della categoria;
 - preferite e recenti solo in `localStorage`, senza database;
 - prime 48 voci renderizzate, batch successivi con `IntersectionObserver`;
 - `loading="lazy"` e `decoding="async"` sulle immagini;
 - resolver statico allow-list: un identificatore salvato non viene mai interpolato come URL;
-- gli identificatori legacy e `color:*` vengono ricondotti a un asset reale compatibile o al fallback;
-- fallback esclusivo Phosphor Tag per icone sconosciute o non disponibili.
+- alias per tutti gli identificatori V3.9 e fallback `color:tag`;
+- correzione della precedente associazione automatica `Mare → aereo` in `Mare → umbrella-beach`.
 
-La cartella artificiale `public/icons/color/`, il relativo manifest generato e lo script colorizer non sono più referenziati dal runtime. Restano fisicamente nella repository solo per una successiva rimozione controllata dopo la verifica dei dati salvati.
+Lo script `scripts/build-color-icon-catalog.py` rigenera catalogo e asset usando i glifi installati di Font Awesome Free. Non viene eseguito nel browser né durante il deploy.
 
 ### Licenze e attribuzioni
 
-L'attribuzione Icons8 rimane visibile in **Impostazioni → Informazioni**. Nessuna API di icone viene chiamata a runtime e nessun glifo viene generato, ricolorato o sovrapposto.
+L'attribuzione Icons8 rimane visibile in **Impostazioni → Informazioni** per gli asset e i marchi storici. Il catalogo esteso usa glifi Font Awesome Free 6, distribuiti con licenza CC BY 4.0, con trattamento colore locale; l'attribuzione è riportata sia nell'app sia nei commenti SVG generati. Nessuna API di icone viene chiamata a runtime.
 
 ### Database
 
 V3.9.1 non richiede migration Supabase. I nuovi comportamenti sono frontend e mantengono lo schema V3.9 REV1.
-
-## V3.9.3 Macro Budget — note tecniche
-
-- `lib/macro-budget.ts` calcola impegni fissi, spesa discrezionale, allocazioni, rollover e proiezioni;
-- `save_macro_budget_plan` salva atomicamente totale e percentuali macro;
-- `can_manage_space_budget` e le RLS consentono la lettura ai membri e le modifiche soltanto a owner/creatore;
-- un trigger protegge `categories.macro_category_id` anche da aggiornamenti diretti;
-- rollover: `max(0, allocazione precedente + rollover precedente - spesa discrezionale precedente)`;
-- budget effettivo macro: allocazione discrezionale + impegni della macro + rollover;
-- la proiezione usa il ritmo della spesa discrezionale e aggiunge gli impegni programmati del mese;
-- la bottom navigation deriva la voce attiva da `usePathname`, incluse le sottopagine, senza trattare `+` come tab;
-- la tab Movimenti usa l’icona Phosphor con frecce verticali opposte per entrate/uscite;
-- il runtime non usa più il catalogo artificiale/colorizer e quindi non introduce pallini o sovrapposizioni decorative;
-- `categories.kind` separa strutturalmente expense/income; trigger e API impediscono nuovi movimenti o ricorrenze con categoria del tipo errato, mentre le ambiguità legacy rimangono documentate e non distruttive.
-
-## Icon source of truth
-
-- **UI funzionale = Phosphor Icons**;
-- **categorie = veri asset Icons8 Color** da `public/icons/categories/`;
-- **brand = asset reali dedicati** da `public/icons/brands/`;
-- **fallback = Phosphor Tag**;
-- vietati mixing di famiglie, glifi generati, colorizer locale e sovrapposizioni decorative.
-
-## Obiettivi di risparmio
-
-Gli Obiettivi sono separati semanticamente dal Budget: il Budget limita la spesa, gli Obiettivi accumulano denaro, gli Impegni rappresentano spese future. Ogni obiettivo ha spazio, nome, icona/colore, target, accumulato, data opzionale, stato e contributo suggerito. I contributi sono registrati in una tabella dedicata e non generano automaticamente transazioni o spese. Owner/creatore configura gli obiettivi; i membri dello spazio condiviso possono visualizzare e contribuire.

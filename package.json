@@ -3,13 +3,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node scripts/verify-v3.9.mjs && node scripts/verify-v3.9.1.mjs && node scripts/verify-v3.9.1-hotfix.mjs && node scripts/verify-v3.9.3.mjs",
+    "test": "node scripts/verify-v3.9.mjs && node scripts/verify-v3.9.1.mjs",
     "check:phosphor": "node scripts/check-phosphor-exports.mjs",
     "prebuild": "npm run check:phosphor",
-    "verify:v3.9.1": "node scripts/verify-v3.9.1.mjs",
-    "verify:hotfix": "node scripts/verify-v3.9.1-hotfix.mjs",
-    "verify:v3.9.3": "node scripts/verify-v3.9.3.mjs",
-    "audit:icons": "python3 scripts/audit-icon-assets.py"
+    "verify:v3.9.1": "node scripts/verify-v3.9.1.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -28,5 +25,5 @@
     "@types/react": "^19.0.7",
     "typescript": "^5.7.3"
   },
-  "version": "3.9.3"
+  "version": "3.9.1"
 }

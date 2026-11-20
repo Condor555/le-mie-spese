@@ -5,7 +5,6 @@ import AmountExpressionInput from '../../components/AmountExpressionInput';
 import Icon from '../../components/Icon';
 import CategoryIcon from '../../components/CategoryIcon';
 import DateRangePicker,{type DateRange} from '../../components/DateRangePicker';
-import MovementFilterDropdown from '../../components/MovementFilterDropdown';
 import {onActiveSpaceChanged} from '../../lib/active-space-client';
 import {amountForSave} from '../../lib/amount-expression';
 
@@ -23,7 +22,7 @@ type Transaction={
   created_by?:string|null;
   author_name?:string;
 };
-type Category={name:string;kind:'expense'|'income';icon?:string;color?:string};
+type Category={name:string;icon?:string;color?:string};
 type Member={userId:string;name:string};
 type Kind='expense'|'income';
 type Scope='occurrence'|'series';
@@ -139,15 +138,6 @@ export default function Movimenti(){
     (all[row.date]||=[]).push(row);
     return all;
   },{}),[rows]);
-  const categoryOptions=useMemo(()=>[
-    {value:'',label:'Tutte'},
-    ...categories.map(item=>({value:item.name,label:item.name})),
-  ],[categories]);
-  const kindOptions=useMemo(()=>[
-    {value:'',label:'Entrate e uscite'},
-    {value:'expense',label:'Uscite'},
-    {value:'income',label:'Entrate'},
-  ],[]);
 
   function categoryData(name:string){
     return categories.find(item=>item.name===name);
@@ -174,8 +164,6 @@ export default function Movimenti(){
 
   const recurring=editing?.source==='recurring'&&Boolean(editing.recurring_id||editing.source_id);
   const activeCategory=editing?categoryData(editing.category_name):undefined;
-  const editCategories=categories.filter(item=>item.kind===kind);
-  function changeEditKind(next:Kind){if(next===kind)return;setKind(next);setCategory(categories.find(item=>item.kind===next)?.name||'');}
 
   async function save(){
     if(!editing)return;
@@ -235,8 +223,8 @@ export default function Movimenti(){
     <div className="search-box surface"><Icon name="search" size={19}/><input value={q} onChange={event=>setQ(event.target.value)} placeholder="Cerca una descrizione…" aria-label="Cerca movimenti per descrizione"/>{q&&<button type="button" className="search-clear" aria-label="Cancella ricerca" onClick={()=>{setQ('');setDebouncedQ('');setPage(1)}}>×</button>}</div>
     <div className="live-filter-bar">
       <DateRangePicker start={periodStart} end={periodEnd} onChange={changeRange}/>
-      <MovementFilterDropdown label="Categoria" value={categoryFilter} options={categoryOptions} onChange={value=>{setCategoryFilter(value);setPage(1)}}/>
-      <MovementFilterDropdown label="Tipo" value={kindFilter} options={kindOptions} onChange={value=>{setKindFilter(value);setPage(1)}}/>
+      <label className="compact-filter"><span>Categoria</span><select value={categoryFilter} onChange={event=>{setCategoryFilter(event.target.value);setPage(1)}}><option value="">Tutte</option>{categories.map(item=><option value={item.name} key={item.name}>{item.name}</option>)}</select></label>
+      <label className="compact-filter"><span>Tipo</span><select value={kindFilter} onChange={event=>{setKindFilter(event.target.value);setPage(1)}}><option value="">Entrate e uscite</option><option value="expense">Uscite</option><option value="income">Entrate</option></select></label>
       {hasFilters&&<button type="button" className="clear-filters" onClick={clearFilters}>Azzera filtri</button>}
     </div>
     {members.length>1&&<div className="author-filter" aria-label="Filtra movimenti per persona"><span>Inserito da</span><div><button type="button" className={!author?'active':''} aria-pressed={!author} onClick={()=>{setAuthor('');setPage(1)}}>Tutti</button>{members.map(member=><button type="button" key={member.userId} className={author===member.userId?'active':''} aria-pressed={author===member.userId} onClick={()=>{setAuthor(member.userId);setPage(1)}}>{member.name}</button>)}</div></div>}
@@ -278,10 +266,10 @@ export default function Movimenti(){
           <div><span className="transaction-eyebrow">{editing.note||editing.category_name}</span><h2 id="transaction-modal-title">Modifica movimento</h2></div>
           <button type="button" className="transaction-close" aria-label="Annulla modifica" disabled={busy} onClick={()=>setModalView('detail')}>×</button>
         </header>
-        <div className="segmented"><button type="button" className={kind==='expense'?'active':''} onClick={()=>changeEditKind('expense')}>Uscita</button><button type="button" className={kind==='income'?'active':''} onClick={()=>changeEditKind('income')}>Entrata</button></div>
+        <div className="segmented"><button type="button" className={kind==='expense'?'active':''} onClick={()=>setKind('expense')}>Uscita</button><button type="button" className={kind==='income'?'active':''} onClick={()=>setKind('income')}>Entrata</button></div>
         <div className="two-col"><div className="field"><label htmlFor="edit-transaction-amount">Importo</label><AmountExpressionInput id="edit-transaction-amount" value={amount} onChange={setAmount} ariaLabel="Importo del movimento"/></div><div className="field"><label>Data</label><input type="date" value={date} onChange={event=>setDate(event.target.value)}/></div></div>
         <div className="field"><label>Descrizione</label><input value={note} onChange={event=>setNote(event.target.value)}/></div>
-        <div className="field"><label>Categoria {kind==='income'?'di entrata':'di spesa'}</label><div className="transaction-category-field"><CategoryIcon name={category||editing.category_name} icon={categoryData(category)?.icon} color={categoryData(category)?.color} size={44}/><select value={category} onChange={event=>setCategory(event.target.value)}>{editCategories.map(item=><option key={item.name}>{item.name}</option>)}</select></div></div>
+        <div className="field"><label>Categoria</label><div className="transaction-category-field"><CategoryIcon name={category||editing.category_name} icon={categoryData(category)?.icon} color={categoryData(category)?.color} size={44}/><select value={category} onChange={event=>setCategory(event.target.value)}>{categories.map(item=><option key={item.name}>{item.name}</option>)}</select></div></div>
         <div className="field"><label>Conto</label><input value={account} readOnly aria-readonly="true" title="Modificabile da Impostazioni > Conto per lo spazio visualizzato"/></div>
         {recurring&&<div className="transaction-scope"><b>Applica la modifica a</b><div className="scope-choice"><label><input type="radio" name="edit-scope" checked={scope==='occurrence'} onChange={()=>setScope('occurrence')}/> Solo questa occorrenza</label><label><input type="radio" name="edit-scope" checked={scope==='series'} onChange={()=>setScope('series')}/> Occorrenza e serie futura</label></div></div>}
         {modalMsg&&<div className="notice" role="status">{modalMsg}</div>}
