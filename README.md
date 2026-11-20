@@ -120,10 +120,10 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 
 - design mobile-first e responsive;
 - modalità chiara, scura o automatica;
-- icone funzionali Phosphor, brand separati e catalogo locale di 365 icone colorate organizzate in gruppi;
+- icone funzionali Phosphor e catalogo categorie curato composto esclusivamente dagli asset Icons8 Color legacy reali;
 - ricerca icone in italiano/inglese, sinonimi, suggerimenti dal nome categoria, preferite/recenti in `localStorage`, rendering a batch e immagini lazy;
 - compatibilità con gli identificatori icona V3.9, fallback locale sicuro e correzione semantica `Mare → Spiaggia`;
-- audit fisico e decodifica dei 365 SVG; fallback inline evita l’immagine rotta nativa in caso di errore runtime;
+- audit fisico e decodifica dei 63 asset categoria e 12 brand effettivamente referenziati; fallback Phosphor Tag evita l’immagine rotta nativa;
 - bottom navigation con stato attivo route-aware, `aria-current` e accento coerente light/dark; il pulsante `+` resta una sola azione;
 - manifest web app e navigazione ottimizzata per smartphone;
 - componenti coerenti per spazi, categorie, modali e navigazione inferiore.
@@ -146,7 +146,7 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 | Database e Auth | Supabase PostgreSQL + Supabase Auth |
 | Sicurezza dati | PostgreSQL Row Level Security |
 | Grafici | Recharts |
-| Icone | Phosphor Icons; Icons8/brand storici; Font Awesome Free per il catalogo Color locale |
+| Icone | UI: Phosphor; categorie: Icons8 Color reali; brand: asset dedicati locali |
 | Validazione | Zod |
 | Deploy | Vercel |
 | Import CSV | Papa Parse |
@@ -214,7 +214,7 @@ La migration V3.7-V3.9 è idempotente, mantiene i dati esistenti e assegna alle 
 
 ### Aggiornamento da V3.9 REV1 a V3.9.1
 
-1. Sostituire i file applicativi e aggiungere `public/icons/color/`.
+1. Sostituire i file applicativi mantenendo `public/icons/categories/` e `public/icons/brands/`.
 2. Non eseguire nuove query SQL: V3.9.1 non introduce tabelle, colonne, funzioni o policy.
 3. Eseguire `npm test`, `npm run check:phosphor` e `npm run build`.
 4. Collaudare un calcolo in nuova/modifica transazione, ricorrenza e budget; verificare poi ricerca e suggerimenti icone.
@@ -224,7 +224,7 @@ La migration V3.7-V3.9 è idempotente, mantiene i dati esistenti e assegna alle 
 1. Eseguire un backup del database Supabase.
 2. In **Supabase SQL Editor**, eseguire una sola volta `supabase/migrations/20261120_v3_9_3_macro_budgets.sql`.
 3. Verificare le tabelle `budget_macro_categories` e `macro_budget_allocations` e la colonna `categories.macro_category_id`.
-4. Distribuire tutti i file V3.9.3, inclusa la cartella rigenerata `public/icons/color/`.
+4. Distribuire tutti i file V3.9.3. Il runtime non usa `public/icons/color/`.
 5. Eseguire `npm test`, `npm run audit:icons`, `npm run check:phosphor` e `npm run build`.
 
 La migration crea le macro predefinite per ogni spazio, aggiunge il tipo categoria, assegna le sole categorie expense alle macro e converte i vecchi budget categoria in allocazioni macro. I nomi chiaramente reddituali e le categorie usate soltanto con importi positivi diventano income; categorie miste/ambigue restano expense. Le ricorrenze legacy incoerenti vengono spostate sui fallback corretti, senza riscrivere le transazioni storiche. I record `budgets` precedenti non vengono cancellati; se esistono budget categoria senza budget totale, la migration ricava un totale compatibile dalla loro somma.
@@ -286,7 +286,7 @@ Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzi
 | V3.9.2 | ✅ Implementata | Selettore mese custom e filtri Movimenti accessibili |
 | V3.9.3 | ✅ Implementata | Macro Budget, impegni, rollover, analytics macro e nav attiva |
 | V3.10 | 🧭 Pianificata | Smart Add e suggerimenti di inserimento rapido |
-| V3.11 | 🧭 Pianificata | Obiettivi di risparmio e avanzamento |
+| V3.11 | ↩️ Anticipata in V3.9.3 | Obiettivi di risparmio e avanzamento |
 | V3.12 | 🧭 Pianificata | Import/export evoluto, backup e ripristino |
 | V3.13 | 🧭 Pianificata | Più conti/portafogli, saldi e trasferimenti |
 | V3.14 | 🧭 Pianificata | Debiti, crediti, anticipi e rimborsi |
@@ -336,23 +336,23 @@ Costruita per una gestione finanziaria semplice, privata e condivisibile — sen
 
 ### Catalogo icone
 
-- 365 asset SVG locali in `public/icons/color/`;
+- 63 asset categoria Icons8 Color reali in `public/icons/categories/`;
 - 12 brand separati in `public/icons/brands/`;
-- 16 gruppi tematici;
+- catalogo curato per i casi finanziari realmente necessari;
 - ricerca normalizzata italiano/inglese e sinonimi finanziari/quotidiani;
 - suggerimenti automatici dal nome della categoria;
 - preferite e recenti solo in `localStorage`, senza database;
 - prime 48 voci renderizzate, batch successivi con `IntersectionObserver`;
 - `loading="lazy"` e `decoding="async"` sulle immagini;
 - resolver statico allow-list: un identificatore salvato non viene mai interpolato come URL;
-- alias per tutti gli identificatori V3.9 e fallback `color:tag`;
-- correzione della precedente associazione automatica `Mare → aereo` in `Mare → umbrella-beach`.
+- gli identificatori legacy e `color:*` vengono ricondotti a un asset reale compatibile o al fallback;
+- fallback esclusivo Phosphor Tag per icone sconosciute o non disponibili.
 
-Lo script `scripts/build-color-icon-catalog.py` rigenera catalogo e asset usando i glifi installati di Font Awesome Free. Non viene eseguito nel browser né durante il deploy.
+La cartella artificiale `public/icons/color/`, il relativo manifest generato e lo script colorizer non sono più referenziati dal runtime. Restano fisicamente nella repository solo per una successiva rimozione controllata dopo la verifica dei dati salvati.
 
 ### Licenze e attribuzioni
 
-L'attribuzione Icons8 rimane visibile in **Impostazioni → Informazioni** per gli asset e i marchi storici. Il catalogo esteso usa glifi Font Awesome Free 6, distribuiti con licenza CC BY 4.0, con trattamento colore locale; l'attribuzione è riportata sia nell'app sia nei commenti SVG generati. Nessuna API di icone viene chiamata a runtime.
+L'attribuzione Icons8 rimane visibile in **Impostazioni → Informazioni**. Nessuna API di icone viene chiamata a runtime e nessun glifo viene generato, ricolorato o sovrapposto.
 
 ### Database
 
@@ -368,5 +368,18 @@ V3.9.1 non richiede migration Supabase. I nuovi comportamenti sono frontend e ma
 - budget effettivo macro: allocazione discrezionale + impegni della macro + rollover;
 - la proiezione usa il ritmo della spesa discrezionale e aggiunge gli impegni programmati del mese;
 - la bottom navigation deriva la voce attiva da `usePathname`, incluse le sottopagine, senza trattare `+` come tab;
-- gli SVG rigenerati non usano paint server `url(#...)`, riferimenti esterni, geometrie percentuali o il precedente pallino decorativo; ruote e fori semantici restano nel path originale e un fallback inline sostituisce qualsiasi errore runtime;
+- la tab Movimenti usa l’icona Phosphor con frecce verticali opposte per entrate/uscite;
+- il runtime non usa più il catalogo artificiale/colorizer e quindi non introduce pallini o sovrapposizioni decorative;
 - `categories.kind` separa strutturalmente expense/income; trigger e API impediscono nuovi movimenti o ricorrenze con categoria del tipo errato, mentre le ambiguità legacy rimangono documentate e non distruttive.
+
+## Icon source of truth
+
+- **UI funzionale = Phosphor Icons**;
+- **categorie = veri asset Icons8 Color** da `public/icons/categories/`;
+- **brand = asset reali dedicati** da `public/icons/brands/`;
+- **fallback = Phosphor Tag**;
+- vietati mixing di famiglie, glifi generati, colorizer locale e sovrapposizioni decorative.
+
+## Obiettivi di risparmio
+
+Gli Obiettivi sono separati semanticamente dal Budget: il Budget limita la spesa, gli Obiettivi accumulano denaro, gli Impegni rappresentano spese future. Ogni obiettivo ha spazio, nome, icona/colore, target, accumulato, data opzionale, stato e contributo suggerito. I contributi sono registrati in una tabella dedicata e non generano automaticamente transazioni o spese. Owner/creatore configura gli obiettivi; i membri dello spazio condiviso possono visualizzare e contribuire.

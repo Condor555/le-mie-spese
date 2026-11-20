@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import CategoryColorIcon from './CategoryColorIcon';
-import {allIconCatalog,brandCatalog,colorIconCatalog,iconGroups,normalizeIconId,suggestIconsForCategory} from '../lib/category-icon-catalog';
+import {allIconCatalog,brandCatalog,categoryIconCatalog,iconGroups,normalizeIconId,suggestIconsForCategory} from '../lib/category-icon-catalog';
 
 type Tab='all'|'recent'|'favorites'|'brand';
 const RECENT='lms_icon_recent_v3',FAVORITES='lms_icon_favorites_v3';
@@ -16,7 +16,7 @@ export default function IconCatalogPicker({value,onChange,suggestFor=''}:{value:
   const suggested=useMemo(()=>suggestIconsForCategory(suggestFor,8),[suggestFor]);
   const filtered=useMemo(()=>{
     const terms=normalize(query).split(/[^a-z0-9]+/).filter(Boolean);
-    const base=tab==='brand'?brandCatalog:tab==='all'?colorIconCatalog:allIconCatalog;
+    const base=tab==='brand'?brandCatalog:tab==='all'?categoryIconCatalog:allIconCatalog;
     const result=base.filter(item=>{
       if(tab==='recent'&&!recent.includes(item.id))return false;
       if(tab==='favorites'&&!favorites.includes(item.id))return false;

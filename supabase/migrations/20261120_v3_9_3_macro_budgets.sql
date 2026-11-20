@@ -33,6 +33,34 @@ do $$ begin
 end $$;
 create index if not exists categories_space_macro_idx on public.categories(space_id,macro_category_id);
 
+-- Disaccoppia gli identificatori salvati dal catalogo artificiale V3.9.1.
+-- I casi noti vengono ricondotti agli asset Icons8 legacy; gli altri usano Tag.
+update public.categories set icon=case substring(icon from 7)
+  when 'tag' then 'tag' when 'tags' then 'tag' when 'star' then 'star' when 'receipt' then 'receipt'
+  when 'repeat' then 'repeat' when 'warning-circle' then 'warning-circle' when 'triangle-exclamation' then 'warning-circle'
+  when 'arrow-counter-clockwise' then 'arrow-counter-clockwise' when 'arrow-rotate-left' then 'arrow-counter-clockwise' when 'arrow-circle-up' then 'arrow-circle-up'
+  when 'fork-knife' then 'fork-knife' when 'utensils' then 'fork-knife' when 'pizza-slice' then 'fork-knife' when 'bowl-food' then 'fork-knife'
+  when 'coffee' then 'coffee' when 'mug-hot' then 'coffee' when 'mug-saucer' then 'coffee' when 'shopping-cart' then 'shopping-cart' when 'cart-shopping' then 'shopping-cart'
+  when 'car' then 'car' when 'car-side' then 'car' when 'car-rear' then 'car' when 'car-simple' then 'car-simple' when 'square-parking' then 'car-simple'
+  when 'motorcycle' then 'motorcycle' when 'bus' then 'bus' when 'bus-simple' then 'bus' when 'train' then 'train' when 'train-subway' then 'train' when 'train-tram' then 'train'
+  when 'taxi' then 'taxi' when 'bicycle' then 'bicycle' when 'truck' then 'truck' when 'gas-pump' then 'gas-pump'
+  when 'house' then 'house' when 'house-chimney' then 'house' when 'wrench' then 'wrench' when 'bed' then 'bed'
+  when 'handbag' then 'handbag' when 'bag-shopping' then 'handbag' when 'shopping-bag' then 'shopping-bag' when 'storefront' then 'storefront'
+  when 'package' then 'package' when 'box' then 'package' when 'box-open' then 'package' when 'scissors' then 'scissors' when 'gift' then 'gift' when 'device-mobile' then 'device-mobile'
+  when 'film-slate' then 'film-slate' when 'clapperboard' then 'film-slate' when 'film' then 'film' when 'play' then 'play' when 'circle-play' then 'play' when 'tv' then 'tv'
+  when 'music-notes' then 'music-notes' when 'music' then 'music-notes' when 'game-controller' then 'game-controller' when 'gamepad' then 'game-controller'
+  when 'ticket' then 'ticket' when 'ticket-simple' then 'ticket' when 'camera' then 'camera'
+  when 'wallet' then 'wallet' when 'bank' then 'bank' when 'building-columns' then 'bank' when 'credit-card' then 'credit-card'
+  when 'coins' then 'coins' when 'money' then 'money' when 'money-bill' then 'money' when 'currency-eur' then 'currency-eur' when 'euro-sign' then 'currency-eur'
+  when 'piggy-bank' then 'piggy-bank' when 'calculator' then 'calculator' when 'file-invoice-dollar' then 'receipt'
+  when 'first-aid-kit' then 'first-aid-kit' when 'kit-medical' then 'first-aid-kit' when 'stethoscope' then 'stethoscope'
+  when 'pill' then 'pill' when 'pills' then 'pill' when 'capsules' then 'pill' when 'hospital' then 'hospital' when 'ambulance' then 'ambulance' when 'heartbeat' then 'heartbeat' when 'heart-pulse' then 'heartbeat'
+  when 'airplane' then 'airplane' when 'plane' then 'airplane' when 'soccer-ball' then 'soccer-ball' when 'futbol' then 'soccer-ball' when 'barbell' then 'barbell'
+  when 'laptop' then 'laptop' when 'users-three' then 'users-three' when 'users' then 'users-three' when 'baby' then 'baby' when 'heart' then 'heart' when 'paw-print' then 'paw-print' when 'paw' then 'paw-print'
+  when 'graduation-cap' then 'graduation-cap' when 'book-open' then 'book-open' when 'briefcase' then 'briefcase'
+  else 'tag' end
+where icon like 'color:%';
+
 create table if not exists public.macro_budget_allocations(
   id uuid primary key default gen_random_uuid(),
   space_id uuid not null references public.spaces(id) on delete cascade,
@@ -421,3 +449,77 @@ drop policy if exists "v3.9.3 macro allocations write" on public.macro_budget_al
 create policy "v3.9.3 macro allocations write" on public.macro_budget_allocations for all to authenticated
 using(public.can_manage_space_budget(space_id,auth.uid()))
 with check(public.can_manage_space_budget(space_id,auth.uid()));
+
+
+-- V3.9.3 — Obiettivi di risparmio (separati da Budget e transazioni).
+create table if not exists public.saving_goals(
+  id uuid primary key default gen_random_uuid(),
+  space_id uuid not null references public.spaces(id) on delete cascade,
+  name text not null check(length(trim(name)) between 2 and 80),
+  icon text not null default 'piggy-bank',
+  color text not null default '#35A96B' check(color ~ '^#[0-9A-Fa-f]{6}$'),
+  target_amount numeric(14,2) not null check(target_amount>0),
+  target_date date,
+  status text not null default 'active' check(status in ('active','completed')),
+  linked_category_name text,
+  created_by uuid not null references auth.users(id) on delete restrict default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(space_id,id)
+);
+create index if not exists saving_goals_space_status_idx on public.saving_goals(space_id,status,created_at);
+
+create table if not exists public.saving_goal_contributions(
+  id uuid primary key default gen_random_uuid(),
+  goal_id uuid not null,
+  space_id uuid not null references public.spaces(id) on delete cascade,
+  amount numeric(14,2) not null check(amount>0),
+  contribution_date date not null default current_date,
+  note text not null default '',
+  contributed_by uuid not null references auth.users(id) on delete restrict default auth.uid(),
+  created_at timestamptz not null default now(),
+  foreign key(space_id,goal_id) references public.saving_goals(space_id,id) on delete cascade
+);
+create index if not exists saving_goal_contributions_goal_date_idx on public.saving_goal_contributions(goal_id,contribution_date desc);
+
+create or replace function public.touch_saving_goal_updated_at()
+returns trigger language plpgsql set search_path=public,pg_temp as $$begin new.updated_at:=now();return new;end;$$;
+drop trigger if exists saving_goals_touch on public.saving_goals;
+create trigger saving_goals_touch before update on public.saving_goals for each row execute function public.touch_saving_goal_updated_at();
+revoke all on function public.touch_saving_goal_updated_at() from public;
+
+create or replace function public.validate_saving_goal_category()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+  if new.linked_category_name is not null and not exists(
+    select 1 from public.categories where space_id=new.space_id and name=new.linked_category_name and kind='income'
+  ) then raise exception 'La categoria collegata deve essere una categoria income dello spazio'; end if;
+  return new;
+end;$$;
+drop trigger if exists saving_goals_category_guard on public.saving_goals;
+create trigger saving_goals_category_guard before insert or update of linked_category_name,space_id on public.saving_goals
+for each row execute function public.validate_saving_goal_category();
+revoke all on function public.validate_saving_goal_category() from public;
+
+alter table public.saving_goals enable row level security;
+alter table public.saving_goal_contributions enable row level security;
+grant select,insert,update,delete on public.saving_goals to authenticated;
+grant select,insert,update,delete on public.saving_goal_contributions to authenticated;
+drop policy if exists "v3.9.3 saving goals select" on public.saving_goals;
+create policy "v3.9.3 saving goals select" on public.saving_goals for select to authenticated using(public.is_space_member(space_id,auth.uid()));
+drop policy if exists "v3.9.3 saving goals write" on public.saving_goals;
+create policy "v3.9.3 saving goals write" on public.saving_goals for all to authenticated
+using(public.can_manage_space_budget(space_id,auth.uid()))
+with check(public.can_manage_space_budget(space_id,auth.uid()));
+drop policy if exists "v3.9.3 goal contributions select" on public.saving_goal_contributions;
+create policy "v3.9.3 goal contributions select" on public.saving_goal_contributions for select to authenticated using(public.is_space_member(space_id,auth.uid()));
+drop policy if exists "v3.9.3 goal contributions insert" on public.saving_goal_contributions;
+create policy "v3.9.3 goal contributions insert" on public.saving_goal_contributions for insert to authenticated
+with check(public.is_space_member(space_id,auth.uid()) and contributed_by=auth.uid() and exists(select 1 from public.saving_goals g where g.id=goal_id and g.space_id=space_id and g.status='active'));
+drop policy if exists "v3.9.3 goal contributions update" on public.saving_goal_contributions;
+create policy "v3.9.3 goal contributions update" on public.saving_goal_contributions for update to authenticated
+using(contributed_by=auth.uid() or public.can_manage_space_budget(space_id,auth.uid()))
+with check(contributed_by=auth.uid() or public.can_manage_space_budget(space_id,auth.uid()));
+drop policy if exists "v3.9.3 goal contributions delete" on public.saving_goal_contributions;
+create policy "v3.9.3 goal contributions delete" on public.saving_goal_contributions for delete to authenticated
+using(contributed_by=auth.uid() or public.can_manage_space_budget(space_id,auth.uid()));

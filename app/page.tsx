@@ -2,6 +2,7 @@
 
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
+import Link from 'next/link';
 import Icon from '../components/Icon';
 import CategoryIcon from '../components/CategoryIcon';
 import MonthPicker from '../components/MonthPicker';
@@ -22,6 +23,7 @@ type Stats={
   topCategory:TopCategory|null;
   categories:{name:string;value:number}[];
   budget:{amount:number;projected:number;projectedOverage:number;commitments:number;distributable:number};
+  savingGoals:Array<{id:string;name:string;icon:string;color:string;targetAmount:number;accumulated:number;remaining:number;progress:number;targetDate:string|null}>;
 };
 type Trend={month:string;income:number;expense:number};
 
@@ -109,6 +111,8 @@ export default function Home(){
       <span className="insight-icon"><Icon name="chart" size={20}/></span>
       <div><small>Proiezione budget</small><b>Rischio superamento a fine mese</b><p>Proiezione {eur(stats?.budget.projected||0)} · oltre il budget di {eur(stats?.budget.projectedOverage||0)}</p><p>{eur(stats?.budget.commitments||0)} sono già riservati agli impegni programmati.</p></div>
     </section>}
+
+    {(stats?.savingGoals?.length||0)>0&&<section className="section surface home-saving-goals"><div className="section-title"><div><h2>Obiettivi di risparmio</h2><small>Denaro accumulato, separato dal budget</small></div><Link href="/account/obiettivi">Apri</Link></div>{stats?.savingGoals.slice(0,2).map(goal=><div className="home-goal-row" key={goal.id}><CategoryIcon name={goal.name} icon={goal.icon} color={goal.color} size={38}/><div><span><b>{goal.name}</b><strong>{goal.progress}%</strong></span><div className="progress"><i style={{width:`${goal.progress}%`,background:goal.color}}/></div><small>{eur(goal.accumulated)} di {eur(goal.targetAmount)} · residuo {eur(goal.remaining)}</small></div></div>)}</section>}
 
     {top&&<section className="insight surface">
       <span className="insight-icon"><Icon name="chart" size={20}/></span>

@@ -1,58 +1,46 @@
 #!/usr/bin/env python3
-"""Physical and decode audit for every local Color catalog entry."""
+"""Audit the real Icons8 category/brand source of truth used by the app."""
 from __future__ import annotations
-
 from io import BytesIO
 from pathlib import Path
-import re
-import sys
-import xml.etree.ElementTree as ET
-
+import re,sys,xml.etree.ElementTree as ET
 import cairosvg
 from PIL import Image
 
 ROOT=Path(__file__).resolve().parents[1]
-CATALOG=ROOT/'lib/category-icon-catalog-data.ts'
-ASSETS=ROOT/'public/icons/color'
-slugs=re.findall(r"^  \['([^']+)'",CATALOG.read_text(),re.M)
-failures:list[str]=[]
-if len(slugs)!=len(set(slugs)):failures.append('Identificatori duplicati nel catalogo')
-actual={path.name:path for path in ASSETS.iterdir() if path.is_file()}
-expected={f'{slug}.svg' for slug in slugs}
-for extra in sorted(set(actual)-expected):failures.append(f'Asset non referenziato: {extra}')
-for missing in sorted(expected-set(actual)):failures.append(f'Asset mancante: {missing}')
-
-rendered=0
-for slug in slugs:
-    expected_name=f'{slug}.svg';path=ASSETS/expected_name
-    if not path.is_file():continue
-    if path.name!=expected_name:failures.append(f'Case/filename errato: {path.name} != {expected_name}');continue
+CATALOG=(ROOT/'lib/category-icon-catalog.ts').read_text()
+category_ids=re.findall(r"icon\('([^']+)'",CATALOG)
+paths=sorted(set([f'/icons/categories/{item}.svg' for item in category_ids]+re.findall(r"asset:'(/icons/brands/[^']+\.(?:svg|png))'",CATALOG)))
+failures:list[str]=[];rendered=0
+if not paths:failures.append('Catalogo reale vuoto')
+for source in paths:
+    relative=source.removeprefix('/');path=ROOT/'public'/relative
+    if not path.is_file():failures.append(f'Asset mancante/case errato: {source}');continue
     try:
         data=path.read_bytes()
-        if not data.startswith(b'<svg'):raise ValueError('header SVG assente')
-        root=ET.fromstring(data)
-        if not root.tag.endswith('svg') or 'viewBox' not in root.attrib:raise ValueError('root/viewBox non valido')
-        text=data.decode('utf-8')
-        if re.search(r'(?:href|src)=["\'](?:https?:|//|data:)',text,re.I):raise ValueError('riferimento esterno incorporato')
-        if '<circle' in text:raise ValueError('cerchio decorativo secondario ancora presente')
-        png=cairosvg.svg2png(bytestring=data,output_width=64,output_height=64)
-        with Image.open(BytesIO(png)) as image:
+        if path.suffix.lower()=='.svg':
+            root=ET.fromstring(data)
+            if not root.tag.endswith('svg') or 'viewBox' not in root.attrib:raise ValueError('root/viewBox SVG non valido')
+            if re.search(rb'(?:href|src)=["\'](?:https?:|//|data:)',data,re.I):raise ValueError('riferimento esterno incorporato')
+            decoded=cairosvg.svg2png(bytestring=data,output_width=64,output_height=64)
+        else:decoded=data
+        with Image.open(BytesIO(decoded)) as image:
             image.load()
-            if image.format!='PNG' or image.size!=(64,64):raise ValueError('decode PNG inatteso')
-            alpha=image.convert('RGBA').getchannel('A')
-            if alpha.getbbox() is None:raise ValueError('render completamente trasparente')
+            if image.width<1 or image.height<1:raise ValueError('dimensioni non valide')
+            if image.convert('RGBA').getchannel('A').getbbox() is None:raise ValueError('render trasparente')
         rendered+=1
-    except Exception as error:
-        failures.append(f'{slug}: {error}')
+    except Exception as error:failures.append(f'{source}: {error}')
 
-resolver=(ROOT/'lib/category-icon-catalog.ts').read_text()
-if "asset:`/icons/color/${slug}.svg`" not in resolver:failures.append('Resolver catalogo non usa il path canonico /icons/color/<slug>.svg')
+runtime_files=['lib/category-icon-catalog.ts','lib/category-icon-assets.ts','lib/category-style.ts','components/CategoryColorIcon.tsx','components/IconCatalogPicker.tsx','components/CategoryIcon.tsx']
+for name in runtime_files:
+    text=(ROOT/name).read_text()
+    if '/icons/color/' in text or 'category-icon-catalog-data' in text:failures.append(f'Runtime ancora collegato al catalogo artificiale: {name}')
 fallback=(ROOT/'components/CategoryColorIcon.tsx').read_text()
-for token in ['onError','category-color-fallback','removeAttribute(\'src\')']:
-    if token not in fallback:failures.append(f'Fallback runtime incompleto: {token}')
+for token in ['TagIcon','onError',"removeAttribute('src')"]:
+    if token not in fallback:failures.append(f'Fallback Phosphor incompleto: {token}')
+if "@phosphor-icons/react/ssr" not in fallback:failures.append('Fallback non importato da Phosphor')
 
 if failures:
-    print('ICON AUDIT FAILED')
-    print('\n'.join(f'- {item}' for item in failures))
-    sys.exit(1)
-print(f'ICON AUDIT PASS: {rendered}/{len(slugs)} asset risolti, XML validi, renderizzati con CairoSVG e decodificati PNG/Pillow; fallback runtime presente')
+    print('ICON SOURCE AUDIT FAILED');print('\n'.join(f'- {item}' for item in failures));sys.exit(1)
+category=sum('/categories/' in path for path in paths);brands=sum('/brands/' in path for path in paths)
+print(f'ICON SOURCE AUDIT PASS: {rendered}/{len(paths)} asset reali risolti e decodificati ({category} categorie, {brands} brand); runtime senza public/icons/color; fallback Phosphor Tag presente')

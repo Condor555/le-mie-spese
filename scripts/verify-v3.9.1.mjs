@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readdir,readFile} from 'node:fs/promises';
+import {readdir,readFile,stat} from 'node:fs/promises';
 import ts from 'typescript';
 
 const root=new URL('../',import.meta.url);
@@ -27,7 +27,7 @@ assert.equal(amount.evaluateAmountExpression('2+alert(1)').ok,false);
 assert.equal(amount.sanitizeAmountExpression('12€ × 3abc'),'12 × 3');
 
 const [newTx,movements,recurring,budget,amountInput,catalog,picker,style,assetResolver,readme,info,packageJson]=await Promise.all([
-  'app/nuovo/page.tsx','app/movimenti/page.tsx','app/account/ricorrenze/page.tsx','app/budget/page.tsx','components/AmountExpressionInput.tsx','lib/category-icon-catalog-data.ts','components/IconCatalogPicker.tsx','lib/category-style.ts','lib/category-icon-assets.ts','README.md','app/account/informazioni/page.tsx','package.json',
+  'app/nuovo/page.tsx','app/movimenti/page.tsx','app/account/ricorrenze/page.tsx','app/budget/page.tsx','components/AmountExpressionInput.tsx','lib/category-icon-catalog.ts','components/IconCatalogPicker.tsx','lib/category-style.ts','lib/category-icon-assets.ts','README.md','app/account/informazioni/page.tsx','package.json',
 ].map(read));
 for(const [name,source] of [['nuova transazione',newTx],['modifica movimento',movements],['ricorrenze',recurring],['budget',budget]]){
   assert(source.includes('AmountExpressionInput'),`Calcolatrice mancante: ${name}`);
@@ -35,26 +35,22 @@ for(const [name,source] of [['nuova transazione',newTx],['modifica movimento',mo
 }
 assert((recurring.match(/<AmountExpressionInput/g)||[]).length>=2,'Creazione e modifica ricorrenza devono usare lo stesso campo.');
 assert((budget.match(/<AmountExpressionInput/g)||[]).length>=2,'Budget totale e categorie devono usare la calcolatrice.');
-for(const token of ['×','÷','amount-preview','Mini-calcolatrice'])assert(amountInput.includes(token));
+for(const token of ['amount-preview','sanitizeAmountExpression','placeholder="€ 0,00"','inputMode="text"'])assert(amountInput.includes(token));
+for(const token of ['amount-calculator-toggle','amount-keypad','Mini-calcolatrice'])assert(!amountInput.includes(token));
 
-const declared=Number(catalog.match(/COLOR_ICON_COUNT=(\d+)/)?.[1]);
-const entries=(catalog.match(/^  \['/gm)||[]).length;
-assert.equal(entries,declared);
-assert(declared>=300&&declared<=500,`Catalogo fuori target: ${declared}`);
-const assetFiles=(await readdir(new URL('public/icons/color/',root))).filter(file=>file.endsWith('.svg'));
-assert.equal(assetFiles.length,declared,'Ogni voce del catalogo deve avere un asset distinto.');
-for(const file of assetFiles){
-  const source=await read(`public/icons/color/${file}`);
-  assert(source.includes('viewBox=')&&source.includes('<path')&&!/href=["'](?:https?:|\/\/|data:)/i.test(source),`SVG locale non valido: ${file}`);
-}
+const categoryIds=[...catalog.matchAll(/icon\('([^']+)'/g)].map(match=>match[1]);
+const brandAssets=[...catalog.matchAll(/asset:'\/icons\/brands\/([^']+)'/g)].map(match=>match[1]);
+assert.equal(categoryIds.length,63);assert.equal(brandAssets.length,12);
+for(const id of categoryIds)assert((await stat(new URL(`public/icons/categories/${id}.svg`,root))).isFile());
+for(const file of brandAssets)assert((await stat(new URL(`public/icons/brands/${file}`,root))).isFile());
 for(const token of ['suggestIconsForCategory','legacyIconAliases','normalizeIconId','brandCatalog'])assert((await read('lib/category-icon-catalog.ts')).includes(token));
 for(const token of ['IntersectionObserver','localStorage','suggestFor','favorites'])assert(picker.includes(token));
 const colorIconComponent=await read('components/CategoryColorIcon.tsx');
 assert(colorIconComponent.includes('loading="lazy"')&&colorIconComponent.includes('decoding="async"'));
 assert(colorIconComponent.includes('onError')&&colorIconComponent.includes('category-color-fallback'));
-assert(style.includes("color('umbrella-beach'")&&style.includes("['plane','holiday','color:plane']"));
-assert(assetResolver.includes('findIconEntry')&&!assetResolver.includes('`/icons/color/${'));
-assert(info.includes('Icons8')&&info.includes('Font Awesome Free'));
+assert(style.includes('normalizeIconId')&&style.includes('mare|spiaggia|lido'));
+assert(assetResolver.includes('findIconEntry')&&!assetResolver.includes('/icons/color'));
+assert(info.includes('Icons8')&&!info.includes('Font Awesome Free'));
 assert(readme.includes('V3.9.1 Smart UX')&&readme.includes('non richiede migration Supabase'));
 const pkg=JSON.parse(packageJson);assert(/^3\.9\.(?:[1-9]|\d{2,})$/.test(pkg.version));assert.equal(pkg.scripts.prebuild,'npm run check:phosphor');
 
@@ -68,4 +64,4 @@ async function collect(directory){
 }
 for(const directory of ['app/','components/','lib/'])await collect(directory);
 for(const file of sourceFiles)await transpile(file);
-console.log(`verify-v3.9.1: 45 controlli funzionali/statici superati; ${declared} icone locali; ${sourceFiles.length} file TS/TSX trascompilati`);
+console.log(`verify-v3.9.1: 45 controlli funzionali/statici superati; ${categoryIds.length} categorie Icons8 + ${brandAssets.length} brand; ${sourceFiles.length} file TS/TSX trascompilati`);

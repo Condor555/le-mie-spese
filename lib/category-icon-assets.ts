@@ -1,7 +1,9 @@
 import {findIconEntry} from './category-icon-catalog';
 
-/** Resolve only identifiers from the static allow-list. No saved value becomes a URL. */
+/**
+ * Restituisce soltanto asset allow-list da public/icons/categories o brands.
+ * null significa fallback Phosphor Tag; nessun valore salvato diventa un URL.
+ */
 export function categoryIconAsset(icon?:string|null){
-  if(icon==='amazon')return '/icons/brands/amazon.svg';
-  return findIconEntry(icon)?.asset||'/icons/color/tag.svg';
+  return findIconEntry(icon)?.asset||null;
 }

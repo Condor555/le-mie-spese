@@ -87,7 +87,7 @@ export default function Budget(){
         <div className="budget-numbers"><span>Residuo totale <b className={data.totalAvailable<0?'red':''}>{eur(data.totalAvailable)}</b></span><span>{comparison}</span></div>
         <div className="commitment-grid"><div><small>Impegni programmati</small><b>{eur(data.commitments)}</b></div><div><small>Disponibile da distribuire</small><b>{eur(draftDistributable)}</b></div><div><small>Non allocato</small><b>{eur(Math.max(0,draftDistributable-draftDistributable*Math.min(100,allocationPercentTotal)/100))}</b></div></div>
         {data.overcommitted>0&&<div className="budget-warning" role="alert">Gli impegni programmati superano il budget totale di {eur(data.overcommitted)}.</div>}
-        <label className="budget-input"><span>Limite dello spazio</span><AmountExpressionInput compact disabled={!data.canEdit} value={totalDraft} onChange={changeTotal} ariaLabel="Budget mensile dello spazio" placeholder="0,00 o 150 × 4"/></label>
+        <label className="budget-input"><span>Limite dello spazio</span><AmountExpressionInput compact disabled={!data.canEdit} value={totalDraft} onChange={changeTotal} ariaLabel="Budget mensile dello spazio"/></label>
         {!data.canEdit&&<small>Solo owner/creatore può modificare struttura, allocazioni e rollover.</small>}
       </section>
 
@@ -96,7 +96,7 @@ export default function Budget(){
           <header><i style={{background:item.color}}/><div><h3>{item.name}</h3><small>{item.categories.length} categorie · {eur(item.commitments)} impegni</small></div><strong>{item.percentage}%</strong></header>
           <ProgressBar value={item.percentage} status={item.status}/><div className="macro-values"><span>Speso <b>{eur(item.spent)}</b></span><span>Budget <b>{eur(item.budget)}</b></span><span>Disponibile <b className={item.available<0?'red':''}>{eur(item.available)}</b></span></div>
           {item.rolloverAmount>0&&<small className="rollover-credit">+ {eur(item.rolloverAmount)} residuo dal mese precedente</small>}
-          <div className="macro-allocation-inputs"><label><span>Percentuale</span><div><input inputMode="decimal" disabled={!data.canEdit} value={draft.percent} onChange={event=>changePercent(item.id,event.target.value)} aria-label={`Percentuale ${item.name}`}/><i>%</i></div></label><label><span>Equivalente in euro</span><AmountExpressionInput compact disabled={!data.canEdit} value={draft.euro} onChange={value=>changeEuro(item.id,value)} ariaLabel={`Allocazione euro ${item.name}`} placeholder="0,00"/></label></div>
+          <div className="macro-allocation-inputs"><label><span>Percentuale</span><div><input inputMode="decimal" disabled={!data.canEdit} value={draft.percent} onChange={event=>changePercent(item.id,event.target.value)} aria-label={`Percentuale ${item.name}`}/><i>%</i></div></label><label><span>Equivalente in euro</span><AmountExpressionInput compact disabled={!data.canEdit} value={draft.euro} onChange={value=>changeEuro(item.id,value)} ariaLabel={`Allocazione euro ${item.name}`}/></label></div>
         </article>})}</div>
       </section>
 

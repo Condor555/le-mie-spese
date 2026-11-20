@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {activeSpace} from '../../../lib/active-space';
 import {loadMacroBudgetSnapshot} from '../../../lib/macro-budget';
+import {loadSavingGoals} from '../../../lib/savings-goals';
 
 function monthBounds(month:string){
   const [year,monthNumber]=month.split('-').map(Number);const start=`${year}-${String(monthNumber).padStart(2,'0')}-01`;const nextDate=new Date(Date.UTC(year,monthNumber,1));const end=nextDate.toISOString().slice(0,10);const previousDate=new Date(Date.UTC(year,monthNumber-2,1));const previous=`${previousDate.getUTCFullYear()}-${String(previousDate.getUTCMonth()+1).padStart(2,'0')}`;return {year,monthNumber,start,end,previous};
@@ -10,11 +11,12 @@ const percentChange=(current:number,previous:number)=>previous>0?Math.round((cur
 
 export async function GET(req:Request){
   try{
-    const url=new URL(req.url);const {sb,spaceId}=await activeSpace(url.searchParams.get('spaceId'));const requested=url.searchParams.get('month')||new Date().toISOString().slice(0,7);const month=/^\d{4}-(0[1-9]|1[0-2])$/.test(requested)?requested:new Date().toISOString().slice(0,7);const bounds=monthBounds(month);const previousBounds=monthBounds(bounds.previous);
-    const [{data,error},{data:previousRows,error:previousError},macroBudget]=await Promise.all([
+    const url=new URL(req.url);const {sb,user,spaceId}=await activeSpace(url.searchParams.get('spaceId'));const requested=url.searchParams.get('month')||new Date().toISOString().slice(0,7);const month=/^\d{4}-(0[1-9]|1[0-2])$/.test(requested)?requested:new Date().toISOString().slice(0,7);const bounds=monthBounds(month);const previousBounds=monthBounds(bounds.previous);
+    const [{data,error},{data:previousRows,error:previousError},macroBudget,savingGoals]=await Promise.all([
       sb.from('transactions').select('amount,category_name,date,created_by').eq('space_id',spaceId).gte('date',bounds.start).lt('date',bounds.end),
       sb.from('transactions').select('amount,category_name').eq('space_id',spaceId).gte('date',previousBounds.start).lt('date',previousBounds.end),
       loadMacroBudgetSnapshot(sb,spaceId,month),
+      loadSavingGoals(sb,spaceId,user.id),
     ]);
     if(error||previousError)return NextResponse.json({error:error?.message||previousError?.message},{status:400});
     const rows=data||[];const previous=previousRows||[];
@@ -34,6 +36,7 @@ export async function GET(req:Request){
       dailyAverageExpense,projectedExpense:macroBudget.projectedExpense,daysConsidered,daysInMonth,
       budget:{amount:macroBudget.totalBudget,spent:macroBudget.totalSpent,available:macroBudget.totalAvailable,percentage:macroBudget.totalPercentage,status:macroBudget.totalBudget>0&&macroBudget.totalSpent>=macroBudget.totalBudget?'over':macroBudget.totalBudget>0&&macroBudget.totalSpent>=macroBudget.totalBudget*.8?'warning':'ok',commitments:macroBudget.commitments,distributable:macroBudget.distributable,projected:macroBudget.projectedExpense,projectedOverage:macroBudget.projectedOverage},
       macroCategories:macroBudget.macros,
+      savingGoals:savingGoals.filter(goal=>goal.status==='active').slice(0,4),
       topCategory:top?{name:top.name,value:top.value,percentage:expense>0?Math.round(top.value/expense*100):0,previousValue:previousTopExpense,changePercent:percentChange(top.value,previousTopExpense),comparison:previousTopExpense>0?'available':'no-previous-data'}:null,
     });
   }catch(error:any){return NextResponse.json({error:error?.message||'Unauthorized'},{status:error?.message==='Unauthorized'?401:400})}
