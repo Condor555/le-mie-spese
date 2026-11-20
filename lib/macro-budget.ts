@@ -1,4 +1,5 @@
 import {addRecurringDate,type RecurrenceFrequency} from './recurrence';
+import type {SupabaseClient} from '@supabase/supabase-js';
 
 export const MONTH_PATTERN=/^\d{4}-(0[1-9]|1[0-2])$/;
 export const monthStart=(month:string)=>`${month}-01`;
@@ -45,7 +46,14 @@ export type MacroBudgetSnapshot={
   macros:MacroBudgetAnalysis[];
 };
 
-export async function loadMacroBudgetSnapshot(sb:any,spaceId:string,month:string):Promise<MacroBudgetSnapshot>{
+type BudgetRow={category_name:string|null;amount:number|string};
+type MacroRow={id:string;name:string;color:string;sort_order:number|string;rollover_enabled:boolean};
+type CategoryRow={name:string;icon:string|null;color:string|null;kind:'expense';macro_category_id:string|null};
+type AllocationRow={macro_category_id:string;allocation_percent:number|string;base_amount:number|string;rollover_amount:number|string};
+type BudgetTransactionRow={amount:number|string;category_name:string;recurring_id:string|null;date:string};
+type RecurringBudgetRow={id:string;amount:number|string;category_name:string;frequency:RecurrenceFrequency;interval_count:number|string;next_run:string;active:boolean};
+
+export async function loadMacroBudgetSnapshot(sb:SupabaseClient,spaceId:string,month:string):Promise<MacroBudgetSnapshot>{
   const previous=previousMonth(month);const start=monthStart(month),end=monthStart(nextMonth(month));const previousStart=monthStart(previous);
   const [{data:budgetRows,error:budgetError},{data:macros,error:macroError},{data:categories,error:categoryError},{data:allocations,error:allocationError},{data:previousAllocations,error:previousAllocationError},{data:rows,error:rowError},{data:previousRows,error:previousRowError},{data:recurring,error:recurringError}]=await Promise.all([
     sb.from('budgets').select('category_name,amount').eq('space_id',spaceId).eq('month',start),
@@ -60,11 +68,18 @@ export async function loadMacroBudgetSnapshot(sb:any,spaceId:string,month:string
   const error=budgetError||macroError||categoryError||allocationError||previousAllocationError||rowError||previousRowError||recurringError;
   if(error)throw new Error(error.message);
 
-  const macroList=(macros||[]) as any[];const categoryList=(categories||[]) as any[];const transactionRows=(rows||[]) as any[];
+  const macroList=(macros||[]) as unknown as MacroRow[];
+  const categoryList=(categories||[]) as unknown as CategoryRow[];
+  const transactionRows=(rows||[]) as unknown as BudgetTransactionRow[];
+  const budgetList=(budgetRows||[]) as unknown as BudgetRow[];
+  const allocationList=(allocations||[]) as unknown as AllocationRow[];
+  const previousAllocationList=(previousAllocations||[]) as unknown as AllocationRow[];
+  const previousTransactionRows=(previousRows||[]) as unknown as BudgetTransactionRow[];
+  const recurringRows=(recurring||[]) as unknown as RecurringBudgetRow[];
   const otherId=macroList.find(item=>item.name==='Altro')?.id||macroList[0]?.id||null;
   const categoryMacro=new Map<string,string|null>(categoryList.map(item=>[item.name,item.macro_category_id||otherId]));
   const macroFor=(categoryName:string)=>categoryMacro.get(categoryName)||otherId;
-  const totalBudget=Number((budgetRows||[]).find((row:any)=>row.category_name===null)?.amount||0);
+  const totalBudget=Number(budgetList.find(row=>row.category_name===null)?.amount||0);
   const paidOccurrences=new Set(transactionRows.filter(row=>row.recurring_id).map(row=>`${row.recurring_id}:${row.date}`));
   const commitmentsByMacro=new Map<string,number>();
   const fixedSpentByMacro=new Map<string,number>();
@@ -81,7 +96,7 @@ export async function loadMacroBudgetSnapshot(sb:any,spaceId:string,month:string
     categorySpent.set(row.category_name,category);
   }
   for(const [macroId,value] of fixedSpentByMacro)commitmentsByMacro.set(macroId,value);
-  for(const rule of recurring||[]){
+  for(const rule of recurringRows){
     if(Number(rule.amount)>=0)continue;
     const macroId=macroFor(rule.category_name);if(!macroId)continue;
     const dates=occurrencesInMonth(rule.next_run,rule.frequency as RecurrenceFrequency,Number(rule.interval_count||1),month);
@@ -93,14 +108,14 @@ export async function loadMacroBudgetSnapshot(sb:any,spaceId:string,month:string
   const commitments=roundMoney([...commitmentsByMacro.values()].reduce((sum,value)=>sum+value,0));
   const distributable=roundMoney(Math.max(0,totalBudget-commitments));
   const overcommitted=roundMoney(Math.max(0,commitments-totalBudget));
-  const allocationMap=new Map((allocations||[]).map((row:any)=>[row.macro_category_id,row]));
-  const previousAllocationMap=new Map((previousAllocations||[]).map((row:any)=>[row.macro_category_id,row]));
+  const allocationMap=new Map<string,AllocationRow>(allocationList.map(row=>[row.macro_category_id,row]));
+  const previousAllocationMap=new Map<string,AllocationRow>(previousAllocationList.map(row=>[row.macro_category_id,row]));
   const previousDiscretionary=new Map<string,number>();
-  for(const row of previousRows||[]){if(Number(row.amount)>=0||row.recurring_id)continue;const macroId=macroFor(row.category_name);if(macroId)previousDiscretionary.set(macroId,(previousDiscretionary.get(macroId)||0)-Number(row.amount))}
+  for(const row of previousTransactionRows){if(Number(row.amount)>=0||row.recurring_id)continue;const macroId=macroFor(row.category_name);if(macroId)previousDiscretionary.set(macroId,(previousDiscretionary.get(macroId)||0)-Number(row.amount))}
   const pace=monthPace(month);
 
   const macroAnalysis:MacroBudgetAnalysis[]=macroList.map(macro=>{
-    const allocation:any=allocationMap.get(macro.id);const previousAllocation:any=previousAllocationMap.get(macro.id);
+    const allocation=allocationMap.get(macro.id);const previousAllocation=previousAllocationMap.get(macro.id);
     const allocationPercent=Number(allocation?.allocation_percent||0);
     const allocationAmount=roundMoney(distributable*allocationPercent/100);
     const rolloverAmount=macro.rollover_enabled&&previousAllocation
