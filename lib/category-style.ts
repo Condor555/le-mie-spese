@@ -1,60 +1,109 @@
 export type CategoryStyle={icon:string;color:string};
 
-const rules:[RegExp,CategoryStyle][]=[
-  [/netflix/i,{icon:'brand:netflix',color:'#E50914'}],
-  [/spotify/i,{icon:'brand:spotify',color:'#1DB954'}],
-  [/amazon prime|amazon/i,{icon:'brand:amazon',color:'#FF9900'}],
-  [/apple tv|apple music|icloud/i,{icon:'brand:apple',color:'#111827'}],
-  [/disney\s*\+?/i,{icon:'brand:disney',color:'#113CCF'}],
-  [/youtube/i,{icon:'brand:youtube',color:'#FF0000'}],
-  [/playstation/i,{icon:'brand:playstation',color:'#006FCD'}],
-  [/xbox/i,{icon:'brand:xbox',color:'#107C10'}],
-  [/paypal/i,{icon:'brand:paypal',color:'#003087'}],
-  [/airbnb/i,{icon:'brand:airbnb',color:'#FF5A5F'}],
-  [/\buber\b/i,{icon:'brand:uber',color:'#111827'}],
-  [/\bgoogle\b/i,{icon:'brand:google',color:'#4285F4'}],
-  [/scooter|motorino|moto/i,{icon:'scooter',color:'#4F77D8'}],
-  [/affitto|locazione|canone casa/i,{icon:'rent',color:'#2F9E75'}],
-  [/tasse|imposte|tributi|f24/i,{icon:'tax',color:'#D97706'}],
-  [/matrimonio|nozze/i,{icon:'wedding',color:'#DB4B8B'}],
-  [/abbonament/i,{icon:'subscription',color:'#D84D4F'}],
-  [/supermercato|spesa/i,{icon:'cart',color:'#5477F5'}],
-  [/benzina|carburante|gpl/i,{icon:'fuel',color:'#8A5CF6'}],
-  [/parcheggio/i,{icon:'parking',color:'#655CE8'}],
-  [/\bauto\b/i,{icon:'car',color:'#536DE2'}],
-  [/trasport|treni/i,{icon:'train',color:'#655CE8'}],
-  [/barbiere/i,{icon:'scissors',color:'#E39C34'}],
-  [/cibo|bevande|ristor|pizza/i,{icon:'food',color:'#E99B35'}],
-  [/\bbar\b|caff[eè]/i,{icon:'coffee',color:'#B97B4B'}],
-  [/visite specialistiche/i,{icon:'doctor',color:'#D55E80'}],
-  [/salute|farmacia|benessere/i,{icon:'health',color:'#D55E80'}],
-  [/ricarica telefonica/i,{icon:'phone',color:'#5B8DEF'}],
-  [/bollette/i,{icon:'receipt',color:'#5BA88D'}],
-  [/domestica|casa/i,{icon:'house',color:'#5BA88D'}],
-  [/calcio/i,{icon:'football',color:'#35A96B'}],
-  [/cinema/i,{icon:'movie',color:'#E45858'}],
-  [/cultura/i,{icon:'book',color:'#8B6BC9'}],
-  [/divertimento/i,{icon:'ticket',color:'#F17D45'}],
-  [/educazione/i,{icon:'education',color:'#438FDF'}],
-  [/famiglia|family/i,{icon:'family',color:'#EF6C91'}],
-  [/figli/i,{icon:'child',color:'#ED7896'}],
-  [/moglie/i,{icon:'heart',color:'#E85F86'}],
-  [/hotel|b&b/i,{icon:'bed',color:'#3E9AA8'}],
-  [/regali/i,{icon:'gift',color:'#E3AD16'}],
-  [/viaggi|vacanze|mare/i,{icon:'plane',color:'#62AABC'}],
-  [/ordini online/i,{icon:'package',color:'#9655F0'}],
-  [/acquisti online|acquisti|shopping/i,{icon:'bag',color:'#9655F0'}],
-  [/altra spesa/i,{icon:'tag',color:'#68738C'}],
+type Rule={match:RegExp;style:CategoryStyle};
+const color=(icon:string,value:string):CategoryStyle=>({icon:`color:${icon}`,color:value});
+
+/** Ordered from specific to generic: the first semantic match wins. */
+const rules:Rule[]=[
+  {match:/netflix/i,style:{icon:'brand:netflix',color:'#E50914'}},
+  {match:/spotify/i,style:{icon:'brand:spotify',color:'#1DB954'}},
+  {match:/amazon prime|amazon/i,style:{icon:'brand:amazon',color:'#FF9900'}},
+  {match:/apple tv|apple music|icloud/i,style:{icon:'brand:apple',color:'#111827'}},
+  {match:/disney\s*\+?/i,style:{icon:'brand:disney',color:'#113CCF'}},
+  {match:/youtube/i,style:{icon:'brand:youtube',color:'#FF0000'}},
+  {match:/playstation/i,style:{icon:'brand:playstation',color:'#006FCD'}},
+  {match:/xbox/i,style:{icon:'brand:xbox',color:'#107C10'}},
+  {match:/paypal/i,style:{icon:'brand:paypal',color:'#003087'}},
+  {match:/airbnb/i,style:{icon:'brand:airbnb',color:'#FF5A5F'}},
+  {match:/\buber\b/i,style:{icon:'brand:uber',color:'#111827'}},
+  {match:/\bgoogle\b/i,style:{icon:'brand:google',color:'#4285F4'}},
+
+  {match:/mare|spiaggia|lido|ombrellone|balneare/i,style:color('umbrella-beach','#2E9BC6')},
+  {match:/vacanz|ferie/i,style:color('suitcase','#E79035')},
+  {match:/viagg|volo|aereo|aeroporto/i,style:color('plane','#5B8DEF')},
+  {match:/hotel|albergo|b&b|alloggio/i,style:color('hotel','#3E9AA8')},
+  {match:/campeggio|tenda/i,style:color('tent','#43A36B')},
+  {match:/scooter|motorino|\bmoto\b/i,style:color('motorcycle','#4F77D8')},
+  {match:/benzina|carburante|diesel|\bgpl\b/i,style:color('gas-pump','#8A5CF6')},
+  {match:/parcheggio|\bsosta\b/i,style:color('square-parking','#655CE8')},
+  {match:/\bauto\b|macchina/i,style:color('car','#536DE2')},
+  {match:/treno|ferrovia|trasport/i,style:color('train','#655CE8')},
+  {match:/taxi/i,style:color('taxi','#F0AF31')},
+  {match:/bici|bicicletta|ciclismo/i,style:color('bicycle','#35A96B')},
+
+  {match:/supermercato|alimentari|spesa quotidiana/i,style:color('cart-shopping','#5477F5')},
+  {match:/pizza|pizzeria/i,style:color('pizza-slice','#E96C3B')},
+  {match:/ristor|pranzo|cena|trattoria/i,style:color('utensils','#E99B35')},
+  {match:/\bbar\b|caff[eè]|colazione/i,style:color('mug-hot','#B97B4B')},
+  {match:/panetteria|pane|forno/i,style:color('bread-slice','#D8913B')},
+  {match:/bevande|aperitivo|drink/i,style:color('martini-glass-citrus','#DB4B8B')},
+  {match:/cibo|food/i,style:color('bowl-food','#E99B35')},
+
+  {match:/affitto|locazione|mutuo|canone casa/i,style:color('house-chimney','#2F9E75')},
+  {match:/bollette|utenze|corrente|elettric/i,style:color('plug','#5BA88D')},
+  {match:/pulizi|detergent/i,style:color('broom','#4EAFA0')},
+  {match:/arredamento|mobili/i,style:color('couch','#A06AC6')},
+  {match:/riparaz|manutenz|meccanico/i,style:color('screwdriver-wrench','#E79035')},
+  {match:/domestica|\bcasa\b|abitazione/i,style:color('house','#5BA88D')},
+
+  {match:/visita|medico|dottore|specialist/i,style:color('stethoscope','#D55E80')},
+  {match:/farmacia|medicinal|medicine/i,style:color('pills','#D55E80')},
+  {match:/dentista|denti/i,style:color('tooth','#4BA6C8')},
+  {match:/veterin|animali|cane|gatto/i,style:color('paw','#C47A45')},
+  {match:/salute|benessere/i,style:color('heart-pulse','#D55E80')},
+  {match:/ospedale|clinica/i,style:color('hospital','#D95D6B')},
+
+  {match:/palestra|fitness|allenamento/i,style:color('dumbbell','#35A96B')},
+  {match:/calcio/i,style:color('futbol','#35A96B')},
+  {match:/nuoto|piscina/i,style:color('person-swimming','#2E9BC6')},
+  {match:/corsa|running|jogging/i,style:color('person-running','#E79035')},
+
+  {match:/cinema|film/i,style:color('clapperboard','#E45858')},
+  {match:/musica|concerto/i,style:color('music','#8B6BC9')},
+  {match:/videogio|gaming|console/i,style:color('gamepad','#655CE8')},
+  {match:/teatro|spettacolo/i,style:color('masks-theater','#E45858')},
+  {match:/divertimento|evento/i,style:color('ticket','#F17D45')},
+
+  {match:/scuola|universit|educazione|formazione/i,style:color('graduation-cap','#438FDF')},
+  {match:/libri|cultura|lettura/i,style:color('book-open','#8B6BC9')},
+  {match:/famiglia|parenti|family/i,style:color('users','#EF6C91')},
+  {match:/figli|bambin|infanzia/i,style:color('children','#ED7896')},
+  {match:/matrimonio|nozze/i,style:color('ring','#DB4B8B')},
+  {match:/moglie|marito|amore/i,style:color('heart','#E85F86')},
+
+  {match:/tasse|imposte|tributi|f24/i,style:color('file-invoice-dollar','#D97706')},
+  {match:/risparm|salvadanaio/i,style:color('piggy-bank','#35A96B')},
+  {match:/investiment|azioni|fondi/i,style:color('chart-line','#2F9E75')},
+  {match:/assicuraz|polizza/i,style:color('shield-halved','#438FDF')},
+  {match:/banca|conto corrente/i,style:color('building-columns','#536DE2')},
+  {match:/stipendio|entrata|reddito/i,style:color('money-bill-wave','#12A979')},
+  {match:/fattur|ricevut|scontrino/i,style:color('receipt','#5BA88D')},
+
+  {match:/telefono|cellulare|smartphone|ricarica telefonica/i,style:color('mobile','#5B8DEF')},
+  {match:/internet|fibra|wifi/i,style:color('wifi','#438FDF')},
+  {match:/computer|portatile|laptop/i,style:color('laptop','#655CE8')},
+  {match:/software|app|licenza/i,style:color('code','#655CE8')},
+  {match:/lavoro|ufficio|azienda/i,style:color('briefcase','#536DE2')},
+
+  {match:/abbonament|ricorren/i,style:color('repeat','#D84D4F')},
+  {match:/regal/i,style:color('gift','#E3AD16')},
+  {match:/ordini online|pacch|spedizion/i,style:color('box','#9655F0')},
+  {match:/acquisti online|acquisti|shopping|abbigliamento/i,style:color('bag-shopping','#9655F0')},
+  {match:/barbiere|parrucchiere/i,style:color('scissors','#E39C34')},
+  {match:/altra spesa|altro|varie/i,style:color('tag','#68738C')},
 ];
 
 export function inferredCategoryStyle(name:string):CategoryStyle{
-  return rules.find(([rule])=>rule.test(name))?.[1]||{icon:'tag',color:'#68738C'};
+  return rules.find(rule=>rule.match.test(name))?.style||color('tag','#68738C');
 }
 
 export function categoryStyle(name:string,custom?:Partial<CategoryStyle>|null):CategoryStyle{
   const inferred=inferredCategoryStyle(name);
-  return {icon:custom?.icon||inferred.icon,color:custom?.color||inferred.color};
+  let customIcon=custom?.icon;
+  // V3.9 stored the generic plane for "Mare". Correct that known bad automatic mapping
+  // while preserving every other historical/custom identifier.
+  if(/mare|spiaggia|lido|ombrellone|balneare/i.test(name)&&['plane','holiday','color:plane'].includes(customIcon||''))customIcon=inferred.icon;
+  return {icon:customIcon||inferred.icon,color:custom?.color||inferred.color};
 }
 
-export const iconChoices:string[]=['tag','food','coffee','cart','fuel','train','car','scooter','parking','rent','tax','wedding','health','doctor','house','receipt','gift','plane','play','bag','amazon','scissors','football','movie','book','ticket','education','family','child','bed','heart','gamepad','phone','package','paw','dumbbell','music','laptop','camera'];
-export const colorChoices=['#5477F5','#4F77D8','#655CE8','#8A5CF6','#9655F0','#D55E80','#DB4B8B','#E85F86','#E45858','#F17D45','#E99B35','#D97706','#E3AD16','#35A96B','#2F9E75','#5BA88D','#3E9AA8','#68738C','#111827'];
+export const colorChoices=['#5477F5','#4F77D8','#655CE8','#8A5CF6','#9655F0','#D55E80','#DB4B8B','#E85F86','#E45858','#F17D45','#E99B35','#D97706','#E3AD16','#35A96B','#2F9E75','#5BA88D','#3E9AA8','#2E9BC6','#68738C','#111827'];

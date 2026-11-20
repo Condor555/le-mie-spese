@@ -1,10 +1,12 @@
 'use client';
 
 import {useEffect,useMemo,useRef,useState} from 'react';
+import AmountExpressionInput from '../../components/AmountExpressionInput';
 import Icon from '../../components/Icon';
 import CategoryIcon from '../../components/CategoryIcon';
 import DateRangePicker,{type DateRange} from '../../components/DateRangePicker';
 import {onActiveSpaceChanged} from '../../lib/active-space-client';
+import {amountForSave} from '../../lib/amount-expression';
 
 type Transaction={
   id:string;
@@ -165,9 +167,9 @@ export default function Movimenti(){
 
   async function save(){
     if(!editing)return;
-    const numeric=Number(amount.replace(',','.'));
-    if(!Number.isFinite(numeric)||numeric<=0){
-      setModalMsg('Inserisci un importo valido.');
+    const numeric=amountForSave(amount);
+    if(numeric===null){
+      setModalMsg('Inserisci un importo o un calcolo valido maggiore di zero.');
       return;
     }
     if(!category){
@@ -265,7 +267,7 @@ export default function Movimenti(){
           <button type="button" className="transaction-close" aria-label="Annulla modifica" disabled={busy} onClick={()=>setModalView('detail')}>×</button>
         </header>
         <div className="segmented"><button type="button" className={kind==='expense'?'active':''} onClick={()=>setKind('expense')}>Uscita</button><button type="button" className={kind==='income'?'active':''} onClick={()=>setKind('income')}>Entrata</button></div>
-        <div className="two-col"><div className="field"><label>Importo</label><input inputMode="decimal" value={amount} onChange={event=>setAmount(event.target.value)}/></div><div className="field"><label>Data</label><input type="date" value={date} onChange={event=>setDate(event.target.value)}/></div></div>
+        <div className="two-col"><div className="field"><label htmlFor="edit-transaction-amount">Importo</label><AmountExpressionInput id="edit-transaction-amount" value={amount} onChange={setAmount} ariaLabel="Importo del movimento"/></div><div className="field"><label>Data</label><input type="date" value={date} onChange={event=>setDate(event.target.value)}/></div></div>
         <div className="field"><label>Descrizione</label><input value={note} onChange={event=>setNote(event.target.value)}/></div>
         <div className="field"><label>Categoria</label><div className="transaction-category-field"><CategoryIcon name={category||editing.category_name} icon={categoryData(category)?.icon} color={categoryData(category)?.color} size={44}/><select value={category} onChange={event=>setCategory(event.target.value)}>{categories.map(item=><option key={item.name}>{item.name}</option>)}</select></div></div>
         <div className="field"><label>Conto</label><input value={account} readOnly aria-readonly="true" title="Modificabile da Impostazioni > Conto per lo spazio visualizzato"/></div>

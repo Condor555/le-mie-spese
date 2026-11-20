@@ -223,7 +223,7 @@ export default function Categorie() {
           Icona
         </label>
 
-        <IconCatalogPicker value={icon} onChange={setIcon} />
+        <IconCatalogPicker value={icon} onChange={setIcon} suggestFor={name} />
 
         <label className="picker-label">
           Colore
@@ -316,7 +316,7 @@ export default function Categorie() {
               Icona
             </label>
 
-            <IconCatalogPicker value={editing.icon} onChange={(nextIcon) => setEditing({...editing, icon: nextIcon})} />
+            <IconCatalogPicker value={editing.icon} onChange={(nextIcon) => setEditing({...editing, icon: nextIcon})} suggestFor={editing.name} />
 
             <label className="picker-label">
               Colore

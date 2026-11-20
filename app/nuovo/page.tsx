@@ -1,8 +1,10 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
+import AmountExpressionInput from '../../components/AmountExpressionInput';
 import CategoryIcon from '../../components/CategoryIcon';
 import SpacePicker,{type SpacePickerOption} from '../../components/SpacePicker';
+import {amountForSave,formatAmountPreview} from '../../lib/amount-expression';
 
 type Category={name:string;icon?:string|null;color?:string|null};
 type Space=SpacePickerOption;
@@ -163,9 +165,9 @@ export default function Nuovo(){
   }
 
   async function save(){
-    const numeric=Number(amount.replace(',','.'));
+    const numeric=amountForSave(amount);
     if(!spaceId){setMessage('Seleziona lo spazio di destinazione.');return;}
-    if(!Number.isFinite(numeric)||numeric<=0){setMessage('Inserisci un importo valido.');return;}
+    if(numeric===null){setMessage('Inserisci un importo o un calcolo valido maggiore di zero.');return;}
     if(!category||!categories.some(item=>item.name===category)){setMessage('Seleziona una categoria valida per lo spazio scelto.');return;}
     setBusy(true);setMessage('');
     try{
@@ -186,19 +188,20 @@ export default function Nuovo(){
   }
 
   const selectedCategory=categories.find(item=>item.name===category);
+  const amountPreview=amountForSave(amount);
 
   return <>
     <header className="page-head"><div><h1>Nuova transazione</h1><p>Registra un movimento in pochi secondi</p></div></header>
     <section className="entry-card surface">
       <SpacePicker spaces={spaces} value={spaceId} onChange={chooseSpace} variant="destination" label="Spazio di destinazione" help="Il movimento e l’eventuale ricorrenza saranno salvati qui. Il Conto rimane una proprietà distinta dello spazio." disabled={busy||loadingSpace}/>
       <div className="segmented"><button type="button" className={kind==='expense'?'active':''} onClick={()=>setKind('expense')}>Uscita</button><button type="button" className={kind==='income'?'active':''} onClick={()=>setKind('income')}>Entrata</button></div>
-      <input className="amount-input" inputMode="decimal" value={amount} onChange={event=>setAmount(event.target.value)} placeholder="€ 0,00"/>
+      <AmountExpressionInput className="amount-input-wrap" value={amount} onChange={setAmount} ariaLabel="Importo della transazione" placeholder="€ 0,00 o 12,50 × 3"/>
       <div className="field autocomplete-field"><label htmlFor="transaction-note">Descrizione</label><input id="transaction-note" value={note} autoComplete="off" aria-autocomplete="list" aria-expanded={suggestionsOpen} aria-controls={suggestionsOpen?'transaction-note-suggestions':undefined} onFocus={()=>{if(suggestions.length)setSuggestionsOpen(true)}} onKeyDown={noteKeys} onChange={event=>changeNote(event.target.value)} placeholder="Es. Spesa Conad"/>{suggestionsBusy&&<span className="autocomplete-busy" aria-live="polite">Ricerca suggerimenti…</span>}{suggestionsOpen&&suggestions.length>0&&<div id="transaction-note-suggestions" className="autocomplete-list" role="listbox" aria-label="Descrizioni già usate">{suggestions.map((suggestion,index)=><button ref={node=>{suggestionRefs.current[index]=node}} key={suggestion.note.toLocaleLowerCase('it')} type="button" role="option" aria-selected={index===activeSuggestion} tabIndex={index===activeSuggestion?0:-1} onMouseDown={event=>event.preventDefault()} onMouseEnter={()=>setActiveSuggestion(index)} onKeyDown={event=>suggestionKeys(event,index)} onClick={()=>selectSuggestion(suggestion)}><span><b>{suggestion.note}</b><small>{suggestion.category||'Categoria non disponibile'} · usata {suggestion.frequency} {suggestion.frequency===1?'volta':'volte'}</small></span><strong>↵</strong></button>)}</div>}</div>
       <div className="field"><label>Categoria</label><div className="category-picker"><CategoryIcon name={category||'Categoria'} icon={selectedCategory?.icon} color={selectedCategory?.color}/><select value={category} disabled={loadingSpace} onChange={event=>setCategory(event.target.value)}><option value="">{loadingSpace?'Caricamento categorie…':categories.length?'Seleziona categoria':'Nessuna categoria nello spazio'}</option>{categories.map(item=><option key={item.name} value={item.name}>{item.name}</option>)}</select></div></div>
       <div className="two-col"><div className="field"><label>Data</label><input type="date" value={date} onChange={event=>setDate(event.target.value)}/></div><div className="field"><label>Conto</label><input value={account} readOnly aria-readonly="true" title="Modificabile da Impostazioni > Conto per lo spazio selezionato"/></div></div>
       <label className="toggle-card"><span><b>Transazione ricorrente</b><small>Generala nello stesso spazio</small></span><input type="checkbox" checked={recurring} onChange={event=>setRecurring(event.target.checked)}/></label>
       {recurring&&<select value={frequency} onChange={event=>setFrequency(event.target.value)}><option value="weekly">Ogni settimana</option><option value="monthly">Ogni mese</option><option value="yearly">Ogni anno</option></select>}
-      <button className="save-btn" disabled={busy||loadingSpace||!spaceId} onClick={save}>{busy?'Salvataggio...':`Salva${amount?' € '+amount:''}`}</button>
+      <button className="save-btn" disabled={busy||loadingSpace||!spaceId} onClick={save}>{busy?'Salvataggio...':`Salva${amountPreview!==null?` ${formatAmountPreview(amountPreview)}`:''}`}</button>
       {message&&<div className="notice" role="status">{message}</div>}
     </section>
   </>;

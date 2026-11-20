@@ -4,7 +4,7 @@
 
 **Expense tracker personale e familiare, mobile-first, con spazi privati e condivisi.**
 
-[![Versione](https://img.shields.io/badge/versione-3.9-5b5ce2?style=flat-square)](#stato-del-progetto)
+[![Versione](https://img.shields.io/badge/versione-3.9.1-5b5ce2?style=flat-square)](#stato-del-progetto)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -18,7 +18,7 @@
 
 ## Panoramica
 
-La versione **V3.9** unisce il modello multiutente stabile a budget mensili, Analytics 2.0 e gestione evoluta di ricorrenze/abbonamenti. Ogni spazio **Personale** o **Condiviso** mantiene dati, budget, categorie e permessi indipendenti; Movimenti usa ricerca e filtri reattivi, mentre Home e Statistiche condividono un selettore mese compatto e accessibile.
+La versione **V3.9.1 Smart UX** parte dalla V3.9 REV1 stabile e aggiunge calcoli sicuri negli importi e un catalogo locale di 365 icone colorate, senza cambiare schema o policy Supabase. Ogni spazio **Personale** o **Condiviso** mantiene dati, budget, categorie e permessi indipendenti; Movimenti usa ricerca e filtri reattivi, mentre Home e Statistiche condividono un selettore mese compatto e accessibile.
 
 L'app è costruita con **Next.js**, **Supabase** e **Vercel**. Non richiede servizi a pagamento per il flusso base: autenticazione, database PostgreSQL, Row Level Security e deploy possono utilizzare i rispettivi free tier.
 
@@ -60,6 +60,7 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - raggruppamento per data con anno sempre visibile;
 - count e totale giornaliero sincronizzati ai risultati filtrati;
 - dettaglio, modifica ed eliminazione con conferma;
+- mini-calcolatrice negli importi di nuova/modifica transazione: `+`, `-`, `×`, `÷`, `*`, `/`, parentesi, virgola e punto decimale, anteprima e salvataggio del solo risultato numerico;
 - gestione della singola occorrenza o della serie futura per i movimenti ricorrenti;
 - importazione CSV con intestazioni italiane/inglesi e compatibilità con il formato Money Lover esistente;
 - export CSV dei dati già presente nel progetto.
@@ -71,6 +72,7 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - speso, disponibile, percentuale utilizzata e confronto col mese precedente;
 - soglie visive: avviso all’80% e superamento al 100%;
 - lettura per tutti i membri e modifica riservata all’owner tramite RLS.
+- mini-calcolatrice disponibile sia sul limite complessivo sia sui budget di categoria.
 
 ### Home e Analytics 2.0 V3.8
 
@@ -90,12 +92,15 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - conferma pagamento atomica, che crea una sola transazione per scadenza;
 - registrazione automatica opzionale e conferma manuale;
 - permessi multiutente e RLS basati sull’appartenenza allo spazio.
+- mini-calcolatrice disponibile in creazione e modifica di ricorrenze/abbonamenti.
 
 ### Interfaccia
 
 - design mobile-first e responsive;
 - modalità chiara, scura o automatica;
-- icone funzionali Phosphor e catalogo categorie/brand colorato locale, con fallback sicuro e attribuzione in Informazioni;
+- icone funzionali Phosphor, brand separati e catalogo locale di 365 icone colorate organizzate in gruppi;
+- ricerca icone in italiano/inglese, sinonimi, suggerimenti dal nome categoria, preferite/recenti in `localStorage`, rendering a batch e immagini lazy;
+- compatibilità con gli identificatori icona V3.9, fallback locale sicuro e correzione semantica `Mare → Spiaggia`;
 - manifest web app e navigazione ottimizzata per smartphone;
 - componenti coerenti per spazi, categorie, modali e navigazione inferiore.
 
@@ -117,7 +122,7 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 | Database e Auth | Supabase PostgreSQL + Supabase Auth |
 | Sicurezza dati | PostgreSQL Row Level Security |
 | Grafici | Recharts |
-| Icone | Phosphor Icons |
+| Icone | Phosphor Icons; Icons8/brand storici; Font Awesome Free per il catalogo Color locale |
 | Validazione | Zod |
 | Deploy | Vercel |
 | Import CSV | Papa Parse |
@@ -183,6 +188,13 @@ La migration è additiva: introduce/normalizza profili, spazi, membri, autore e 
 
 La migration V3.7-V3.9 è idempotente, mantiene i dati esistenti e assegna alle ricorrenze preesistenti la modalità automatica per non cambiare il comportamento già stabile. Le nuove regole create dalla UI usano invece la conferma manuale come impostazione iniziale.
 
+### Aggiornamento da V3.9 REV1 a V3.9.1
+
+1. Sostituire i file applicativi e aggiungere `public/icons/color/`.
+2. Non eseguire nuove query SQL: V3.9.1 non introduce tabelle, colonne, funzioni o policy.
+3. Eseguire `npm test`, `npm run check:phosphor` e `npm run build`.
+4. Collaudare un calcolo in nuova/modifica transazione, ricorrenza e budget; verificare poi ricerca e suggerimenti icone.
+
 ## Deploy su Vercel
 
 1. Importare la repository in Vercel.
@@ -224,7 +236,7 @@ supabase/
 
 ## Stato del progetto
 
-**Versione corrente: V3.9 Budget, Analytics 2.0 e Ricorrenze/Abbonamenti.**
+**Versione corrente: V3.9.1 Smart UX.**
 
 Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzionalità disponibili” appartengono alla versione implementata; quelle riportate qui sotto sono pianificate e **non devono essere considerate già disponibili**.
 
@@ -236,6 +248,7 @@ Questa repository è un progetto in evoluzione. Le funzioni elencate in “Funzi
 | V3.7 | ✅ Implementata | Budget mensili e per categoria, Personale/Famiglia |
 | V3.8 | ✅ Implementata | Analytics 2.0, trend e breakdown per autore/spazio |
 | V3.9 | ✅ Implementata | Ricorrenze 2.0, abbonamenti, scadenze e movimenti futuri |
+| V3.9.1 | ✅ Implementata | Calcolatrice importi e catalogo icone Color locale smart |
 | V3.10 | 🧭 Pianificata | Smart Add e suggerimenti di inserimento rapido |
 | V3.11 | 🧭 Pianificata | Obiettivi di risparmio e avanzamento |
 | V3.12 | 🧭 Pianificata | Import/export evoluto, backup e ripristino |
@@ -251,7 +264,7 @@ npm run check:phosphor
 npm run build
 ```
 
-`npm test` verifica i casi di ricorrenza a fine mese/anno bisestile, la presenza dei preset periodo, l'assenza del pulsante “Applica filtri”, la protezione stale con `AbortController`, gli endpoint range e gli oggetti SQL/RLS V3.7-V3.9.
+`npm test` verifica i casi di ricorrenza a fine mese/anno bisestile, i filtri e gli oggetti SQL/RLS V3.7-V3.9, più parser importi, integrazione nei moduli, dimensione/asset del catalogo, compatibilità identificatori e mapping semantico V3.9.1.
 
 Per V3.6 eseguire anche un test con **Account A** e **Account B**:
 
@@ -271,46 +284,39 @@ Costruita per una gestione finanziaria semplice, privata e condivisibile — sen
 
 </div>
 
+## V3.9.1 Smart UX — note tecniche
 
-## V3.6 REV2.2 — prova Color, SpacePicker e Smart Autocomplete
+### Importi ed espressioni
 
-Questa variante mantiene invariati schema dati, Supabase, RLS, autenticazione, transazioni e modello multiutente della baseline V3.6 REV2.2, introducendo solo componenti applicativi e API che interrogano le tabelle esistenti.
+`lib/amount-expression.ts` implementa un parser ricorsivo limitato, senza `eval`, `Function` o esecuzione di codice. Accetta numeri, `+`, `-`, `*`, `/`, `×`, `÷`, parentesi, virgola e punto decimale. Lunghezza, numero di operazioni, divisione per zero e ampiezza del risultato sono controllati; prima dell'invio il valore viene arrotondato a due decimali. Il backend riceve soltanto il numero calcolato.
 
-### Icone categorie
+`components/AmountExpressionInput.tsx` è condiviso da:
 
-- le icone funzionali dell’interfaccia restano Phosphor;
-- categorie e marchi usano asset colorati locali in `public/icons/categories` e `public/icons/brands`;
-- gli identificatori categoria già salvati restano validi e vengono risolti dal catalogo esistente;
-- identificatori sconosciuti o asset non mappati usano il fallback locale `tag.svg`;
-- l’app non effettua chiamate Icons8 a runtime;
-- l’attribuzione richiesta è visibile in **Impostazioni → Informazioni**.
+- nuova transazione;
+- modifica movimento;
+- nuova e modifica ricorrenza/abbonamento;
+- budget complessivo e budget di categoria.
 
-### SpacePicker accessibile
+### Catalogo icone
 
-Un unico componente `components/SpacePicker.tsx` gestisce:
+- 365 asset SVG locali in `public/icons/color/`;
+- 12 brand separati in `public/icons/brands/`;
+- 16 gruppi tematici;
+- ricerca normalizzata italiano/inglese e sinonimi finanziari/quotidiani;
+- suggerimenti automatici dal nome della categoria;
+- preferite e recenti solo in `localStorage`, senza database;
+- prime 48 voci renderizzate, batch successivi con `IntersectionObserver`;
+- `loading="lazy"` e `decoding="async"` sulle immagini;
+- resolver statico allow-list: un identificatore salvato non viene mai interpolato come URL;
+- alias per tutti gli identificatori V3.9 e fallback `color:tag`;
+- correzione della precedente associazione automatica `Mare → aereo` in `Mare → umbrella-beach`.
 
-- variante compatta per lo spazio visualizzato in Home, Movimenti e Statistiche;
-- variante compatta per la destinazione della nuova ricorrenza;
-- variante destination per Nuova transazione e Importazione CSV.
+Lo script `scripts/build-color-icon-catalog.py` rigenera catalogo e asset usando i glifi installati di Font Awesome Free. Non viene eseguito nel browser né durante il deploy.
 
-Il controllo usa trigger e listbox custom, icona Personale/Condiviso, check sul valore selezionato, click esterno, Escape, Home/End, frecce, Invio, focus visibile e stili light/dark. Il cambio dello spazio visualizzato continua a usare `/api/spaces/select` e l’evento client già presente; i selettori di destinazione non alterano lo spazio globale.
+### Licenze e attribuzioni
 
-### Importazione CSV
+L'attribuzione Icons8 rimane visibile in **Impostazioni → Informazioni** per gli asset e i marchi storici. Il catalogo esteso usa glifi Font Awesome Free 6, distribuiti con licenza CC BY 4.0, con trattamento colore locale; l'attribuzione è riportata sia nell'app sia nei commenti SVG generati. Nessuna API di icone viene chiamata a runtime.
 
-La pagina Importazione CSV non mostra il selettore globale. Lo spazio viene scelto esplicitamente nella pagina e inviato come `space_id`; la route verifica l’appartenenza tramite `activeSpace(requestedSpaceId)` prima di importare movimenti e categorie.
+### Database
 
-### Nuova ricorrenza
-
-La destinazione è esplicita e indipendente dallo spazio globalmente visualizzato. Al cambio spazio vengono ricaricati categorie e nome Conto; `space_id` viene inviato alla route di creazione, che conserva le verifiche di membership e categoria. Le occorrenze future mantengono lo `space_id` della serie.
-
-### Smart Autocomplete
-
-Nella schermata Nuova transazione, dopo due caratteri, `/api/transactions/suggestions` cerca nello storico del solo spazio di destinazione accessibile. I risultati:
-
-- sono deduplicati senza distinzione tra maiuscole/minuscole;
-- privilegiano prefisso, posizione del match, frequenza e recenza;
-- sono limitati a cinque;
-- includono la categoria storicamente più frequente per la descrizione;
-- non richiedono nuove tabelle.
-
-La selezione compila la descrizione e applica la categoria solo se ancora presente nello spazio corrente. La classificazione automatica esistente riceve anch’essa `spaceId` ed è ora filtrata per `transactions.space_id`, evitando contaminazioni tra spazi. Il cambio destinazione annulla le richieste obsolete, azzera categoria/suggerimenti e ricarica i dati coerenti con il nuovo spazio.
+V3.9.1 non richiede migration Supabase. I nuovi comportamenti sono frontend e mantengono lo schema V3.9 REV1.

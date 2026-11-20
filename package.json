@@ -1,1 +1,29 @@
-{"scripts":{"dev":"next dev","build":"next build","start":"next start","test":"node scripts/verify-v3.9.mjs","check:phosphor":"node scripts/check-phosphor-exports.mjs","prebuild":"npm run check:phosphor && npm test"},"dependencies":{"@phosphor-icons/react":"^2.1.10","@supabase/ssr":"^0.5.2","@supabase/supabase-js":"^2.49.1","next":"^15.1.6","papaparse":"^5.5.2","react":"^19.0.0","react-dom":"^19.0.0","recharts":"^2.15.0","zod":"^3.24.1"},"devDependencies":{"@types/node":"^22.10.6","@types/papaparse":"^5.3.15","@types/react":"^19.0.7","typescript":"^5.7.3"}}
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node scripts/verify-v3.9.mjs && node scripts/verify-v3.9.1.mjs",
+    "check:phosphor": "node scripts/check-phosphor-exports.mjs",
+    "prebuild": "npm run check:phosphor",
+    "verify:v3.9.1": "node scripts/verify-v3.9.1.mjs"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.49.1",
+    "next": "^15.1.6",
+    "papaparse": "^5.5.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.6",
+    "@types/papaparse": "^5.3.15",
+    "@types/react": "^19.0.7",
+    "typescript": "^5.7.3"
+  },
+  "version": "3.9.1"
+}
