@@ -12,7 +12,8 @@ export default function AppHeader(){
     pathname === '/importa' ||
     pathname === '/account' ||
     pathname.startsWith('/account/') ||
-    pathname === '/spazi';
+    pathname === '/spazi' ||
+    pathname === '/obiettivi';
 
   if(hidden) return null;
   return <SpaceSwitcher/>;

@@ -30,7 +30,7 @@ export async function PATCH(req:Request){
     }
     const {error}=await sb.rpc('assign_category_macro',{p_space_id:spaceId,p_category_name:body.category_name,p_macro_category_id:body.macro_category_id});
     return NextResponse.json({ok:!error,error:error?.message},{status:error?400:200});
-  }catch(error:any){if(error instanceof z.ZodError)return NextResponse.json({error:'Operazione macro-categoria non valida.'},{status:400});return NextResponse.json({error:error?.message||'Unauthorized'},{status:400})}
+  }catch(error:any){if(error instanceof z.ZodError)return NextResponse.json({error:'Operazione Budget non valida.'},{status:400});return NextResponse.json({error:error?.message||'Unauthorized'},{status:400})}
 }
 
 export async function DELETE(req:Request){

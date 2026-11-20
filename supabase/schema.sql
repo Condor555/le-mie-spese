@@ -977,7 +977,7 @@ using(public.can_manage_space_budget(space_id,auth.uid()))
 with check(public.can_manage_space_budget(space_id,auth.uid()));
 
 
--- V3.9.3 — Obiettivi di risparmio (separati da Budget e transazioni).
+-- Qoomia V4.1 — Obiettivi di risparmio (separati da Budget e transazioni).
 create table if not exists public.saving_goals(
   id uuid primary key default gen_random_uuid(),
   space_id uuid not null references public.spaces(id) on delete cascade,
@@ -1031,23 +1031,23 @@ alter table public.saving_goals enable row level security;
 alter table public.saving_goal_contributions enable row level security;
 grant select,insert,update,delete on public.saving_goals to authenticated;
 grant select,insert,update,delete on public.saving_goal_contributions to authenticated;
-drop policy if exists "v3.9.3 saving goals select" on public.saving_goals;
-create policy "v3.9.3 saving goals select" on public.saving_goals for select to authenticated using(public.is_space_member(space_id,auth.uid()));
-drop policy if exists "v3.9.3 saving goals write" on public.saving_goals;
-create policy "v3.9.3 saving goals write" on public.saving_goals for all to authenticated
+drop policy if exists "v4.1 saving goals select" on public.saving_goals;
+create policy "v4.1 saving goals select" on public.saving_goals for select to authenticated using(public.is_space_member(space_id,auth.uid()));
+drop policy if exists "v4.1 saving goals write" on public.saving_goals;
+create policy "v4.1 saving goals write" on public.saving_goals for all to authenticated
 using(public.can_manage_space_budget(space_id,auth.uid()))
 with check(public.can_manage_space_budget(space_id,auth.uid()));
-drop policy if exists "v3.9.3 goal contributions select" on public.saving_goal_contributions;
-create policy "v3.9.3 goal contributions select" on public.saving_goal_contributions for select to authenticated using(public.is_space_member(space_id,auth.uid()));
-drop policy if exists "v3.9.3 goal contributions insert" on public.saving_goal_contributions;
-create policy "v3.9.3 goal contributions insert" on public.saving_goal_contributions for insert to authenticated
+drop policy if exists "v4.1 goal contributions select" on public.saving_goal_contributions;
+create policy "v4.1 goal contributions select" on public.saving_goal_contributions for select to authenticated using(public.is_space_member(space_id,auth.uid()));
+drop policy if exists "v4.1 goal contributions insert" on public.saving_goal_contributions;
+create policy "v4.1 goal contributions insert" on public.saving_goal_contributions for insert to authenticated
 with check(public.is_space_member(space_id,auth.uid()) and contributed_by=auth.uid() and exists(select 1 from public.saving_goals g where g.id=goal_id and g.space_id=space_id and g.status='active'));
-drop policy if exists "v3.9.3 goal contributions update" on public.saving_goal_contributions;
-create policy "v3.9.3 goal contributions update" on public.saving_goal_contributions for update to authenticated
+drop policy if exists "v4.1 goal contributions update" on public.saving_goal_contributions;
+create policy "v4.1 goal contributions update" on public.saving_goal_contributions for update to authenticated
 using(contributed_by=auth.uid() or public.can_manage_space_budget(space_id,auth.uid()))
-with check(contributed_by=auth.uid() or public.can_manage_space_budget(space_id,auth.uid()));
-drop policy if exists "v3.9.3 goal contributions delete" on public.saving_goal_contributions;
-create policy "v3.9.3 goal contributions delete" on public.saving_goal_contributions for delete to authenticated
+with check((contributed_by=auth.uid() and public.is_space_member(space_id,auth.uid()) and exists(select 1 from public.saving_goals g where g.id=goal_id and g.space_id=space_id and g.status='active')) or public.can_manage_space_budget(space_id,auth.uid()));
+drop policy if exists "v4.1 goal contributions delete" on public.saving_goal_contributions;
+create policy "v4.1 goal contributions delete" on public.saving_goal_contributions for delete to authenticated
 using(contributed_by=auth.uid() or public.can_manage_space_budget(space_id,auth.uid()));
 
 -- V3.9.3 category kinds hotfix (idempotente).

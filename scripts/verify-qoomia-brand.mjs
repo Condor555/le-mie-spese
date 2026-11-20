@@ -3,8 +3,8 @@ import {readFile,stat} from 'node:fs/promises';
 
 const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
-const [layout,manifest,middleware,home,login,register,onboarding,about,readme,css,pkg,spaceSwitcher,categoriesPage,categoriesApi,categoryApi,mergeApi,activeSpace,spacesApi,transactionsApi,statsApi,trendsApi,movementsPage,statsPage]=await Promise.all([
-  'app/layout.tsx','app/manifest.ts','middleware.ts','app/page.tsx','app/login/page.tsx','app/registrati/page.tsx','app/onboarding/page.tsx','app/account/informazioni/page.tsx','README.md','app/globals.css','package.json','components/SpaceSwitcher.tsx','app/account/categorie/page.tsx','app/api/categories/route.ts','app/api/categories/[name]/route.ts','app/api/categories/merge/route.ts','lib/active-space.ts','app/api/spaces/route.ts','app/api/transactions/route.ts','app/api/stats/route.ts','app/api/trends/route.ts','app/movimenti/page.tsx','app/statistiche/page.tsx',
+const [layout,manifest,middleware,home,login,register,onboarding,about,readme,css,pkg,spaceSwitcher,categoriesPage,categoriesApi,categoryApi,mergeApi,activeSpace,spacesApi,transactionsApi,statsApi,trendsApi,movementsPage,statsPage,budgetPage,i18n,iconCatalog,categoryStyle,goalsPage,goalsApi,contributionsApi,savingsLib,goalsMigration,nav]=await Promise.all([
+  'app/layout.tsx','app/manifest.ts','middleware.ts','app/page.tsx','app/login/page.tsx','app/registrati/page.tsx','app/onboarding/page.tsx','app/account/informazioni/page.tsx','README.md','app/globals.css','package.json','components/SpaceSwitcher.tsx','app/account/categorie/page.tsx','app/api/categories/route.ts','app/api/categories/[name]/route.ts','app/api/categories/merge/route.ts','lib/active-space.ts','app/api/spaces/route.ts','app/api/transactions/route.ts','app/api/stats/route.ts','app/api/trends/route.ts','app/movimenti/page.tsx','app/statistiche/page.tsx','app/budget/page.tsx','lib/i18n.ts','lib/category-icon-catalog.ts','lib/category-style.ts','app/obiettivi/page.tsx','app/api/savings-goals/route.ts','app/api/savings-goals/contributions/route.ts','lib/savings-goals.ts','supabase/migrations/20261120_v4_1_savings_goals.sql','components/Nav.tsx',
 ].map(read));
 
 for(const token of ['Qoomia','Dai senso alle tue spese, in privato o in famiglia.','qoomia.vercel.app'])assert(layout.includes(token),`Metadata: manca ${token}`);
@@ -15,6 +15,8 @@ assert(middleware.includes("if(!user&&!isPublic)")&&middleware.includes("url.pat
 for(const token of ['manifest.webmanifest','svg|png|jpg|jpeg|gif|webp'])assert(middleware.includes(token),`Il middleware non esclude correttamente gli asset statici: manca ${token}`);
 assert(readme.includes('# 🟢 Qoomia')&&readme.includes('Quota')&&readme.includes('Spazi Privati e Condivisi')&&readme.includes('Macro Budget e Rollover')&&readme.includes('Chiarezza Immediata'),'Header README Qoomia incompleto.');
 assert(readme.includes('github.com/Condor555/qoomia')&&!readme.includes('github.com/Condor555/le-mie-spese'),'Riferimenti repository non aggiornati.');
+assert(!/screenshot|placeholder/i.test(readme),'Il README pubblico non deve contenere screenshot o placeholder.');
+assert(!/numa-money|qoomia\.vercel|[a-z0-9-]+\.supabase\.co|\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/i.test(readme),'Il README pubblico contiene riferimenti specifici di un’istanza privata.');
 for(const token of ['--bg:#F8FAFC','--primary:#0F766E','html[data-theme="dark"]{--bg:#090D16'])assert(css.includes(token),`Palette: manca ${token}`);
 assert(!spaceSwitcher.includes('QoomiaLogo')&&!spaceSwitcher.includes('app-brand'),'Lo switcher globale non deve duplicare il branding Qoomia.');
 for(const token of ['initialSpaceId','requestAnimationFrame','announceActiveSpace(initialSpaceId)'])assert(spaceSwitcher.includes(token),`Sincronizzazione iniziale SpacePicker: manca ${token}`);
@@ -25,6 +27,23 @@ for(const source of [home,movementsPage,statsPage])assert(source.includes('onAct
 for(const token of ['SpacePicker','variant="compact"','spaceId','chooseSpace','/api/spaces','/api/categories?spaceId='])assert(categoriesPage.includes(token),`Categorie per spazio: manca ${token}`);
 for(const source of [categoriesApi,categoryApi,mergeApi])assert(source.includes('activeSpace(')&&source.includes('spaceId'), 'Ogni API categorie deve validare e filtrare lo spazio richiesto.');
 assert(categoriesApi.includes(".eq('space_id',spaceId)")&&categoryApi.includes(".eq('space_id',spaceId)")&&mergeApi.includes(".eq('space_id',spaceId)"),'Le operazioni categorie devono restare confinate allo spazio selezionato.');
-const packageJson=JSON.parse(pkg);assert.equal(packageJson.name,'qoomia');assert.equal(packageJson.version,'4.0.1');
+assert(!categoriesPage.includes('category-space-role')&&!categoriesPage.includes('Spazio privato'),'La card Spazio categorie non deve mostrare la riga tipo spazio.');
+const saveIndex=categoriesPage.indexOf('Salva modifiche'),deleteIndex=categoriesPage.indexOf('Elimina categoria'),mergeIndex=categoriesPage.indexOf('Migra transazioni in');assert(saveIndex>=0&&deleteIndex>saveIndex&&mergeIndex>deleteIndex,'Ordine azioni editor categoria non valido.');
+for(const token of ['15000','budget.loadTimeout','budget.loadErrorTitle','budget.retry','void load(id)'])assert(budgetPage.includes(token),`Budget resiliente: manca ${token}`);
+assert(!/macro-budget|macro-categor/i.test(i18n),'La UI non deve mostrare diciture macro-budget/macro-categoria.');
+for(const token of ["icon('wedding-rings'","icon('beach-umbrella'","icon('woman'"])assert(iconCatalog.includes(token),`Icona categoria dedicata mancante: ${token}`);
+for(const token of ["color('wedding-rings'","color('beach-umbrella'","color('woman'"])assert(categoryStyle.includes(token),`Mapping categoria dedicato mancante: ${token}`);
+for(const width of ['max-width:430px','max-width:375px','max-width:330px'])assert(css.includes(width),`Audit responsive: manca breakpoint ${width}`);
+for(const token of ['category-progress-row','category-percentage'])assert(home.includes(token)&&css.includes(token),`Percentuali categorie leggibili: manca ${token}`);
+assert(css.includes('.category-main .category-percentage{position:static')&&css.includes('grid-template-columns:minmax(0,1fr) auto'),'La percentuale categoria deve restare separata dalla progress bar.');
+for(const token of ['SpacePicker','saving-goals-list','suggestedMonthly','contributionGoal','goals.notExpense'])assert(goalsPage.includes(token),`Obiettivi V4.1 UI: manca ${token}`);
+for(const token of ['goals.homeTitle','/obiettivi','home-goal-row'])assert(home.includes(token),`Obiettivi Home: manca ${token}`);
+assert(nav.includes("pathname === '/obiettivi'"),'Obiettivi deve essere una sottopagina visibile della Home.');
+for(const token of ['canManage','Solo l’owner','activeSpace(body.space_id)'])assert(goalsApi.includes(token),`Permessi Obiettivi: manca ${token}`);
+for(const token of ['transactionCreated:false','contributed_by:user.id','target_amount'])assert(contributionsApi.includes(token),`Contributi Obiettivi separati: manca ${token}`);
+for(const token of ['suggestedMonthly','suggestedWeekly','remaining<=0','canContribute'])assert(savingsLib.includes(token),`Calcoli Obiettivi: manca ${token}`);
+for(const token of ['create table if not exists public.saving_goals','create table if not exists public.saving_goal_contributions','can_manage_space_budget','is_space_member','contributed_by=auth.uid()'])assert(goalsMigration.includes(token),`Migration Obiettivi: manca ${token}`);
+const packageJson=JSON.parse(pkg);assert.equal(packageJson.name,'qoomia');assert.equal(packageJson.version,'4.1.0');
 for(const asset of ['public/icons/qoomia.svg','public/icons/qoomia-v4-1.svg','public/icons/qoomia-v4-1-192.png','public/icons/qoomia-v4-1-512.png','public/icons/qoomia-v4-1-512-maskable.png','public/icons/qoomia-v4-1-apple-touch.png','public/icons/qoomia-v4-1-favicon.png','app/apple-icon.png','app/favicon.ico'])assert((await stat(new URL(asset,root))).isFile(),`Asset PWA mancante: ${asset}`);
-console.log('verify-qoomia-brand: header unico, PWA cache-busted, metadata, root e categorie per spazio verificati');
+for(const asset of ['public/icons/categories/wedding-rings.svg','public/icons/categories/beach-umbrella.svg','public/icons/categories/woman.svg'])assert((await stat(new URL(asset,root))).isFile(),`Asset categoria dedicato mancante: ${asset}`);
+console.log('verify-qoomia-brand: Qoomia V4.1, Obiettivi, Budget resiliente, percentuali leggibili, README pubblico, icone e Mobile UX verificati');

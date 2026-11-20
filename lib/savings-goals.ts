@@ -18,7 +18,7 @@ type SpaceOwnerRow={created_by:string};
 const round=(value:number)=>Math.round((value+Number.EPSILON)*100)/100;
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 function periods(targetDate:string|null){
-  if(!targetDate)return {months:null,weeks:null};const start=new Date(`${today()}T12:00:00Z`),end=new Date(`${targetDate}T12:00:00Z`);const days=Math.max(1,Math.ceil((end.getTime()-start.getTime())/86400000));return {months:Math.max(1,Math.ceil(days/30.4375)),weeks:Math.max(1,Math.ceil(days/7))};
+  if(!targetDate)return {months:null,weeks:null};const start=new Date(`${today()}T12:00:00Z`),end=new Date(`${targetDate}T12:00:00Z`);if(end.getTime()<=start.getTime())return {months:null,weeks:null};const days=Math.ceil((end.getTime()-start.getTime())/86400000);return {months:Math.max(1,Math.ceil(days/30.4375)),weeks:Math.max(1,Math.ceil(days/7))};
 }
 
 export async function loadSavingGoals(sb:SupabaseClient,spaceId:string,userId:string):Promise<SavingGoalSummary[]>{
@@ -38,6 +38,7 @@ export async function loadSavingGoals(sb:SupabaseClient,spaceId:string,userId:st
   return goalRows.map((goal):SavingGoalSummary=>{
     const list=byGoal.get(goal.id)||[];const accumulated=round(list.reduce((sum,item)=>sum+Number(item.amount),0));const targetAmount=Number(goal.target_amount);const remaining=round(Math.max(0,targetAmount-accumulated));const {months,weeks}=periods(goal.target_date);const averageMonthly=list.length?list.reduce((sum,item)=>sum+Number(item.amount),0)/Math.max(1,new Set(list.map(item=>String(item.contribution_date).slice(0,7))).size):0;let forecastDate:string|null=null;
     if(remaining<=0)forecastDate=list.at(-1)?.contribution_date||today();else if(averageMonthly>0){const date=new Date(`${today()}T12:00:00Z`);date.setUTCMonth(date.getUTCMonth()+Math.ceil(remaining/averageMonthly));forecastDate=date.toISOString().slice(0,10)}
-    return {id:goal.id,spaceId:goal.space_id,name:goal.name,icon:goal.icon||'piggy-bank',color:goal.color||'#35A96B',targetAmount,accumulated,remaining,progress:targetAmount>0?Math.min(100,Math.round(accumulated/targetAmount*100)):0,targetDate:goal.target_date,status:goal.status,linkedCategoryName:goal.linked_category_name,createdBy:goal.created_by,canEdit,canContribute:goal.status==='active',monthsRemaining:months,weeksRemaining:weeks,suggestedMonthly:months?round(remaining/months):null,suggestedWeekly:weeks?round(remaining/weeks):null,forecastDate};
+    const status:SavingGoalSummary['status']=goal.status==='completed'||remaining<=0?'completed':'active';
+    return {id:goal.id,spaceId:goal.space_id,name:goal.name,icon:goal.icon||'piggy-bank',color:goal.color||'#35A96B',targetAmount,accumulated,remaining,progress:targetAmount>0?Math.min(100,Math.round(accumulated/targetAmount*100)):0,targetDate:goal.target_date,status,linkedCategoryName:goal.linked_category_name,createdBy:goal.created_by,canEdit,canContribute:status==='active',monthsRemaining:months,weeksRemaining:weeks,suggestedMonthly:months?round(remaining/months):null,suggestedWeekly:weeks?round(remaining/weeks):null,forecastDate};
   });
 }

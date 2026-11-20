@@ -486,6 +486,72 @@ html[data-theme="dark"] .space-picker-trigger,html[data-theme="dark"] .space-pic
 .category-space-card h2{margin:0}
 .category-space-card .settings-help{margin:4px 0 0}
 .category-space-picker{min-width:190px;justify-self:end}
-.category-space-role{grid-column:1/-1;color:var(--muted);font-size:11px}
 .create-cat:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:520px){.category-space-card{grid-template-columns:1fr}.category-space-picker{width:100%;min-width:0;justify-self:stretch}.category-space-picker .space-picker-trigger{width:100%}}
+
+
+/* Qoomia V4.0.2 — Mobile UX Fix (320–430 px) */
+.budget-loading,.budget-load-error{gap:8px;text-align:center}
+.budget-loading small{display:block;color:var(--muted);font-weight:500}
+.budget-load-error .empty-state-icon{width:48px;height:48px;border-radius:15px;background:color-mix(in srgb,var(--red) 10%,var(--surface2));color:var(--red);display:grid;place-items:center}
+.budget-load-error p{max-width:390px;margin:0}
+.budget-load-error button{min-width:150px;margin-top:6px}
+.category-space-card{grid-template-columns:minmax(0,1fr) minmax(170px,210px)}
+.category-space-card .category-space-picker{width:100%;min-width:0}
+.category-space-card .space-picker-trigger{width:100%;min-height:48px}
+.modal-card>.delete-btn{margin-top:8px}
+.merge-box{margin-top:16px}
+
+@media(max-width:430px){
+  html,body{max-width:100%;overflow-x:hidden}
+  .shell{width:100%;padding:16px 13px 104px}
+  h1{font-size:26px;letter-spacing:-.6px}
+  .page-head{align-items:stretch;flex-direction:column;gap:12px;margin-bottom:14px}
+  .surface{border-radius:19px}
+  button,.space-picker-trigger,.movement-filter-trigger{min-height:44px}
+  .app-space-bar{width:100%;margin-bottom:12px}
+  .app-space-bar .space-picker-compact{width:min(100%,230px);max-width:230px}
+  .month-picker,.month-picker-pill{width:100%;min-width:0}
+  .month-picker-pill{height:50px;padding:0 12px}
+  .month-picker-popover{right:0;left:auto;max-width:calc(100vw - 26px)}
+  .home-brand{align-items:flex-start}.home-brand>div{min-width:0}.home-brand h1{font-size:30px}.home-brand p{line-height:1.35}
+  .balance-card{padding:17px}.balance-card>strong{font-size:32px;overflow-wrap:anywhere}
+  .money-grid,.metric-grid,.analytics-kpis{grid-template-columns:1fr 1fr;gap:8px}
+  .money-card,.metric{padding:12px}.money-card strong,.metric b{font-size:17px}
+  .section,.settings-card{padding:14px}
+  .section-title{align-items:flex-start;gap:10px}.section-title>*{min-width:0}
+  .live-filter-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px}.live-filter-bar>*{width:100%;min-width:0}.live-filter-bar .clear-filters{grid-column:1/-1}
+  .search-box{height:46px}.day-heading{gap:8px}.transaction{grid-template-columns:40px minmax(0,1fr) auto;gap:9px}.transaction>div{min-width:0}.transaction b,.transaction small{overflow-wrap:anywhere}
+  .bottom-nav{bottom:7px;width:calc(100% - 14px);height:70px;padding:7px 6px;border-radius:21px;gap:1px}.bottom-nav>a:not(.nav-plus){width:auto;min-width:0;flex:1 1 0}.bottom-nav>a>span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bottom-nav .nav-plus{width:50px;height:50px;flex:0 0 50px;margin-top:-20px}
+  .budget-head{gap:12px}.budget-hero{padding:15px}.budget-hero-head>div{min-width:0}.budget-hero-head strong{font-size:22px;overflow-wrap:anywhere}.commitment-grid>div{padding:10px}.budget-input{gap:8px}.budget-distribution .section-title{display:grid;grid-template-columns:minmax(0,1fr) auto}.allocation-summary{grid-template-columns:1fr}.macro-compact-row{grid-template-columns:8px minmax(0,1fr) 18px;gap:9px;padding:11px 10px}.macro-compact-main>small,.macro-compact-main>em{white-space:normal;overflow-wrap:anywhere}
+  .modal{padding:8px;align-items:center}.modal-card{width:100%;max-width:100%;max-height:calc(100dvh - 16px);padding:15px;border-radius:20px}.modal-card h2{font-size:18px}.macro-editor-grid{grid-template-columns:minmax(0,1fr) 70px}.macro-category-editor label{grid-template-columns:34px minmax(0,1fr)}.macro-category-editor select{grid-column:2;width:100%}
+  .category-space-card{grid-template-columns:1fr;gap:12px}.category-space-card .category-space-picker{justify-self:stretch}.category-kind-tabs{gap:4px}.category-kind-tabs button{padding:10px 7px;font-size:11px}.category-settings{grid-template-columns:1fr}.category-setting{min-height:54px}.catalog-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.catalog-grid>button{min-width:0}.color-picker{gap:9px}.color-picker button{width:38px;height:38px;min-height:38px}.modal-card>button,.merge-box button{width:100%}.merge-box{padding:11px}.merge-box select{min-height:48px}
+}
+@media(max-width:375px){
+  .shell{padding-left:11px;padding-right:11px}
+  .money-grid,.metric-grid,.analytics-kpis{grid-template-columns:1fr}
+  .live-filter-bar{grid-template-columns:1fr}
+  .live-filter-bar .clear-filters{grid-column:auto}
+  .catalog-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .budget-distribution .section-title{grid-template-columns:1fr}.budget-distribution .section-title>strong{justify-self:start}
+  .macro-editor-grid{grid-template-columns:1fr}.macro-color-input{width:100%}
+  .bottom-nav>a:not(.nav-plus){font-size:9px}.nav-tab-icon{width:30px}
+}
+@media(max-width:330px){
+  .shell{padding-left:9px;padding-right:9px}
+  h1{font-size:24px}.home-brand h1{font-size:28px}
+  .bottom-nav{width:calc(100% - 8px);padding-left:3px;padding-right:3px}.bottom-nav .nav-plus{width:46px;height:46px;flex-basis:46px}.bottom-nav>a:not(.nav-plus){font-size:8px}
+  .modal{padding:5px}.modal-card{padding:13px;max-height:calc(100dvh - 10px)}
+  .color-picker{gap:7px}.color-picker button{width:35px;height:35px;min-height:35px}
+}
+
+@media(max-width:430px){.bottom-nav>a{min-height:44px;justify-content:center}.color-picker button{width:44px;height:44px;min-height:44px}}
+@media(max-width:330px){.color-picker button{width:44px;height:44px;min-height:44px}}
+
+
+/* Qoomia V4.1 — Obiettivi e percentuali categoria leggibili */
+.category-main{min-width:0}.category-main>.category-row-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}.category-row-head b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.category-row-head strong{flex:0 0 auto;font-size:13px}.category-progress-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;margin-top:8px}.category-progress-row .progress{width:100%;margin:0}.category-main .category-percentage{position:static;display:inline-block;min-width:38px;padding:3px 7px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);color:var(--text);font-size:10px;font-weight:800;text-align:center;line-height:1.2}.home-saving-goals .section-title a,.home-goals-empty a{color:var(--primary);font-weight:800;text-decoration:none}.home-goal-row{color:var(--text);text-decoration:none}.home-goal-row>div{min-width:0}.home-goal-row>div>span{gap:10px}.home-goal-row>div>span b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.home-goal-row>div>span strong{flex:0 0 auto}.home-goals-empty{padding:8px 0 2px}.home-goals-empty p{margin:0 0 8px}.goals-head{align-items:flex-start}.goals-head>.space-picker{z-index:40;min-width:190px}.goals-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.goals-toolbar>.goals-tabs{flex:1 1 auto;max-width:360px}.goals-toolbar>button{flex:0 0 auto}.goals-empty{padding:28px 20px}.saving-goal-card header>div{min-width:0}.saving-goal-card header h2{overflow-wrap:anywhere}.saving-goal-card header>strong{padding:5px 8px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);color:var(--text)}.saving-goal-progress{position:relative}.saving-goal-actions button{min-height:44px}.goal-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}.goal-modal-head h2{margin:0}.goal-modal-head small{display:block;color:var(--muted);font-size:10px;margin-bottom:2px}.goal-status{margin-top:14px}.goal-contribution-note{padding:10px 12px;border-radius:12px;background:var(--surface2);font-size:11px}.goal-history-list{display:grid;gap:8px;margin-top:12px}.goal-history-list article{padding:11px 0;border-top:1px solid var(--line)}.goal-history-list article:first-child{border-top:0}.goal-history-list b,.goal-history-list small{display:block}.goal-history-list small{margin-top:3px;color:var(--muted)}.goal-history-list p{margin:5px 0 0;font-size:12px}.goal-history-modal{overflow:auto}
+@media(max-width:430px){.category-row{grid-template-columns:40px minmax(0,1fr);gap:10px}.category-progress-row{gap:8px}.category-main .category-percentage{min-width:36px}.goals-head{flex-direction:column}.goals-head>.space-picker{width:100%;min-width:0}.goals-head .space-picker-trigger{width:100%;min-height:44px}.goals-toolbar{align-items:stretch;flex-direction:column}.goals-toolbar>.goals-tabs{width:100%;max-width:none}.goals-toolbar>button{width:100%}.saving-goal-card{padding:14px}.saving-goal-card>header{grid-template-columns:44px minmax(0,1fr) auto;gap:9px}.saving-goal-card header>strong{font-size:14px}.saving-goal-numbers{grid-template-columns:1fr 1fr}.saving-goal-numbers span:last-child{grid-column:1/-1}.saving-goal-plan{grid-template-columns:1fr 1fr}.saving-goal-actions{display:grid;grid-template-columns:1fr 1fr}.saving-goal-actions button{width:100%;margin:0}.saving-goal-editor,.goal-contribution-modal,.goal-history-modal{max-height:calc(100dvh - 16px)}}
+@media(max-width:375px){.category-row-head{align-items:flex-start;flex-direction:column;gap:2px}.category-row-head strong{font-size:12px}.category-progress-row{grid-template-columns:minmax(0,1fr) auto}.saving-goal-numbers,.saving-goal-plan,.saving-goal-actions{grid-template-columns:1fr}.saving-goal-numbers span:last-child{grid-column:auto}}
+
+@media(max-width:430px){.space-picker-compact .space-picker-trigger{min-height:44px}}

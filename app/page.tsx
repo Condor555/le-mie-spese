@@ -1,6 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useRef,useState} from 'react';
+import Link from 'next/link';
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts';
 import Icon from '../components/Icon';
 import CategoryIcon from '../components/CategoryIcon';
@@ -118,11 +119,18 @@ export default function Home(){
       <div><small>{t('home.usual')}</small><b>{t('home.mainCategory',{name:top.name})}</b><p>{currency(top.value)} · {top.percentage}% {t('common.expenses').toLocaleLowerCase(localeTag)}</p><p className={top.changePercent==null?'insight-comparison neutral':top.changePercent>0?'insight-comparison up':'insight-comparison down'}>{comparison}</p></div>
     </section>}
 
+    <section className="section surface home-saving-goals">
+      <div className="section-title"><div><h2>{t('goals.homeTitle')}</h2><small>{t('goals.homeSubtitle')}</small></div><Link href="/obiettivi">{t('goals.viewAll')}</Link></div>
+      {stats?.savingGoals?.slice(0,3).map(goal=><Link href="/obiettivi" className="home-goal-row" key={goal.id}><CategoryIcon name={goal.name} icon={goal.icon} color={goal.color} size={38}/><div><span><b>{goal.name}</b><strong>{goal.progress}%</strong></span><div className="progress"><i style={{width:`${goal.progress}%`,background:goal.color}}/></div><small>{t('goals.homeProgress',{saved:currency(goal.accumulated),target:currency(goal.targetAmount),remaining:currency(goal.remaining)})}</small></div></Link>)}
+      {stats&&!stats.savingGoals.length&&<div className="home-goals-empty"><p>{t('goals.homeEmpty')}</p><Link href="/obiettivi">{t('goals.createFirst')}</Link></div>}
+      {!stats&&<div className="home-goals-empty" aria-live="polite"><p>{t('goals.loading')}</p></div>}
+    </section>
+
     <section className="section surface">
       <div className="section-title"><h2>{t('home.topCategories')}</h2><small>{t('home.movementsCount',{count:stats?.count||0})}</small></div>
       {stats?.categories?.slice(0,5).map(category=>{
         const style=categoryStyle(category.name);
-        return <div className="category-row" key={category.name}><CategoryIcon name={category.name}/><div className="category-main"><div><b>{category.name}</b><strong>{currency(category.value)}</strong></div><div className="progress"><span style={{width:`${Math.max(4,category.value/(stats.categories[0]?.value||1)*100)}%`,background:style.color}}/></div><small>{Math.round(category.value/total*100)}%</small></div></div>;
+        return <div className="category-row" key={category.name}><CategoryIcon name={category.name}/><div className="category-main"><div className="category-row-head"><b>{category.name}</b><strong>{currency(category.value)}</strong></div><div className="category-progress-row"><div className="progress"><span style={{width:`${Math.max(4,category.value/(stats.categories[0]?.value||1)*100)}%`,background:style.color}}/></div><small className="category-percentage">{Math.round(category.value/total*100)}%</small></div></div></div>;
       })}
     </section>
   </>;

@@ -20,10 +20,10 @@ export const categoryIconCatalog:IconCatalogEntry[]=[
   icon('film-slate','Cinema','Cinema','Intrattenimento','film movie'),icon('film','Film','Film','Intrattenimento','streaming video'),icon('play','Streaming','Play','Intrattenimento','tv serie'),icon('tv','Televisione','TV','Intrattenimento','serie video'),icon('music-notes','Musica','Music','Intrattenimento','concerto'),icon('game-controller','Videogiochi','Gaming','Intrattenimento','console game'),icon('ticket','Biglietti','Ticket','Intrattenimento','evento spettacolo'),icon('camera','Fotografia','Camera','Intrattenimento','foto hobby'),
   icon('wallet','Portafoglio','Wallet','Finanza','conto stipendio denaro'),icon('bank','Banca','Bank','Finanza','pensione istituto'),icon('credit-card','Carta','Credit card','Finanza','credito debito pagamento'),icon('coins','Monete','Coins','Finanza','denaro interessi rendite'),icon('money','Contanti','Cash','Finanza','banconote reddito'),icon('currency-eur','Tasse','Tax','Finanza','imposte f24 euro'),icon('piggy-bank','Risparmio','Savings','Finanza','salvadanaio investimento'),icon('calculator','Calcoli','Calculator','Finanza','budget contabilita'),
   icon('first-aid-kit','Salute','Health','Salute','cura benessere'),icon('stethoscope','Medico','Doctor','Salute','visita dottore specialista'),icon('pill','Farmacia','Pharmacy','Salute','medicine medicinali'),icon('hospital','Ospedale','Hospital','Salute','clinica'),icon('ambulance','Emergenza','Ambulance','Salute','soccorso'),icon('heartbeat','Benessere','Wellness','Salute','cuore salute'),
-  icon('airplane','Viaggi','Travel','Viaggi','aereo volo vacanza mare'),
+  icon('airplane','Viaggi','Travel','Viaggi','aereo volo vacanza'),icon('beach-umbrella','Mare e spiaggia','Beach umbrella','Viaggi','mare spiaggia lido ombrellone balneare'),
   icon('soccer-ball','Calcio','Football','Sport','pallone sport'),icon('barbell','Palestra','Gym','Sport','fitness allenamento'),
   icon('laptop','Computer','Laptop','Tecnologia','pc software internet'),
-  icon('users-three','Famiglia','Family','Famiglia','parenti gruppo'),icon('baby','Figli','Child','Famiglia','bambini infanzia'),icon('heart','Affetti','Love','Famiglia','moglie marito amore'),icon('paw-print','Animali','Pets','Famiglia','cane gatto veterinario'),
+  icon('users-three','Famiglia','Family','Famiglia','parenti gruppo coppia'),icon('baby','Figli','Child','Famiglia','bambini infanzia'),icon('heart','Affetti','Love','Famiglia','amore affetti'),icon('woman','Donna','Woman','Famiglia','moglie compagna persona famiglia'),icon('wedding-rings','Matrimonio','Wedding rings','Famiglia','matrimonio nozze fedi wedding'),icon('paw-print','Animali','Pets','Famiglia','cane gatto veterinario'),
   icon('graduation-cap','Istruzione','Education','Lavoro','scuola universita formazione'),icon('book-open','Libri','Books','Lavoro','cultura lettura'),icon('briefcase','Lavoro','Work','Lavoro','ufficio azienda'),
 ];
 
@@ -55,10 +55,10 @@ export const legacyIconAliases:Record<string,string>={
   'movie':'film-slate','streaming':'play','theater':'ticket','events':'ticket','hobby':'camera','gamepad':'game-controller','music':'music-notes',
   'card':'credit-card','tax':'currency-eur','safe':'piggy-bank','investment':'coins','insurance':'bank','receipt':'receipt','calculator':'calculator',
   'health':'first-aid-kit','doctor':'stethoscope','pharmacy':'pill','dumbbell':'barbell','wellness':'heartbeat','dental':'first-aid-kit','pet-care':'paw-print','medical-bill':'receipt',
-  'plane':'airplane','map':'airplane','luggage':'airplane','holiday':'airplane','beach':'tag','camping':'tag','fuel-trip':'gas-pump','travel-ticket':'ticket','travel-food':'fork-knife',
+  'plane':'airplane','map':'airplane','luggage':'airplane','holiday':'airplane','beach':'beach-umbrella','camping':'tag','fuel-trip':'gas-pump','travel-ticket':'ticket','travel-food':'fork-knife',
   'football':'soccer-ball','gym':'barbell','bicycle-sport':'bicycle','running':'barbell','swimming':'barbell','racket':'barbell','trophy':'star','hiking':'tag','motorcycle-sport':'motorcycle','sport-ticket':'ticket',
   'phone':'device-mobile','desktop':'laptop','camera-tech':'camera','gaming-tech':'game-controller','internet':'laptop','software':'laptop','repair-tech':'wrench','device':'device-mobile','gadget':'device-mobile',
-  'family':'users-three','child':'baby','wedding':'heart','education':'graduation-cap','paw':'paw-print','home-family':'house','gift-family':'gift','care':'users-three',
+  'family':'users-three','child':'baby','wedding':'wedding-rings','ring':'wedding-rings','wife':'woman','female':'woman','education':'graduation-cap','paw':'paw-print','home-family':'house','gift-family':'gift','care':'users-three',
   'work':'briefcase','office':'briefcase','tools-work':'wrench','education-work':'graduation-cap','travel-work':'airplane','lunch-work':'fork-knife','phone-work':'device-mobile','software-work':'laptop','invoice-work':'receipt','bonus':'gift',
   // slug artificiali più probabili già salvati
   'tags':'tag','bookmark':'tag','circle-question':'tag','circle-info':'tag','triangle-exclamation':'warning-circle','bell':'tag','calendar':'tag','clock':'tag','magnifying-glass':'tag','ellipsis':'dots-three','circle-play':'play','arrow-rotate-left':'arrow-counter-clockwise',
@@ -69,7 +69,7 @@ export const legacyIconAliases:Record<string,string>={
   'clapperboard':'film-slate','photo-film':'film','headphones':'music-notes','microphone':'music-notes','podcast':'music-notes','radio':'music-notes','dice':'game-controller','chess':'game-controller','bowling-ball':'soccer-ball','masks-theater':'ticket','ticket-simple':'ticket','guitar':'music-notes','drum':'music-notes','compact-disc':'music-notes','record-vinyl':'music-notes','champagne-glasses':'coffee',
   'money-bill':'money','money-bill-wave':'money','money-bills':'money','money-check-dollar':'money','sack-dollar':'money','vault':'bank','building-columns':'bank','euro-sign':'currency-eur','dollar-sign':'currency-eur','sterling-sign':'currency-eur','yen-sign':'currency-eur','bitcoin-sign':'coins','chart-line':'coins','chart-pie':'calculator','chart-bar':'calculator','arrow-trend-up':'arrow-circle-up','arrow-trend-down':'receipt','scale-balanced':'bank','file-invoice-dollar':'receipt','award':'gift',
   'heart-pulse':'heartbeat','user-doctor':'stethoscope','user-nurse':'stethoscope','hospital-user':'hospital','kit-medical':'first-aid-kit','briefcase-medical':'first-aid-kit','pills':'pill','capsules':'pill','syringe':'first-aid-kit','prescription-bottle-medical':'pill','tooth':'first-aid-kit','lungs':'first-aid-kit','brain':'first-aid-kit','dna':'first-aid-kit','microscope':'first-aid-kit','flask-vial':'first-aid-kit','bandage':'first-aid-kit','crutch':'first-aid-kit','wheelchair':'first-aid-kit','eye':'first-aid-kit','ear-listen':'first-aid-kit','weight-scale':'barbell','spa':'heartbeat','truck-medical':'ambulance',
-  'umbrella-beach':'tag','suitcase':'airplane','suitcase-rolling':'airplane','passport':'airplane','hotel':'bed','bell-concierge':'bed','map-location-dot':'airplane','globe':'airplane','earth-europe':'airplane','earth-americas':'airplane','earth-asia':'airplane','mountain-sun':'tag','campground':'tag','tent':'tag','person-hiking':'tag','route':'airplane','road':'car','signs-post':'airplane','binoculars':'camera','monument':'airplane',
+  'umbrella-beach':'beach-umbrella','suitcase':'airplane','suitcase-rolling':'airplane','passport':'airplane','hotel':'bed','bell-concierge':'bed','map-location-dot':'airplane','globe':'airplane','earth-europe':'airplane','earth-americas':'airplane','earth-asia':'airplane','mountain-sun':'tag','campground':'tag','tent':'tag','person-hiking':'tag','route':'airplane','road':'car','signs-post':'airplane','binoculars':'camera','monument':'airplane',
 };
 
 export function normalizeIconId(id?:string|null){
@@ -84,7 +84,7 @@ export const allIconCatalog=[...categoryIconCatalog,...brandCatalog];
 export function findIconEntry(id?:string|null){const normalized=normalizeIconId(id);return allIconCatalog.find(entry=>entry.id===normalized)}
 
 const preferredSuggestions:[RegExp,string[]][]=[
-  [/mare|spiaggia|lido|ombrellone|balneare/i,['tag','airplane','camera']],
+  [/mare|spiaggia|lido|ombrellone|balneare/i,['beach-umbrella','camera','airplane']],
   [/vacanz|ferie|viagg|volo|aereo|aeroporto/i,['airplane','bed','camera','ticket']],
   [/benzina|diesel|gpl|carburante/i,['gas-pump','car']],
   [/medic|dottor|visita|specialist/i,['stethoscope','hospital','first-aid-kit']],
@@ -94,6 +94,8 @@ const preferredSuggestions:[RegExp,string[]][]=[
   [/caff[eè]|colazione|bar\b/i,['coffee','fork-knife']],
   [/casa|affitto|mutuo|bollett|utenze|luce/i,['house','wrench']],
   [/figli|bambin|neonat|infanzia/i,['baby','users-three']],
+  [/matrimonio|nozze|fedi|wedding/i,['wedding-rings','gift','users-three']],
+  [/moglie|compagna|donna/i,['woman','users-three','heart']],
   [/animali|veterin|cane|gatto/i,['paw-print']],
   [/palestra|fitness|allenamento/i,['barbell','heartbeat']],
   [/scuola|universit|formazione|corso/i,['graduation-cap','book-open']],

@@ -1,7 +1,9 @@
+import {normalizeIconId} from './category-icon-catalog';
+
 export type CategoryStyle={icon:string;color:string};
 
 type Rule={match:RegExp;style:CategoryStyle};
-const color=(icon:string,value:string):CategoryStyle=>({icon:`color:${icon}`,color:value});
+const color=(icon:string,value:string):CategoryStyle=>({icon:normalizeIconId(icon),color:value});
 
 /** Ordered from specific to generic: the first semantic match wins. */
 const rules:Rule[]=[
@@ -18,7 +20,16 @@ const rules:Rule[]=[
   {match:/\buber\b/i,style:{icon:'brand:uber',color:'#111827'}},
   {match:/\bgoogle\b/i,style:{icon:'brand:google',color:'#4285F4'}},
 
-  {match:/mare|spiaggia|lido|ombrellone|balneare/i,style:color('umbrella-beach','#2E9BC6')},
+  {match:/stipendio|salario|retribuzione/i,style:color('wallet','#2EAA7B')},
+  {match:/pensione/i,style:color('building-columns','#438FDF')},
+  {match:/bonus|premi/i,style:color('award','#E3AD16')},
+  {match:/regali ricevuti/i,style:color('gift','#DB4B8B')},
+  {match:/rimbor/i,style:color('arrow-rotate-left','#3E9AA8')},
+  {match:/interess|rendit|dividend|cedola/i,style:color('chart-line','#35A96B')},
+  {match:/vendit/i,style:color('store','#9655F0')},
+  {match:/trasferiment.*entrata|altra entrata|other income/i,style:color('arrow-trend-up','#5B8DEF')},
+
+  {match:/mare|spiaggia|lido|ombrellone|balneare/i,style:color('beach-umbrella','#2E9BC6')},
   {match:/vacanz|ferie/i,style:color('suitcase','#E79035')},
   {match:/viagg|volo|aereo|aeroporto/i,style:color('plane','#5B8DEF')},
   {match:/hotel|albergo|b&b|alloggio/i,style:color('hotel','#3E9AA8')},
@@ -68,8 +79,9 @@ const rules:Rule[]=[
   {match:/libri|cultura|lettura/i,style:color('book-open','#8B6BC9')},
   {match:/famiglia|parenti|family/i,style:color('users','#EF6C91')},
   {match:/figli|bambin|infanzia/i,style:color('children','#ED7896')},
-  {match:/matrimonio|nozze/i,style:color('ring','#DB4B8B')},
-  {match:/moglie|marito|amore/i,style:color('heart','#E85F86')},
+  {match:/matrimonio|nozze|fedi|wedding/i,style:color('wedding-rings','#DB4B8B')},
+  {match:/moglie|compagna/i,style:color('woman','#9655F0')},
+  {match:/marito|amore/i,style:color('users-three','#E85F86')},
 
   {match:/tasse|imposte|tributi|f24/i,style:color('file-invoice-dollar','#D97706')},
   {match:/risparm|salvadanaio/i,style:color('piggy-bank','#35A96B')},
@@ -102,8 +114,11 @@ export function categoryStyle(name:string,custom?:Partial<CategoryStyle>|null):C
   let customIcon=custom?.icon;
   // V3.9 stored the generic plane for "Mare". Correct that known bad automatic mapping
   // while preserving every other historical/custom identifier.
-  if(/mare|spiaggia|lido|ombrellone|balneare/i.test(name)&&['plane','holiday','color:plane'].includes(customIcon||''))customIcon=inferred.icon;
-  return {icon:customIcon||inferred.icon,color:custom?.color||inferred.color};
+  const normalizedCustom=normalizeIconId(customIcon);
+  if(/mare|spiaggia|lido|ombrellone|balneare/i.test(name)&&['airplane','tag'].includes(normalizedCustom))customIcon=inferred.icon;
+  if(/matrimonio|nozze|fedi|wedding/i.test(name)&&['heart','tag'].includes(normalizedCustom))customIcon=inferred.icon;
+  if(/moglie|compagna/i.test(name)&&['heart','tag','users-three'].includes(normalizedCustom))customIcon=inferred.icon;
+  return {icon:normalizeIconId(customIcon||inferred.icon),color:custom?.color||inferred.color};
 }
 
 export const colorChoices=['#5477F5','#4F77D8','#655CE8','#8A5CF6','#9655F0','#D55E80','#DB4B8B','#E85F86','#E45858','#F17D45','#E99B35','#D97706','#E3AD16','#35A96B','#2F9E75','#5BA88D','#3E9AA8','#2E9BC6','#68738C','#111827'];

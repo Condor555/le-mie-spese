@@ -39,7 +39,7 @@ export async function PUT(req:Request){
     if('total_budget' in raw){
       const payload=PlanPayload.parse(raw);const {sb,spaceId}=await activeSpace(payload.space_id);
       const duplicateIds=new Set(payload.allocations.map(item=>item.macro_category_id));
-      if(duplicateIds.size!==payload.allocations.length)return NextResponse.json({error:'Ogni macro-categoria può comparire una sola volta.'},{status:400});
+      if(duplicateIds.size!==payload.allocations.length)return NextResponse.json({error:'Ogni voce Budget può comparire una sola volta.'},{status:400});
       const totalPercent=payload.allocations.reduce((sum,item)=>sum+item.percentage,0);
       if(totalPercent>100.001)return NextResponse.json({error:'La somma delle percentuali non può superare il 100%.'},{status:400});
       const snapshot=await loadMacroBudgetSnapshot(sb,spaceId,payload.month);

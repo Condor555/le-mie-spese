@@ -38,14 +38,15 @@ export default function Budget(){
   const {month,setMonth}=useSharedMonth();
   const [data,setData]=useState<BudgetData|null>(null),[spaceId,setSpaceId]=useState(''),[totalDraft,setTotalDraft]=useState('');
   const [allocations,setAllocations]=useState<Record<string,string>>({}),[message,setMessage]=useState('');
+  const [loadError,setLoadError]=useState('');
   const [loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[initializing,setInitializing]=useState(false);
   const [editor,setEditor]=useState<MacroEditor|null>(null),[creating,setCreating]=useState(false),[newName,setNewName]=useState(''),[newColor,setNewColor]=useState('#68738C');
   const requestRef=useRef(0),abortRef=useRef<AbortController|null>(null);
 
   const applyData=useCallback((raw:unknown)=>{const result=normalizeBudgetData(raw,month);setData(result);setSpaceId(result.spaceId);setTotalDraft(moneyInput(result.totalBudget));setInitializing(false);setAllocations(Object.fromEntries(result.macros.map(item=>[item.id,percentInput(item.allocationPercent)])))},[month]);
-  const load=useCallback(async(targetSpaceId=spaceId)=>{const request=++requestRef.current;abortRef.current?.abort();const controller=new AbortController();abortRef.current=controller;setLoading(true);setMessage('');try{const params=new URLSearchParams({month});if(targetSpaceId)params.set('spaceId',targetSpaceId);const response=await fetch(`/api/budgets?${params}`,{cache:'no-store',signal:controller.signal});const result=await response.json();if(request!==requestRef.current)return;if(!response.ok)throw new Error('load-failed');applyData(result)}catch(reason:unknown){const cause=reason as {name?:string};if(cause?.name!=='AbortError'&&request===requestRef.current){setData(null);setMessage(t('budget.loadError'))}}finally{if(request===requestRef.current)setLoading(false)}},[month,spaceId,applyData,t]);
+  const load=useCallback(async(targetSpaceId?:string)=>{const request=++requestRef.current;abortRef.current?.abort();const controller=new AbortController();abortRef.current=controller;let timedOut=false;const timeout=window.setTimeout(()=>{timedOut=true;controller.abort()},15000);setLoading(true);setLoadError('');try{const params=new URLSearchParams({month});if(targetSpaceId)params.set('spaceId',targetSpaceId);const response=await fetch(`/api/budgets?${params}`,{cache:'no-store',signal:controller.signal});const result=await response.json().catch(()=>({error:t('budget.loadError')}));if(request!==requestRef.current)return;if(!response.ok)throw new Error(result.error||t('budget.loadError'));applyData(result)}catch(reason:unknown){const cause=reason as {name?:string;message?:string};if(request===requestRef.current&&(cause?.name!=='AbortError'||timedOut)){setData(null);setLoadError(timedOut?t('budget.loadTimeout'):cause?.message||t('budget.loadError'))}}finally{window.clearTimeout(timeout);if(request===requestRef.current)setLoading(false)}},[month,applyData,t]);
   useEffect(()=>{void load();return()=>abortRef.current?.abort()},[load]);
-  useEffect(()=>onActiveSpaceChanged(id=>{requestRef.current++;abortRef.current?.abort();setSpaceId(id);setData(null);setEditor(null);setCreating(false);setInitializing(false)}),[]);
+  useEffect(()=>onActiveSpaceChanged(id=>{setSpaceId(id);setData(null);setEditor(null);setCreating(false);setInitializing(false);void load(id)}),[load]);
 
   const draftTotal=amountForSave(totalDraft||'0',true)??0;
   const draftDistributable=Math.max(0,draftTotal-(data?.commitments||0));
@@ -84,7 +85,8 @@ export default function Budget(){
     <nav className="subpage-breadcrumb" aria-label={t('budget.breadcrumb')}><Link href="/statistiche" className="back-link budget-back"><span aria-hidden="true"><Icon name="chevronLeft" size={18}/></span>{t('budget.back')}</Link></nav>
     <header className="page-head budget-head"><div><h1>{t('budget.title')}</h1><p>{t('budget.subtitle')}</p></div><MonthPicker value={month} onChange={setMonth}/></header>
     {message&&<div className="notice" role="status">{message}</div>}
-    {loading&&<div className="empty-state surface"><b>{t('budget.loading')}</b></div>}
+    {loading&&<div className="empty-state surface budget-loading" role="status"><b>{t('budget.loading')}</b><small>{t('budget.loadingHelp')}</small></div>}
+    {!loading&&!data&&loadError&&<section className="empty-state surface budget-load-error" role="alert"><span className="empty-state-icon"><Icon name="category" size={25}/></span><b>{t('budget.loadErrorTitle')}</b><p>{loadError}</p><button type="button" onClick={()=>void load(spaceId||undefined)}>{t('budget.retry')}</button></section>}
     {data&&!data.hasBudgetPlan&&!initializing&&<section className="empty-state surface budget-empty"><span className="empty-state-icon"><Icon name="chart" size={25}/></span><b>{t('budget.emptyTitle')}</b><p>{t(data.canEdit?'budget.emptyOwner':'budget.emptyMember')}</p>{data.canEdit&&<button type="button" onClick={()=>setInitializing(true)}>{t('budget.configure')}</button>}</section>}
     {data&&(data.hasBudgetPlan||initializing)&&<>
       {initializing&&!data.hasBudgetPlan&&<button type="button" className="secondary budget-cancel-setup" onClick={()=>setInitializing(false)}>{t('budget.cancelSetup')}</button>}

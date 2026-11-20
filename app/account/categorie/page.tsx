@@ -293,7 +293,6 @@ export default function Categorie() {
           disabled={loadingSpaces||loadingCategories}
           className="category-space-picker"
         />
-        {selectedSpace&&<small className="category-space-role">{selectedSpace.type==='personal'?'Spazio privato':`Spazio condiviso · ${selectedSpace.role==='owner'?'Owner':'Member'}`}</small>}
       </section>
 
       <div className="segmented category-kind-tabs" role="tablist" aria-label="Tipo categorie">
@@ -458,6 +457,13 @@ export default function Categorie() {
               Salva modifiche
             </button>
 
+            <button
+              className="delete-btn"
+              onClick={removeCategory}
+            >
+              Elimina categoria
+            </button>
+
             <div className="merge-box">
               <label>
                 Migra transazioni in
@@ -496,13 +502,6 @@ export default function Categorie() {
                 Migra ed elimina
               </button>
             </div>
-
-            <button
-              className="delete-btn"
-              onClick={removeCategory}
-            >
-              Elimina categoria
-            </button>
 
             <button
               className="secondary"

@@ -18,7 +18,7 @@ const navigationTabs: NavigationTab[] = [
     href: '/',
     label: 'nav.home',
     icon: 'home',
-    isActive: (pathname) => pathname === '/',
+    isActive: (pathname) => pathname === '/' || pathname === '/obiettivi' || pathname.startsWith('/obiettivi/'),
   },
   {
     href: '/movimenti',
