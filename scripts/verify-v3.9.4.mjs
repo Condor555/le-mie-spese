@@ -82,8 +82,8 @@ assert.deepEqual(macroRuntime.macroAllocationMetrics(0,0,200,300),{hasAllocation
 assert.deepEqual(macroRuntime.macroAllocationMetrics(100,0,50,75),{hasAllocation:true,allocatedBudget:100,percentage:50,status:'ok',available:50,projectedPercentage:75},'Percentuali macro calcolate solo sul budget allocato.');
 const itKeys=Object.keys(runtime.messages.it).sort();const enKeys=Object.keys(runtime.messages.en).sort();assert.deepEqual(enKeys,itKeys,'I dizionari IT/EN devono avere le stesse chiavi.');
 
-const pkg=JSON.parse(packageJson);assert.equal(pkg.version,'4.1.1');assert.equal(pkg.scripts.test,'node scripts/verify-v3.9.4.mjs && node scripts/verify-qoomia-brand.mjs');
-for(const token of ['V4.1.1','20261120_v3_9_4_user_language.sql','20261120_v4_1_savings_goals.sql','20261120_v4_1_1_ux_icon_cleanup.sql','Spazi Privati','Budget','Roadmap'])assert(readme.includes(token),`README pubblico: manca ${token}`);
+const pkg=JSON.parse(packageJson);assert.equal(pkg.version,'4.1.2');assert.equal(pkg.scripts.test,'node scripts/verify-v3.9.4.mjs && node scripts/verify-qoomia-brand.mjs');
+for(const token of ['V4.1.2','20261120_v3_9_4_user_language.sql','20261120_v4_1_savings_goals.sql','20261120_v4_1_1_ux_icon_cleanup.sql','Spazi Privati','Budget','Roadmap'])assert(readme.includes(token),`README pubblico: manca ${token}`);
 
 const sourceFiles=[];
 async function collect(directory){for(const entry of await readdir(new URL(directory,root),{withFileTypes:true})){const relative=`${directory}${entry.name}`;if(entry.isDirectory())await collect(`${relative}/`);else if(/\.(ts|tsx)$/.test(entry.name))sourceFiles.push(relative)}}

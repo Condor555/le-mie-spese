@@ -122,16 +122,11 @@ export default function Movimenti(){
 
   useEffect(()=>{
     if(!editing)return;
-    const previousOverflow=document.body.style.overflow;
-    document.body.style.overflow='hidden';
     function onKeyDown(event:KeyboardEvent){
       if(event.key==='Escape'&&!busy)closeModal();
     }
     window.addEventListener('keydown',onKeyDown);
-    return()=>{
-      document.body.style.overflow=previousOverflow;
-      window.removeEventListener('keydown',onKeyDown);
-    };
+    return()=>window.removeEventListener('keydown',onKeyDown);
   },[editing,busy]);
 
   const groups=useMemo(()=>rows.reduce<Record<string,Transaction[]>>((all,row)=>{

@@ -6,7 +6,7 @@
 
 **Dai senso alle tue spese, in privato o in famiglia.**
 
-[![Versione](https://img.shields.io/badge/versione-4.1.1-0F766E?style=flat-square)](#stato-del-progetto)
+[![Versione](https://img.shields.io/badge/versione-4.1.2-0F766E?style=flat-square)](#stato-del-progetto)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -59,7 +59,8 @@ I pilastri dell'esperienza sono **Spazi Privati e Condivisi**, **Macro Budget e 
 
 - un solo motore Ricorrenze per regole settimanali, mensili o annuali;
 - **Ricorrenza** per movimenti periodici in entrata o uscita; **Abbonamento** per servizi continuativi sempre trattati come uscita, preservando eventuali casi legacy;
-- filtri Tutte, Abbonamenti, Entrate e Uscite e costo mensile/annuale equivalente degli abbonamenti;
+- lista delle regole in primo piano e form **Nuova ricorrenza** aperto solo su richiesta;
+- costo mensile/annuale equivalente degli abbonamenti;
 - calendario delle scadenze e conferma dei pagamenti;
 - conferma atomica che crea una sola transazione nello stesso spazio e impedisce duplicati;
 - saldo, entrate, uscite e media giornaliera;
@@ -172,7 +173,7 @@ Verificare sempre i termini delle rispettive licenze prima di distribuire o modi
 
 ## Stato del progetto
 
-**Versione corrente: V4.1.1 Qoomia UX Follow-up.**
+**Versione corrente: V4.1.2 Qoomia Hotfix.**
 
 Sono implementati multiutente, Spazi Privati e Condivisi, movimenti, categorie per tipo e spazio, Budget con rollover, ricorrenze, statistiche, Obiettivi di risparmio, import/export CSV, i18n e PWA.
 

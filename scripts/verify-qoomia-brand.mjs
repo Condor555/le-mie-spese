@@ -18,6 +18,8 @@ assert(readme.includes('github.com/Condor555/qoomia')&&!readme.includes('github.
 assert(!/screenshot|placeholder/i.test(readme),'Il README pubblico non deve contenere screenshot o placeholder.');
 assert(!/numa-money|qoomia\.vercel|[a-z0-9-]+\.supabase\.co|\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/i.test(readme),'Il README pubblico contiene riferimenti specifici di un’istanza privata.');
 for(const token of ['--bg:#F8FAFC','--primary:#0F766E','html[data-theme="dark"]{--bg:#090D16'])assert(css.includes(token),`Palette: manca ${token}`);
+assert(css.includes('overflow-y:auto')&&css.includes('overscroll-behavior-y:auto'),'Lo scroll verticale naturale desktop deve restare abilitato.');
+assert(!movementsPage.includes("document.body.style.overflow='hidden'"),'La pagina Movimenti non deve lasciare il body bloccato dopo una modale.');
 assert(layout.includes("viewportFit:'cover'")&&layout.includes("width:'device-width'"),'Viewport iOS/PWA non configurato correttamente.');
 for(const token of ['env(safe-area-inset-top)','env(safe-area-inset-bottom)','100dvh','@media(display-mode:standalone)','-webkit-text-size-adjust:100%','@supports(-webkit-touch-callout:none)'])assert(css.includes(token),`Hardening iPhone/Safari: manca ${token}`);
 assert(!spaceSwitcher.includes('QoomiaLogo')&&!spaceSwitcher.includes('app-brand'),'Lo switcher globale non deve duplicare il branding Qoomia.');
@@ -54,10 +56,11 @@ const provenanceData=JSON.parse(provenance);assert.deepEqual([...provenanceData.
 assert(!iconCatalog.includes("icon('tag'")&&!iconCatalog.includes("icon('airplane'")&&iconCatalog.includes('fallback Phosphor Tag'),'Il catalogo runtime non deve esporre pittogrammi artificiali.');
 for(const token of ['macroAllocationMetrics','allocatedBudget=roundMoney(allocationAmount+rolloverAmount)','discretionarySpent/allocatedBudget','commitments:macroCommitments','projectedDiscretionary/allocatedBudget'])assert(macroBudget.includes(token),`Semantica Budget allocato: manca ${token}`);
 assert(!macroBudget.includes('allocationAmount+rolloverAmount+macroCommitments'),'Gli impegni non devono diventare budget della macro.');
-for(const token of ["['all','Tutte']","['subscription','Abbonamenti']","subscriptionEquivalent",'subscription-expense-lock','category_icon','CategoryIcon name={item.category_name} icon={item.category_icon}','announceActiveSpace(item.space_id)'])assert(recurringPage.includes(token),`UX Ricorrenze: manca ${token}`);
+for(const token of ['+ Nuova ricorrenza','creating&&','subscriptionEquivalent','subscription-expense-lock','category_icon','CategoryIcon name={item.category_name} icon={item.category_icon}','announceActiveSpace(item.space_id)'])assert(recurringPage.includes(token),`UX Ricorrenze: manca ${token}`);
+assert(!recurringPage.includes('recurring-filter-chips')&&!recurringPage.includes("['all','Tutte']"),'I filtri Ricorrenze rimossi non devono ricomparire.');
 assert(recurringApi.includes("body.kind==='subscription'&&transactionType!=='expense'")&&recurringApi.includes("select('space_id,name,icon,color')"),'API Ricorrenze deve imporre abbonamenti in uscita e risolvere le icone categoria.');
 assert(confirmApi.includes("rpc('confirm_recurring_payment'")&&schema.includes("'already-confirmed'")&&schema.includes("insert into public.transactions")&&schema.includes('recurring_due_date'),'Conferma pagamento deve essere atomica, creare il movimento e impedire duplicati.');
-const packageJson=JSON.parse(pkg);assert.equal(packageJson.name,'qoomia');assert.equal(packageJson.version,'4.1.1');
+const packageJson=JSON.parse(pkg);assert.equal(packageJson.name,'qoomia');assert.equal(packageJson.version,'4.1.2');
 for(const asset of ['public/icons/qoomia-v4-1.svg','public/icons/qoomia-v4-1-192.png','public/icons/qoomia-v4-1-512.png','public/icons/qoomia-v4-1-512-maskable.png','app/icon.svg','app/apple-icon.png','app/favicon.ico'])assert((await stat(new URL(asset,root))).isFile(),`Asset PWA mancante: ${asset}`);
 for(const asset of ['public/icons/categories/wedding-rings.svg','public/icons/categories/beach-umbrella.svg','public/icons/categories/woman.svg'])assert((await stat(new URL(asset,root))).isFile(),`Asset categoria dedicato mancante: ${asset}`);
-console.log('verify-qoomia-brand: Qoomia V4.1.1 follow-up, contributi sicuri, SpacePicker Conto, azioni categorie, catalogo pulito e Mobile UX verificati');
+console.log('verify-qoomia-brand: Qoomia V4.1.2, desktop scroll, Ricorrenze list-first, Budget allocato, conferma atomica, icone e iOS verificati');
