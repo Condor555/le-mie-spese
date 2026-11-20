@@ -2,7 +2,7 @@ import {NextResponse} from 'next/server';
 import {activeSpace} from '../../../../lib/active-space';
 export async function POST(req:Request){
   try{
-    const {sb,user,spaceId}=await activeSpace(),{source,target}=await req.json();
+    const body=await req.json(),{sb,user,spaceId}=await activeSpace(String(body.spaceId||'')||null),{source,target}=body;
     if(!source||!target||source===target)return NextResponse.json({error:'Categorie non valide'},{status:400});
     const [{data:targetCat},{data:sourceCat}]=await Promise.all([
       sb.from('categories').select('name,kind').eq('space_id',spaceId).eq('name',target).maybeSingle(),

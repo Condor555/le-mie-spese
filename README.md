@@ -6,7 +6,7 @@
 
 **Dai senso alle tue spese, in privato o in famiglia.**
 
-[![Versione](https://img.shields.io/badge/versione-4.0.0-0F766E?style=flat-square)](#stato-del-progetto)
+[![Versione](https://img.shields.io/badge/versione-4.0.1-0F766E?style=flat-square)](#stato-del-progetto)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -41,6 +41,13 @@ La base applicativa include i18n Italiano/English, preferenza lingua persistita,
 - redirect permanente dal dominio legacy e runbook operativo in `QOOMIA-MIGRATION-RUNBOOK.md`;
 - nessuna modifica allo schema Supabase e nessuna regressione funzionale intenzionale;
 - **Saldo del mese** e stato **Nessun budget configurato** restano invariati rispetto alla baseline V3.9.4.
+
+### Hotfix V4.0.1
+
+- rimosso il logo Qoomia duplicato dalla barra globale: ogni schermata mantiene il proprio titolo principale e lo switcher globale mostra soltanto lo spazio;
+- rigenerate dal codice SVG originale tutte le icone PWA, maskable, Apple touch e favicon; i nomi asset `qoomia-v4-1-*` forzano il rinnovo delle cache del manifest;
+- **Impostazioni → Categorie** consente di scegliere con uno `SpacePicker` compatto lo spazio Personale, Famiglia o un altro spazio accessibile; lettura, creazione, modifica, unione ed eliminazione restano sempre filtrate per `space_id` e protette dalle RLS esistenti;
+- dopo il cambio dominio, in assenza del cookie `active_space`, Qoomia sceglie lo spazio accessibile con il movimento più recente e lo persiste; se non esistono movimenti mantiene il fallback allo spazio Personale. Questo evita una Home apparentemente vuota quando i dati sono nello spazio condiviso senza cambiare o cancellare dati Supabase.
 
 ## Screenshot
 
@@ -115,6 +122,7 @@ Gli asset definitivi non sono ancora versionati. La repository è già predispos
 - il form transazione e le ricorrenze mostrano soltanto categorie coerenti col tipo selezionato;
 - suggerimenti e classificazione storica sono filtrati per segno/tipo;
 - Impostazioni → Categorie separa Uscite ed Entrate e preserva il tipo in modifica/unione;
+- lo stesso pannello separa le categorie per spazio: le categorie Personali non vengono mescolate con quelle di Famiglia o di altri spazi condivisi;
 - set iniziale entrate: Stipendio, Pensione, Bonus e premi, Regali ricevuti, Rimborsi, Interessi e rendite, Vendite, Trasferimenti in entrata e Altra entrata;
 - Macro Budget e rollover interrogano esclusivamente categorie `expense`;
 - Analytics mantiene le macro per le spese e mostra separatamente le fonti di reddito;
@@ -307,7 +315,7 @@ supabase/
 
 ## Stato del progetto
 
-**Versione corrente: V4.0.0 Qoomia.**
+**Versione corrente: V4.0.1 Qoomia.**
 
 La repository Qoomia è un progetto in evoluzione. Le funzioni elencate in “Funzionalità disponibili” appartengono alla versione implementata; quelle riportate qui sotto sono pianificate e **non devono essere considerate già disponibili**.
 
@@ -326,6 +334,7 @@ La repository Qoomia è un progetto in evoluzione. Le funzioni elencate in “Fu
 | V3.10 | 🧭 Prossima | Obiettivi di risparmio visibili e completi |
 | V3.11 | 🧭 Pianificata | Backup & Portabilità |
 | V4.0 | ✅ Implementata | Qoomia: nome, dominio, repository, logo, palette, metadata e manifest PWA |
+| V4.0.1 | ✅ Implementata | Header unico, icone PWA fedeli/cache-busted, categorie per spazio e fallback spazio attivo dopo cambio dominio |
 
 **In stand-by, senza implementazione in V4.0:** Conti/Portafogli multipli e Debiti/Crediti.
 

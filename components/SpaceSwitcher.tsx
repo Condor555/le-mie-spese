@@ -5,7 +5,6 @@ import {usePathname} from 'next/navigation';
 import SpacePicker,{type SpacePickerOption} from './SpacePicker';
 import {announceActiveSpace} from '../lib/active-space-client';
 import {useI18n} from './LanguageProvider';
-import QoomiaLogo from './QoomiaLogo';
 
 type Space=SpacePickerOption;
 
@@ -28,9 +27,13 @@ export default function SpaceSwitcher(){
         if(!live)return;
         if(!ok){setError(result.error||t('space.loadError'));return;}
         const list:Space[]=result.data||[];
+        const initialSpaceId=result.activeSpaceId||list.find(space=>space.type==='personal')?.id||list[0]?.id||'';
         setSpaces(list);
-        setActive(result.activeSpaceId||list.find(space=>space.type==='personal')?.id||list[0]?.id||'');
-        if(result.activeSpaceId)localStorage.setItem('active_space',result.activeSpaceId);
+        setActive(initialSpaceId);
+        if(initialSpaceId){
+          localStorage.setItem('active_space',initialSpaceId);
+          requestAnimationFrame(()=>announceActiveSpace(initialSpaceId));
+        }
       })
       .catch(()=>{if(live)setError(t('space.loadError'))})
       .finally(()=>{if(live)setReady(true)});
@@ -66,7 +69,6 @@ export default function SpaceSwitcher(){
   if(!spaces.length)return null;
 
   return <div className="app-space-bar" title={error||undefined}>
-    <span className="app-brand"><QoomiaLogo size={32}/><b>Qoomia</b></span>
     <SpacePicker spaces={spaces} value={active} onChange={choose} variant="compact" disabled={changing}/>
   </div>;
 }

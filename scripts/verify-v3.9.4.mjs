@@ -78,7 +78,7 @@ assert.match(runtime.formatCurrency(1353.36,'en'),/1,353\.36/);
 assert.equal(runtime.normalizeLocale('fr'),'it');
 const itKeys=Object.keys(runtime.messages.it).sort();const enKeys=Object.keys(runtime.messages.en).sort();assert.deepEqual(enKeys,itKeys,'I dizionari IT/EN devono avere le stesse chiavi.');
 
-const pkg=JSON.parse(packageJson);assert.equal(pkg.version,'4.0.0');assert.equal(pkg.scripts.test,'node scripts/verify-v3.9.4.mjs && node scripts/verify-qoomia-brand.mjs');
+const pkg=JSON.parse(packageJson);assert.equal(pkg.version,'4.0.1');assert.equal(pkg.scripts.test,'node scripts/verify-v3.9.4.mjs && node scripts/verify-qoomia-brand.mjs');
 for(const token of ['V4.0','20261120_v3_9_4_user_language.sql','Saldo del mese','Nessun budget configurato'])assert(readme.includes(token),`README: manca ${token}`);
 
 const sourceFiles=[];

@@ -469,15 +469,23 @@ html[data-theme="dark"] .space-picker-trigger,html[data-theme="dark"] .space-pic
 .qoomia-logo{display:block;flex:0 0 auto;border-radius:22%;object-fit:cover;background:#0F766E}
 .auth-logo{padding:0;border-radius:18px;box-shadow:0 10px 25px rgba(15,118,110,.3)}
 .auth-heading{margin:8px 0 0;font-size:17px;color:var(--muted);font-weight:700}
-.home-brand,.about-brand,.app-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.home-brand,.about-brand{display:flex;align-items:center;gap:10px;min-width:0}
 .home-brand p,.about-brand p{margin:4px 0 0}
-.app-space-bar{justify-content:space-between;gap:12px}
-.app-brand{color:var(--text);font-size:16px;letter-spacing:-.2px}
-.app-brand .qoomia-logo{border-radius:9px}
+.app-space-bar{justify-content:flex-end;gap:12px}
 .home-brand .qoomia-logo{border-radius:12px;box-shadow:0 6px 18px rgba(15,118,110,.18)}
 .about-brand{margin-bottom:10px}
 .about-brand .settings-help{margin:3px 0 0}
 .onboarding-logo{padding:0!important;border-radius:15px!important;object-fit:cover;background:#0F766E!important}
 .balance-card{background:linear-gradient(135deg,#064E3B,#0F766E 56%,#14B8A6);box-shadow:0 16px 34px rgba(6,78,59,.24)}
 .bottom-nav .nav-plus{box-shadow:0 9px 22px rgba(15,118,110,.36)}
-@media(max-width:420px){.app-brand b{display:none}.app-space-bar{gap:8px}.home-brand .qoomia-logo{width:38px;height:38px}}
+@media(max-width:420px){.app-space-bar{gap:8px}.home-brand .qoomia-logo{width:38px;height:38px}}
+
+
+/* Qoomia V4.0.1 — category management scoped by selected space */
+.category-space-card{position:relative;z-index:35;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 16px;overflow:visible}
+.category-space-card h2{margin:0}
+.category-space-card .settings-help{margin:4px 0 0}
+.category-space-picker{min-width:190px;justify-self:end}
+.category-space-role{grid-column:1/-1;color:var(--muted);font-size:11px}
+.create-cat:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:520px){.category-space-card{grid-template-columns:1fr}.category-space-picker{width:100%;min-width:0;justify-self:stretch}.category-space-picker .space-picker-trigger{width:100%}}

@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
 import {createClient} from '../../../lib/supabase/server';
+import {resolveDefaultSpaceId} from '../../../lib/active-space';
 
 const invite=()=>crypto.randomUUID().replaceAll('-','').slice(0,8).toUpperCase();
 const cookieOptions={httpOnly:true,sameSite:'lax' as const,secure:process.env.NODE_ENV==='production',maxAge:60*60*24*365,path:'/'};
@@ -19,7 +20,8 @@ export async function GET(){
   const data=(spaces||[]).map(space=>({...space,role:(memberships||[]).find(item=>item.space_id===space.id)?.role||'member'})).sort((a,b)=>a.type===b.type?a.name.localeCompare(b.name,'it'):a.type==='personal'?-1:1);
   const store=await cookies();
   const saved=store.get('active_space')?.value||'';
-  const activeSpaceId=data.some(space=>space.id===saved)?saved:data.find(space=>space.type==='personal')?.id||data[0]?.id||'';
+  const personalId=data.find(space=>space.type==='personal')?.id;
+  const activeSpaceId=data.some(space=>space.id===saved)?saved:await resolveDefaultSpaceId(sb,ids,personalId);
   const response=NextResponse.json({data,activeSpaceId});
   if(activeSpaceId!==saved&&activeSpaceId)response.cookies.set('active_space',activeSpaceId,cookieOptions);
   return response;

@@ -4,13 +4,8 @@ import {inferredCategoryStyle} from '../../../lib/category-style';
 
 export async function GET(req:Request){
   try{
-    const {sb,user,spaceId:activeSpaceId}=await activeSpace();
     const url=new URL(req.url);const requested=url.searchParams.get('spaceId');const requestedKind=url.searchParams.get('kind');
-    const spaceId=requested||activeSpaceId;
-    if(spaceId!==activeSpaceId){
-      const {data:membership}=await sb.from('space_members').select('space_id').eq('space_id',spaceId).eq('user_id',user.id).maybeSingle();
-      if(!membership)return NextResponse.json({error:'Accesso negato'},{status:403});
-    }
+    const {sb,spaceId}=await activeSpace(requested);
     const [{data:saved,error:a},{data:tx,error:b}]=await Promise.all([
       sb.from('categories').select('name,icon,color,kind').eq('space_id',spaceId).order('name'),
       sb.from('transactions').select('category_name,amount').eq('space_id',spaceId),
@@ -25,7 +20,7 @@ export async function GET(req:Request){
 
 export async function POST(req:Request){
   try{
-    const {sb,user,spaceId}=await activeSpace(),body=await req.json(),name=String(body.name||'').trim(),kind=body.kind==='income'?'income':'expense';
+    const body=await req.json(),{sb,user,spaceId}=await activeSpace(String(body.spaceId||'')||null),name=String(body.name||'').trim(),kind=body.kind==='income'?'income':'expense';
     if(name.length<2)return NextResponse.json({error:'Nome troppo corto'},{status:400});
     const fallback=inferredCategoryStyle(name);
     const {data:existing}=await sb.from('categories').select('name,kind').eq('space_id',spaceId).eq('name',name).maybeSingle();
@@ -37,7 +32,7 @@ export async function POST(req:Request){
 
 export async function DELETE(req:Request){
   try{
-    const {sb,spaceId}=await activeSpace(),name=String(new URL(req.url).searchParams.get('name')||'').trim();
+    const url=new URL(req.url),{sb,spaceId}=await activeSpace(url.searchParams.get('spaceId')),name=String(url.searchParams.get('name')||'').trim();
     if(!name)return NextResponse.json({error:'Categoria non valida.'},{status:400});
     const [{count:transactions,error:txError},{count:recurring,error:recError}]=await Promise.all([
       sb.from('transactions').select('id',{count:'exact',head:true}).eq('space_id',spaceId).eq('category_name',name),

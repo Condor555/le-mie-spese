@@ -13,9 +13,9 @@ export const metadata:Metadata={
   title:{default:'Qoomia',template:'%s · Qoomia'},
   description:'Dai senso alle tue spese, in privato o in famiglia.',
   manifest:'/manifest.webmanifest',
-  icons:{icon:[{url:'/icon.svg',type:'image/svg+xml'},{url:'/favicon.ico',sizes:'any'}],apple:[{url:'/apple-icon.png',sizes:'180x180',type:'image/png'}]},
+  icons:{icon:[{url:'/icons/qoomia-v4-1.svg',type:'image/svg+xml'},{url:'/icons/qoomia-v4-1-favicon.png',sizes:'256x256',type:'image/png'},{url:'/favicon.ico',sizes:'any'}],apple:[{url:'/icons/qoomia-v4-1-apple-touch.png',sizes:'180x180',type:'image/png'}]},
   alternates:{canonical:'/'},
-  openGraph:{type:'website',locale:'it_IT',url:'/',siteName:'Qoomia',title:'Qoomia — Spese, Budget e Famiglia',description:'Dai senso alle tue spese, in privato o in famiglia.',images:[{url:'/icons/qoomia-512.png',width:512,height:512,alt:'Qoomia'}]},
+  openGraph:{type:'website',locale:'it_IT',url:'/',siteName:'Qoomia',title:'Qoomia — Spese, Budget e Famiglia',description:'Dai senso alle tue spese, in privato o in famiglia.',images:[{url:'/icons/qoomia-v4-1-512.png',width:512,height:512,alt:'Qoomia'}]},
 };
 
 export const viewport:Viewport={

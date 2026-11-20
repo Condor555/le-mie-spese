@@ -3,7 +3,7 @@ import {activeSpace} from '../../../../lib/active-space';
 
 export async function PATCH(req:Request,{params}:{params:Promise<{name:string}>}){
   try{
-    const {name}=await params,oldName=decodeURIComponent(name),{sb,user,spaceId}=await activeSpace(),body=await req.json();
+    const {name}=await params,oldName=decodeURIComponent(name),body=await req.json(),{sb,user,spaceId}=await activeSpace(String(body.spaceId||'')||null);
     const newName=String(body.newName||oldName).trim(),icon=String(body.icon||'tag'),color=String(body.color||'#68738C'),kind=body.kind==='income'?'income':'expense';
     if(newName.length<2)return NextResponse.json({error:'Il nome deve avere almeno 2 caratteri.'},{status:400});
     const {data:currentCategory}=await sb.from('categories').select('kind').eq('space_id',spaceId).eq('name',oldName).maybeSingle();

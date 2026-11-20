@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import BackToAccount from '../../../components/BackToAccount';
 import IconCatalogPicker from '../../../components/IconCatalogPicker';
 import CategoryIcon from '../../../components/CategoryIcon';
+import SpacePicker,{type SpacePickerOption} from '../../../components/SpacePicker';
 import {
   colorChoices,
   inferredCategoryStyle,
@@ -17,8 +18,15 @@ type Cat = {
   count?: number;
 };
 
+type Space=SpacePickerOption&{role:'owner'|'member'|string};
+
 export default function Categorie() {
   const [cats, setCats] = useState<Cat[]>([]);
+  const [spaces,setSpaces]=useState<Space[]>([]);
+  const [spaceId,setSpaceId]=useState('');
+  const [loadingSpaces,setLoadingSpaces]=useState(true);
+  const [loadingCategories,setLoadingCategories]=useState(false);
+  const loadRequestRef=useRef(0);
   const [tab, setTab] = useState<'expense'|'income'>('expense');
 
   const [name, setName] = useState('');
@@ -31,15 +39,56 @@ export default function Categorie() {
 
   const [msg, setMsg] = useState('');
 
-  function load() {
-    fetch('/api/categories')
-      .then((response) => response.json())
-      .then((result) => setCats(result.data || []));
+  async function load(targetSpaceId=spaceId) {
+    if(!targetSpaceId){setCats([]);return;}
+    const request=++loadRequestRef.current;
+    setLoadingCategories(true);
+    setMsg('');
+    try{
+      const response=await fetch(`/api/categories?spaceId=${encodeURIComponent(targetSpaceId)}`,{cache:'no-store'});
+      const result=await response.json();
+      if(request!==loadRequestRef.current)return;
+      if(!response.ok){setCats([]);setMsg(result.error||'Impossibile caricare le categorie.');return;}
+      setCats(result.data||[]);
+    }catch{
+      if(request===loadRequestRef.current){setCats([]);setMsg('Errore di connessione durante il caricamento.');}
+    }finally{
+      if(request===loadRequestRef.current)setLoadingCategories(false);
+    }
   }
 
   useEffect(() => {
-    load();
+    let live=true;
+    setLoadingSpaces(true);
+    fetch('/api/spaces',{cache:'no-store'})
+      .then(async response=>({ok:response.ok,result:await response.json()}))
+      .then(({ok,result})=>{
+        if(!live)return;
+        if(!ok){setMsg(result.error||'Impossibile caricare gli spazi.');return;}
+        const list:Space[]=result.data||[];
+        const initial=result.activeSpaceId||list.find(space=>space.type==='personal')?.id||list[0]?.id||'';
+        setSpaces(list);
+        setSpaceId(initial);
+        if(initial)void load(initial);
+      })
+      .catch(()=>{if(live)setMsg('Errore di connessione durante il caricamento degli spazi.');})
+      .finally(()=>{if(live)setLoadingSpaces(false);});
+    return()=>{live=false;loadRequestRef.current++};
   }, []);
+
+  function chooseSpace(nextSpaceId:string){
+    if(nextSpaceId===spaceId)return;
+    setSpaceId(nextSpaceId);
+    setCats([]);
+    setEditing(null);
+    setOriginalName('');
+    setTarget('');
+    setName('');
+    setIcon('tag');
+    setColor(colorChoices[0]);
+    setMsg('');
+    void load(nextSpaceId);
+  }
 
   function selectTab(next: 'expense'|'income') {
     setTab(next);
@@ -74,8 +123,9 @@ export default function Categorie() {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
+        spaceId,
         name,
-         kind: tab,
+        kind: tab,
         icon,
         color,
       }),
@@ -93,7 +143,7 @@ export default function Categorie() {
     setIcon('tag');
     setColor(colorChoices[0]);
 
-    load();
+    load(spaceId);
   }
 
   function openCategory(category: Cat) {
@@ -121,6 +171,7 @@ export default function Categorie() {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
+          spaceId,
           newName,
           icon: editing.icon,
           color: editing.color,
@@ -143,7 +194,7 @@ export default function Categorie() {
     setTarget('');
     setTab(savedKind);
 
-    load();
+    load(spaceId);
   }
 
   async function removeCategory() {
@@ -151,7 +202,8 @@ export default function Categorie() {
 
     const response = await fetch(
       '/api/categories?name=' +
-        encodeURIComponent(originalName),
+        encodeURIComponent(originalName) +
+        '&spaceId=' + encodeURIComponent(spaceId),
       {
         method: 'DELETE',
       }
@@ -165,7 +217,7 @@ export default function Categorie() {
       setOriginalName('');
       setTarget('');
 
-      load();
+      load(spaceId);
       return;
     }
 
@@ -189,6 +241,7 @@ export default function Categorie() {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
+        spaceId,
         source: originalName,
         target,
       }),
@@ -207,7 +260,7 @@ export default function Categorie() {
     setOriginalName('');
     setTarget('');
 
-    load();
+    load(spaceId);
   }
 
   function closeEditor() {
@@ -216,6 +269,8 @@ export default function Categorie() {
     setTarget('');
   }
 
+  const selectedSpace=spaces.find(space=>space.id===spaceId);
+
   return (
     <>
       <BackToAccount />
@@ -223,9 +278,23 @@ export default function Categorie() {
       <header className="page-head">
         <div>
           <h1>Categorie</h1>
-          <p>{cats.length} categorie disponibili</p>
+          <p>{loadingCategories?'Caricamento…':`${cats.length} categorie in ${selectedSpace?.name||'questo spazio'}`}</p>
         </div>
       </header>
+
+      <section className="settings-card surface category-space-card">
+        <div><h2>Spazio categorie</h2><p className="settings-help">Le categorie restano separate tra Personale e ogni spazio condiviso.</p></div>
+        <SpacePicker
+          spaces={spaces}
+          value={spaceId}
+          onChange={chooseSpace}
+          variant="compact"
+          label="Spazio da gestire"
+          disabled={loadingSpaces||loadingCategories}
+          className="category-space-picker"
+        />
+        {selectedSpace&&<small className="category-space-role">{selectedSpace.type==='personal'?'Spazio privato':`Spazio condiviso · ${selectedSpace.role==='owner'?'Owner':'Member'}`}</small>}
+      </section>
 
       <div className="segmented category-kind-tabs" role="tablist" aria-label="Tipo categorie">
         <button id="categories-expense-tab" type="button" role="tab" aria-selected={tab==='expense'} aria-controls="categories-expense-panel" className={tab==='expense'?'active':''} onClick={()=>selectTab('expense')}>Uscite ({cats.filter(item=>item.kind==='expense').length})</button>
@@ -269,6 +338,7 @@ export default function Categorie() {
 
         <button
           className="create-cat"
+          disabled={!spaceId||loadingCategories}
           onClick={createCategory}
         >
           Crea categoria
@@ -313,7 +383,8 @@ export default function Categorie() {
               <strong>›</strong>
             </button>
           ))}
-          {!cats.some(category=>category.kind===tab)&&<div className="category-kind-empty"><b>Nessuna categoria di {tab==='income'?'entrata':'uscita'}</b><small>Creane una usando il modulo qui sopra.</small></div>}
+          {!loadingCategories&&!cats.some(category=>category.kind===tab)&&<div className="category-kind-empty"><b>Nessuna categoria di {tab==='income'?'entrata':'uscita'}</b><small>Creane una usando il modulo qui sopra nello spazio {selectedSpace?.name||'selezionato'}.</small></div>}
+          {loadingCategories&&<div className="category-kind-empty" aria-live="polite"><b>Caricamento categorie…</b><small>Sto leggendo soltanto lo spazio selezionato.</small></div>}
         </div>
       </section>
       </div>

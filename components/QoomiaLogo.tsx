@@ -7,7 +7,7 @@ type QoomiaLogoProps={
 
 export default function QoomiaLogo({size=48,className='',priority=false,label='Qoomia'}:QoomiaLogoProps){
   return <img
-    src="/icons/qoomia.svg"
+    src="/icons/qoomia-v4-1.svg"
     width={size}
     height={size}
     className={`qoomia-logo ${className}`.trim()}
