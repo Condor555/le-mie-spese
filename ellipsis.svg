@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" role="img">
+<!-- Local color treatment; source glyph: Font Awesome Free 6.7.2, CC BY 4.0. -->
+<defs><linearGradient id="icon-gradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#42A5F5"/><stop offset="1" stop-color="#7E57C2"/></linearGradient></defs>
+<circle cx="84%" cy="18%" r="9%" fill="#E8F2FF" opacity=".72"/>
+<path fill="url(#icon-gradient)" d="M8 256a56 56 0 1 1 112 0A56 56 0 1 1 8 256zm160 0a56 56 0 1 1 112 0 56 56 0 1 1 -112 0zm216-56a56 56 0 1 1 0 112 56 56 0 1 1 0-112z"/>
+</svg>
