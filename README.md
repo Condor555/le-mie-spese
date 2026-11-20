@@ -6,7 +6,7 @@
 
 **Dai senso alle tue spese, in privato o in famiglia.**
 
-[![Versione](https://img.shields.io/badge/versione-4.1.2-0F766E?style=flat-square)](#stato-del-progetto)
+[![Versione](https://img.shields.io/badge/versione-4.1.3-0F766E?style=flat-square)](#stato-del-progetto)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -88,7 +88,7 @@ I pilastri dell'esperienza sono **Spazi Privati e Condivisi**, **Macro Budget e 
 | Validazione | Zod |
 | Import CSV | Papa Parse |
 | Icone UI | Phosphor Icons |
-| Icone categorie | Asset verificati approvati + fallback Phosphor Tag |
+| Icone categorie e brand | Icons8 Color locali + fallback Phosphor Tag |
 | Deploy | Vercel o piattaforma compatibile con Next.js |
 
 ## Avvio locale
@@ -164,16 +164,17 @@ Prima di un utilizzo pubblico sono raccomandati backup, revisione delle policy, 
 ## Icone e attribuzioni
 
 - le icone funzionali dell'interfaccia usano [Phosphor Icons](https://phosphoricons.com/);
-- il catalogo categorie espone soltanto gli asset approvati di Mare, Matrimonio e Moglie;
-- gli asset dei marchi restano separati dal catalogo categorie;
-- ogni identificatore categoria non presente nell'allow-list usa il fallback Phosphor Tag;
-- nessuna API di icone viene chiamata a runtime.
+- categorie e brand usano asset Icons8 Color salvati localmente in `public/icons/categories/` e `public/icons/brands/`;
+- l’interfaccia e la navigazione usano Phosphor Icons;
+- ogni identificatore non presente nel catalogo locale usa il fallback Phosphor Tag;
+- nessuna API di icone viene chiamata a runtime;
+- l’attribuzione Icons8 è mantenuta nel progetto e va rispettata secondo la licenza applicabile.
 
 Verificare sempre i termini delle rispettive licenze prima di distribuire o modificare gli asset.
 
 ## Stato del progetto
 
-**Versione corrente: V4.1.2 Qoomia Hotfix.**
+**Versione corrente: V4.1.3 Qoomia Icons8 Catalog.**
 
 Sono implementati multiutente, Spazi Privati e Condivisi, movimenti, categorie per tipo e spazio, Budget con rollover, ricorrenze, statistiche, Obiettivi di risparmio, import/export CSV, i18n e PWA.
 
