@@ -15,7 +15,6 @@ const items:SettingsItem[]=[
   {href:'/account/conto',icon:'wallet',title:'account.walletTitle',sub:'account.walletSub'},
   {href:'/account/aspetto',icon:'sun',title:'account.appearanceTitle',sub:'account.appearanceSub'},
   {href:'/account/categorie',icon:'category',title:'account.categoriesTitle',sub:'account.categoriesSub'},
-  {href:'/budget',icon:'chart',title:'account.budgetTitle',sub:'account.budgetSub'},
   {href:'/account/ricorrenze',icon:'repeat',title:'account.recurringTitle',sub:'account.recurringSub'},
   {href:'/spazi',icon:'family',title:'account.spacesTitle',sub:'account.spacesSub'},
   {href:'/account/dati',icon:'download',title:'account.dataTitle',sub:'account.dataSub'},

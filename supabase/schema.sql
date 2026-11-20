@@ -1127,3 +1127,28 @@ update public.categories set kind='income',macro_category_id=null
 where name ~* '^(bonus/premi|interessi/rendite)$';
 
 -- RLS e ruoli owner/member esistenti restano invariati.
+
+
+-- Qoomia V4.1.1 — cleanup catalogo icone e policy contributi.
+update public.categories
+set icon=case
+  when name ~* '(mare|spiaggia|lido|ombrellone|balneare)' then 'beach-umbrella'
+  when name ~* '(matrimonio|nozze|fedi|wedding)' then 'wedding-rings'
+  when name ~* '(moglie|compagna)' then 'woman'
+  else 'tag'
+end
+where coalesce(nullif(trim(icon),''),'tag') not in (
+  'tag','beach-umbrella','wedding-rings','woman',
+  'brand:netflix','brand:apple','brand:spotify','brand:amazon',
+  'brand:disney','brand:youtube','brand:playstation','brand:xbox',
+  'brand:google','brand:uber','brand:airbnb','brand:paypal'
+);
+
+drop policy if exists "v4.1 goal contributions update" on public.saving_goal_contributions;
+create policy "v4.1 goal contributions update" on public.saving_goal_contributions for update to authenticated
+using(contributed_by=auth.uid() or public.can_manage_space_budget(space_id,auth.uid()))
+with check((contributed_by=auth.uid() and public.is_space_member(space_id,auth.uid()) and exists(select 1 from public.saving_goals g where g.id=goal_id and g.space_id=space_id and g.status='active')) or public.can_manage_space_budget(space_id,auth.uid()));
+
+drop policy if exists "v4.1 goal contributions delete" on public.saving_goal_contributions;
+create policy "v4.1 goal contributions delete" on public.saving_goal_contributions for delete to authenticated
+using(contributed_by=auth.uid() or public.can_manage_space_budget(space_id,auth.uid()));

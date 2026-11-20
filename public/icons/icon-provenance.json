@@ -1,0 +1,35 @@
+{
+  "version": "4.1.1",
+  "categories": {
+    "retainedApprovedIcons8": [
+      "beach-umbrella.svg",
+      "wedding-rings.svg",
+      "woman.svg"
+    ],
+    "fallback": "Phosphor Tag (rendered by components/CategoryColorIcon.tsx; no local tag asset)",
+    "removedGeneratedCount": 63,
+    "removedGeneratedSource": "Locally generated/colorized 512x512 SVG template; removed from runtime and repository"
+  },
+  "brands": {
+    "retainedDedicated": [
+      "airbnb.svg",
+      "amazon.svg",
+      "apple.svg",
+      "disney.svg",
+      "google.svg",
+      "netflix.svg",
+      "paypal.svg",
+      "playstation.svg",
+      "spotify.svg",
+      "uber.svg",
+      "xbox.svg",
+      "youtube.svg"
+    ],
+    "note": "Dedicated brand assets are kept separate from category assets."
+  },
+  "removedLegacy": [
+    "public/icons/color/",
+    "lib/category-icon-catalog-data.ts",
+    "scripts/build-color-icon-catalog.py"
+  ]
+}

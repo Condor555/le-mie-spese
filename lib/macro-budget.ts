@@ -9,6 +9,13 @@ export function monthLastDay(month:string){const [year,value]=month.split('-').m
 export const roundMoney=(value:number)=>Math.round((value+Number.EPSILON)*100)/100;
 export const roundPercent=(value:number)=>Math.round((value+Number.EPSILON)*1000)/1000;
 
+export function macroAllocationMetrics(allocationAmount:number,rolloverAmount:number,discretionarySpent:number,projectedDiscretionary:number){
+  const allocatedBudget=roundMoney(allocationAmount+rolloverAmount);const hasAllocation=allocatedBudget>0;
+  const percentage=hasAllocation?Math.round(discretionarySpent/allocatedBudget*100):0;
+  const status:'ok'|'warning'|'over'=hasAllocation&&discretionarySpent>=allocatedBudget?'over':hasAllocation&&discretionarySpent>=allocatedBudget*.8?'warning':'ok';
+  return {hasAllocation,allocatedBudget,percentage,status,available:hasAllocation?roundMoney(allocatedBudget-discretionarySpent):0,projectedPercentage:hasAllocation?Math.round(projectedDiscretionary/allocatedBudget*100):0};
+}
+
 function romeToday(){
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
   const value=(type:string)=>Number(parts.find(part=>part.type===type)?.value||0);
@@ -35,7 +42,7 @@ export type MacroBudgetCategoryAnalysis={name:string;icon?:string|null;color?:st
 export type MacroBudgetAnalysis={
   id:string;name:string;color:string;sortOrder:number;rolloverEnabled:boolean;
   allocationPercent:number;allocationAmount:number;rolloverAmount:number;commitments:number;
-  budget:number;spent:number;discretionarySpent:number;fixedSpent:number;available:number;percentage:number;status:'ok'|'warning'|'over';projected:number;projectedPercentage:number;
+  hasAllocation:boolean;allocatedBudget:number;budget:number;spent:number;discretionarySpent:number;fixedSpent:number;available:number;percentage:number;status:'ok'|'warning'|'over';projected:number;projectedDiscretionary:number;projectedPercentage:number;
   categories:MacroBudgetCategoryAnalysis[];
 };
 
@@ -125,13 +132,13 @@ export async function loadMacroBudgetSnapshot(sb:SupabaseClient,spaceId:string,m
     const macroDiscretionary=roundMoney(discretionarySpentByMacro.get(macro.id)||0);
     const macroFixed=roundMoney(fixedSpentByMacro.get(macro.id)||0);
     const spent=roundMoney(macroDiscretionary+macroFixed);
-    const budget=roundMoney(allocationAmount+rolloverAmount+macroCommitments);
-    const percentage=budget>0?Math.round(spent/budget*100):0;
-    const status:MacroBudgetAnalysis['status']=budget>0&&spent>=budget?'over':budget>0&&spent>=budget*.8?'warning':'ok';
+    // Gli impegni restano una voce separata: non diventano il budget della macro.
+    // Il budget allocato finanzia la sola quota discrezionale (più l'eventuale rollover).
     const projectedDiscretionary=pace.isPast?macroDiscretionary:pace.isCurrent&&pace.daysConsidered>0?macroDiscretionary/pace.daysConsidered*pace.daysInMonth:0;
     const projected=roundMoney(projectedDiscretionary+macroCommitments);
+    const metrics=macroAllocationMetrics(allocationAmount,rolloverAmount,macroDiscretionary,projectedDiscretionary);
     const macroCategories=categoryList.filter(category=>(category.macro_category_id||otherId)===macro.id).map(category=>{const values=categorySpent.get(category.name)||{spent:0,fixed:0,discretionary:0};return {name:category.name,icon:category.icon,color:category.color,spent:roundMoney(values.spent),fixedSpent:roundMoney(values.fixed),discretionarySpent:roundMoney(values.discretionary)}}).sort((a,b)=>b.spent-a.spent||a.name.localeCompare(b.name,'it'));
-    return {id:macro.id,name:macro.name,color:macro.color,sortOrder:Number(macro.sort_order),rolloverEnabled:Boolean(macro.rollover_enabled),allocationPercent,allocationAmount,rolloverAmount,commitments:macroCommitments,budget,spent,discretionarySpent:macroDiscretionary,fixedSpent:macroFixed,available:roundMoney(budget-spent),percentage,status,projected,projectedPercentage:budget>0?Math.round(projected/budget*100):0,categories:macroCategories};
+    return {id:macro.id,name:macro.name,color:macro.color,sortOrder:Number(macro.sort_order),rolloverEnabled:Boolean(macro.rollover_enabled),allocationPercent,allocationAmount,rolloverAmount,commitments:macroCommitments,hasAllocation:metrics.hasAllocation,allocatedBudget:metrics.allocatedBudget,budget:metrics.allocatedBudget,spent,discretionarySpent:macroDiscretionary,fixedSpent:macroFixed,available:metrics.available,percentage:metrics.percentage,status:metrics.status,projected,projectedDiscretionary:roundMoney(projectedDiscretionary),projectedPercentage:metrics.projectedPercentage,categories:macroCategories};
   });
   const allocated=roundMoney(macroAnalysis.reduce((sum,item)=>sum+item.allocationAmount,0));
   const projectedExpense=roundMoney(macroAnalysis.reduce((sum,item)=>sum+item.projected,0));

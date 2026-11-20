@@ -6,7 +6,7 @@
 
 **Dai senso alle tue spese, in privato o in famiglia.**
 
-[![Versione](https://img.shields.io/badge/versione-4.1.0-0F766E?style=flat-square)](#stato-del-progetto)
+[![Versione](https://img.shields.io/badge/versione-4.1.1-0F766E?style=flat-square)](#stato-del-progetto)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -49,14 +49,19 @@ I pilastri dell'esperienza sono **Spazi Privati e Condivisi**, **Macro Budget e 
 - distribuzione percentuale in categorie Budget;
 - impegni ricorrenti, spesa discrezionale e residuo disponibile;
 - rollover opzionale;
+- impegni programmati separati dal budget allocato: riducono il budget discrezionale complessivo ma non diventano il budget di una categoria;
+- percentuale di utilizzo mostrata soltanto quando esiste un budget allocato;
 - soglie di utilizzo e proiezione del mese;
 - permessi di modifica coerenti con il ruolo nello spazio;
 - stato vuoto, errore recuperabile e timeout per evitare caricamenti infiniti.
 
 ### Ricorrenze e statistiche
 
-- ricorrenze e abbonamenti settimanali, mensili o annuali;
+- un solo motore Ricorrenze per regole settimanali, mensili o annuali;
+- **Ricorrenza** per movimenti periodici in entrata o uscita; **Abbonamento** per servizi continuativi sempre trattati come uscita, preservando eventuali casi legacy;
+- filtri Tutte, Abbonamenti, Entrate e Uscite e costo mensile/annuale equivalente degli abbonamenti;
 - calendario delle scadenze e conferma dei pagamenti;
+- conferma atomica che crea una sola transazione nello stesso spazio e impedisce duplicati;
 - saldo, entrate, uscite e media giornaliera;
 - andamento a 6/12 mesi;
 - categorie principali, fonti di entrata e ripartizione per autore negli spazi condivisi.
@@ -82,7 +87,7 @@ I pilastri dell'esperienza sono **Spazi Privati e Condivisi**, **Macro Budget e 
 | Validazione | Zod |
 | Import CSV | Papa Parse |
 | Icone UI | Phosphor Icons |
-| Icone categorie | Asset locali in stile Icons8 Color |
+| Icone categorie | Asset verificati approvati + fallback Phosphor Tag |
 | Deploy | Vercel o piattaforma compatibile con Next.js |
 
 ## Avvio locale
@@ -122,6 +127,7 @@ Per un'istanza esistente applicare soltanto le migration necessarie, nell'ordine
 - `20261120_v3_9_3_category_kinds_hotfix.sql`;
 - `20261120_v3_9_4_user_language.sql`.
 - `20261120_v4_1_savings_goals.sql`.
+- `20261120_v4_1_1_ux_icon_cleanup.sql`.
 
 Avviare quindi l'ambiente di sviluppo:
 
@@ -157,16 +163,16 @@ Prima di un utilizzo pubblico sono raccomandati backup, revisione delle policy, 
 ## Icone e attribuzioni
 
 - le icone funzionali dell'interfaccia usano [Phosphor Icons](https://phosphoricons.com/);
-- le icone categoria includono asset locali in stile Icons8 Color; l'attribuzione [Icons8](https://icons8.com/) resta disponibile anche nell'app;
+- il catalogo categorie espone soltanto gli asset approvati di Mare, Matrimonio e Moglie;
 - gli asset dei marchi restano separati dal catalogo categorie;
-- se un asset categoria non è disponibile viene mostrato il fallback Phosphor Tag;
+- ogni identificatore categoria non presente nell'allow-list usa il fallback Phosphor Tag;
 - nessuna API di icone viene chiamata a runtime.
 
 Verificare sempre i termini delle rispettive licenze prima di distribuire o modificare gli asset.
 
 ## Stato del progetto
 
-**Versione corrente: V4.1.0 Qoomia.**
+**Versione corrente: V4.1.1 Qoomia UX Follow-up.**
 
 Sono implementati multiutente, Spazi Privati e Condivisi, movimenti, categorie per tipo e spazio, Budget con rollover, ricorrenze, statistiche, Obiettivi di risparmio, import/export CSV, i18n e PWA.
 
@@ -174,7 +180,7 @@ Sono implementati multiutente, Spazi Privati e Condivisi, movimenti, categorie p
 
 Le seguenti funzioni sono pianificate e **non sono disponibili nella release corrente**:
 
-- **V4.2 / futura release:** Backup e portabilità guidata;
+- **V4.2 / futura release:** Backup e portabilità guidata, sezione Privacy ed eliminazione sicura di account e dati nel rispetto degli spazi condivisi;
 - Conti/Portafogli multipli;
 - Debiti e crediti.
 

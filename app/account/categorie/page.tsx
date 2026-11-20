@@ -453,16 +453,17 @@ export default function Categorie() {
               </div>
             )}
 
-            <button onClick={saveCategory}>
-              Salva modifiche
-            </button>
-
-            <button
-              className="delete-btn"
-              onClick={removeCategory}
-            >
-              Elimina categoria
-            </button>
+            <div className="category-editor-actions">
+              <button className="category-save-button" onClick={saveCategory}>
+                Salva modifiche
+              </button>
+              <button
+                className="delete-btn"
+                onClick={removeCategory}
+              >
+                Elimina categoria
+              </button>
+            </div>
 
             <div className="merge-box">
               <label>

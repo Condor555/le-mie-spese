@@ -3,8 +3,9 @@
 import {useEffect,useRef,useState} from 'react';
 import BackToAccount from '../../../components/BackToAccount';
 import Icon from '../../../components/Icon';
+import SpacePicker,{type SpacePickerOption} from '../../../components/SpacePicker';
 
-type Space={id:string;name:string;type:string;role:string};
+type Space=SpacePickerOption&{role:string};
 
 export default function Conto(){
   const [spaces,setSpaces]=useState<Space[]>([]);
@@ -91,7 +92,7 @@ export default function Conto(){
     <header className="page-head"><div><h1>Conto</h1><p>Un nome distinto per ogni spazio</p></div></header>
     <form className="settings-card surface account-settings-card" onSubmit={save}>
       <h2>Spazio da configurare</h2>
-      <div className="account-space-picker"><span><Icon name={selected?.type==='personal'?'user':'family'} size={21}/></span><select value={spaceId} disabled={loading&&!spaces.length} onChange={event=>chooseSpace(event.target.value)}>{spaces.map(space=><option key={space.id} value={space.id}>{space.name}</option>)}</select><Icon name="arrowDown" size={17}/></div>
+      <SpacePicker spaces={spaces} value={spaceId} onChange={chooseSpace} variant="compact" label="Spazio da configurare" disabled={loading&&!spaces.length} className="account-custom-space-picker"/>
       <p className="settings-help">Il Conto è separato dallo Spazio. Il nome scelto viene applicato ai movimenti e alle ricorrenze appartenenti allo spazio selezionato.</p>
       <label className="picker-label">Nome del conto</label>
       <input value={name} onChange={event=>setName(event.target.value)} minLength={2} maxLength={40} disabled={loading||!canEdit} required placeholder="Es. Spese personali"/>
