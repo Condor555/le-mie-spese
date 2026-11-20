@@ -11,6 +11,7 @@ import {
 
 type Cat = {
   name: string;
+  kind: 'expense' | 'income';
   icon: string;
   color: string;
   count?: number;
@@ -18,6 +19,7 @@ type Cat = {
 
 export default function Categorie() {
   const [cats, setCats] = useState<Cat[]>([]);
+  const [tab, setTab] = useState<'expense'|'income'>('expense');
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('tag');
@@ -38,6 +40,17 @@ export default function Categorie() {
   useEffect(() => {
     load();
   }, []);
+
+  function selectTab(next: 'expense'|'income') {
+    setTab(next);
+    setName('');
+    setIcon('tag');
+    setColor(colorChoices[0]);
+    setEditing(null);
+    setOriginalName('');
+    setTarget('');
+    setMsg('');
+  }
 
   function changeName(value: string) {
     setName(value);
@@ -62,6 +75,7 @@ export default function Categorie() {
       },
       body: JSON.stringify({
         name,
+         kind: tab,
         icon,
         color,
       }),
@@ -110,6 +124,7 @@ export default function Categorie() {
           newName,
           icon: editing.icon,
           color: editing.color,
+           kind: editing.kind,
         }),
       }
     );
@@ -121,10 +136,12 @@ export default function Categorie() {
       return;
     }
 
+    const savedKind=editing.kind;
     setMsg('Categoria modificata.');
     setEditing(null);
     setOriginalName('');
     setTarget('');
+    setTab(savedKind);
 
     load();
   }
@@ -210,8 +227,14 @@ export default function Categorie() {
         </div>
       </header>
 
+      <div className="segmented category-kind-tabs" role="tablist" aria-label="Tipo categorie">
+        <button id="categories-expense-tab" type="button" role="tab" aria-selected={tab==='expense'} aria-controls="categories-expense-panel" className={tab==='expense'?'active':''} onClick={()=>selectTab('expense')}>Uscite ({cats.filter(item=>item.kind==='expense').length})</button>
+        <button id="categories-income-tab" type="button" role="tab" aria-selected={tab==='income'} aria-controls="categories-income-panel" className={tab==='income'?'active':''} onClick={()=>selectTab('income')}>Entrate ({cats.filter(item=>item.kind==='income').length})</button>
+      </div>
+
+      <div id={`categories-${tab}-panel`} role="tabpanel" aria-labelledby={`categories-${tab}-tab`}>
       <section className="settings-card surface">
-        <h2>Crea categoria</h2>
+        <h2>Crea categoria di {tab==='income'?'entrata':'spesa'}</h2>
 
         <input
           value={name}
@@ -259,10 +282,10 @@ export default function Categorie() {
       </section>
 
       <section className="settings-card surface">
-        <h2>Le tue categorie</h2>
+        <h2>Categorie di {tab==='income'?'entrata':'uscita'}</h2>
 
         <div className="category-settings">
-          {cats.map((category) => (
+          {cats.filter(category=>category.kind===tab).map((category) => (
             <button
               type="button"
               className="category-setting"
@@ -290,8 +313,10 @@ export default function Categorie() {
               <strong>›</strong>
             </button>
           ))}
+          {!cats.some(category=>category.kind===tab)&&<div className="category-kind-empty"><b>Nessuna categoria di {tab==='income'?'entrata':'uscita'}</b><small>Creane una usando il modulo qui sopra.</small></div>}
         </div>
       </section>
+      </div>
 
       {editing && (
         <div className="modal">
@@ -311,6 +336,12 @@ export default function Categorie() {
                 })
               }
             />
+
+            <label className="picker-label">Tipo</label>
+            <div className="segmented category-kind-editor">
+              <button type="button" className={editing.kind==='expense'?'active':''} onClick={()=>{setEditing({...editing,kind:'expense'});setTarget('')}}>Uscita</button>
+              <button type="button" className={editing.kind==='income'?'active':''} onClick={()=>{setEditing({...editing,kind:'income'});setTarget('')}}>Entrata</button>
+            </div>
 
             <label className="picker-label">
               Icona
@@ -374,7 +405,7 @@ export default function Categorie() {
                 {cats
                   .filter(
                     (category) =>
-                      category.name !== originalName
+                      category.name !== originalName && category.kind === editing.kind
                   )
                   .map((category) => (
                     <option

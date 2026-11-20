@@ -159,8 +159,8 @@ where c.kind='expense'
 insert into public.categories(user_id,space_id,name,kind,icon,color)
 select s.created_by,s.id,seed.name,'income',seed.icon,seed.color
 from public.spaces s cross join (values
-  ('Stipendio','wallet','#2EAA7B'),('Pensione','bank','#438FDF'),('Bonus/Premi','gift','#E3AD16'),
-  ('Regali ricevuti','gift','#DB4B8B'),('Rimborsi','refund','#3E9AA8'),('Interessi/Rendite','investment','#35A96B'),
+  ('Stipendio','wallet','#2EAA7B'),('Pensione','bank','#438FDF'),('Bonus e premi','gift','#E3AD16'),
+  ('Regali ricevuti','gift','#DB4B8B'),('Rimborsi','refund','#3E9AA8'),('Interessi e rendite','investment','#35A96B'),
   ('Vendite','store','#9655F0'),('Trasferimenti in entrata','other-income','#5B8DEF'),('Altra entrata','other-income','#68738C')
 ) as seed(name,icon,color)
 on conflict(space_id,name) do nothing;
@@ -183,8 +183,8 @@ begin
   if auth.uid() is null or not public.can_manage_space_budget(p_space_id,auth.uid()) then raise exception 'Accesso negato'; end if;
   insert into public.categories(user_id,space_id,name,kind,icon,color)
   select auth.uid(),p_space_id,seed.name,'income',seed.icon,seed.color from (values
-    ('Stipendio','wallet','#2EAA7B'),('Pensione','bank','#438FDF'),('Bonus/Premi','gift','#E3AD16'),
-    ('Regali ricevuti','gift','#DB4B8B'),('Rimborsi','refund','#3E9AA8'),('Interessi/Rendite','investment','#35A96B'),
+    ('Stipendio','wallet','#2EAA7B'),('Pensione','bank','#438FDF'),('Bonus e premi','gift','#E3AD16'),
+    ('Regali ricevuti','gift','#DB4B8B'),('Rimborsi','refund','#3E9AA8'),('Interessi e rendite','investment','#35A96B'),
     ('Vendite','store','#9655F0'),('Trasferimenti in entrata','other-income','#5B8DEF'),('Altra entrata','other-income','#68738C')
   ) as seed(name,icon,color)
   on conflict(space_id,name) do nothing;
