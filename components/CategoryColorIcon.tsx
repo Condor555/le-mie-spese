@@ -1,11 +1,12 @@
 'use client';
 
 import {useEffect,useState} from 'react';
+import type {ReactEventHandler} from 'react';
 import {TagIcon} from '@phosphor-icons/react/ssr';
 import {categoryIconAsset} from '../lib/category-icon-assets';
 
 type AssetState='loading'|'ready'|'failed';
-type VisualProps={src:string|null;ready:boolean;size:number;className?:string;onError:()=>void};
+type VisualProps={src:string|null;ready:boolean;size:number;className?:string;onError:ReactEventHandler<HTMLImageElement>};
 
 export function CategoryIconVisual({src,ready,size,className,onError}:VisualProps){
   const classNames=`category-color-icon${className?` ${className}`:''}`;
