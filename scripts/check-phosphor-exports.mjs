@@ -1,10 +1,8 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { createRequire } from 'node:module';
 import ts from 'typescript';
+import * as phosphor from '@phosphor-icons/react/ssr';
 
-const require = createRequire(import.meta.url);
-const phosphor = require('@phosphor-icons/react/ssr');
 
 const root = process.cwd();
 const sourceRoots = ['app', 'components', 'lib'];
